@@ -4,6 +4,7 @@ import conectardb from "./db/db.js";
 import router from "./routes/routes.js";
 
 const app = express();
+app.use(express.json())
 dotenv.config();
 
 conectardb();
