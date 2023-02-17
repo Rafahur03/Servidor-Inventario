@@ -4,7 +4,7 @@ const validarDatosUsuarios = async datos => {
 
     const regularEmail = /^(([^<>()[\]\.,;:\s@\"]+(\.[^<>()[\]\.,;:\s@\"]+)*)|(\".+\"))@(([^<>()[\]\.,;:\s@\"]+\.)+[^<>()[\]\.,;:\s@\"]{2,})$/i
     const regularNumber = /^(\d+|\d+|\d+|\d*\d*[Ee][+-]?\d*)$/gm
-    const regularNombre = /^[A-Z]/i
+    const regularNombre = /^[a-zA-Z ]*$/g
     const { numero_id,
         email,
         tipo_id,
@@ -47,19 +47,21 @@ const validarDatosUsuarios = async datos => {
     if (nombre.trim() == "") {
         return{ msg: 'El primer nombre es obligatorio'}
     }
-    console.log(nombre)
-    if (regularNombre.test(nombre.trim())) {
+   
+    if (!regularNombre.test(nombre.trim())) {
         return{ msg: 'El primer nombre solo puede contener letras'}
     }
 
-    if (regularNombre.test(nombre_1.trim())) {
-        return{ msg: 'El segundo nombre solo puede contener letras'}
+    if (nombre_1.trim() !== "") {
+        if (regularNombre.test(nombre_1.trim())) {
+            return{ msg: 'El segundo nombre solo puede contener letras'}
+        }
     }
-
+   
     if (apellido.trim() == "") {
         return{ msg: 'El primer apellido es obligatorio'}
     }
-    if (regularNombre.test(apellido.trim())) {
+    if (!regularNombre.test(apellido.trim())) {
         return{ msg: 'El primer apellido solo puede contener letras'}
     }
 
@@ -77,12 +79,12 @@ const validarDatosUsuarios = async datos => {
     if (estado == "") {
         return{ msg: 'Debe seleccionar un estado'}
     }
-
+    
     if (password.trim() == "") {
         return{ msg: 'La contraseña es obligatoria'}
     }
-
-    if (password.trim().length() < 6) {
+    
+    if (password.trim().length < 6) {
         return{ msg: 'La contraseña debe tener almenos 5 caracteres'}
     }
 

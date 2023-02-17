@@ -3,7 +3,7 @@ import { iniciaSesion, crearUsuario } from '../controllers/controllersUsuarios.j
 
 const router = express.Router()
 
-router.get('/', iniciaSesion)
+router.post('/', iniciaSesion)
 
 router.post('/crearUsuario', crearUsuario)
 

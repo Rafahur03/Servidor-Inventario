@@ -12,10 +12,11 @@ const crearUsuario = async(req, res) => {
         return
     }
 
-    console.log(req.body.password)
-    const hash = await encryptPassword(req.body.password)
-    console.log(hash)
+     const hash = await encryptPassword(req.body.password)
+    req.body.password = hash
+    /// agregar crear usuario
     res.json({hola:'creando Usuario'})
+
 }
 
 export{ 
