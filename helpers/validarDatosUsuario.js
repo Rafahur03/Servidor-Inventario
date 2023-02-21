@@ -1,10 +1,11 @@
 import { validarExisteUsuario } from "../db/sqlUsuarios.js"
 
+const regularEmail = /^(([^<>()[\]\.,;:\s@\"]+(\.[^<>()[\]\.,;:\s@\"]+)*)|(\".+\"))@(([^<>()[\]\.,;:\s@\"]+\.)+[^<>()[\]\.,;:\s@\"]{2,})$/i
+const regularNumber = /^(\d+|\d+|\d+|\d*\d*[Ee][+-]?\d*)$/gm
+const regularNombre = /^[a-zA-Z ]*$/g
+
 const validarDatosUsuarios = async datos => {
 
-    const regularEmail = /^(([^<>()[\]\.,;:\s@\"]+(\.[^<>()[\]\.,;:\s@\"]+)*)|(\".+\"))@(([^<>()[\]\.,;:\s@\"]+\.)+[^<>()[\]\.,;:\s@\"]{2,})$/i
-    const regularNumber = /^(\d+|\d+|\d+|\d*\d*[Ee][+-]?\d*)$/gm
-    const regularNombre = /^[a-zA-Z ]*$/g
     const { numero_id,
         email,
         tipo_id,
@@ -104,4 +105,35 @@ const validarDatosUsuarios = async datos => {
 
 }
 
-export default validarDatosUsuarios 
+const validarUsuarioCreado = async (usuario)=>{
+    if (regularEmail.test(usuario)) {
+        const validacion = await validarExisteUsuario("", usuario)
+        if (validacion.msg) {
+            return validacion
+        }
+        if(validacion[1][0].estado != 1) {
+            return{ msg: 'El usuario esta inactivo'}
+        }
+        return validacion[1][0]
+    }
+
+    if (regularNumber.test(usuario)) {
+        const validacion = await validarExisteUsuario(usuario, "")
+        console.log(validacion[0][0].estado)
+        if (validacion.msg) {
+            return validacion
+        }
+
+        if(validacion[0][0].estado != 1) {
+            return{ msg: 'El usuario esta inactivo'}
+        }
+        return validacion[0][0]
+    }
+
+    
+    
+     return{ msg: 'debe ingresar un email o un numero de id para poder iniciar sesion'}
+}
+
+export {validarDatosUsuarios,
+    validarUsuarioCreado}
