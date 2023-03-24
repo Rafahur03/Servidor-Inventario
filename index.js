@@ -4,6 +4,8 @@ import conectardb from "./db/db.js";
 import router from "./routes/routes.js";
 
 const app = express();
+
+app.use(express.raw({limit: '50mb'}))
 app.use(express.json())
 dotenv.config();
 

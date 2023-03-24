@@ -52,8 +52,6 @@ const guardarUsuario = async (data) => {
 
 const actualizarUsuario = async (data) => {
 
-   
-
     try {
         const pool = await conectardb()
         

@@ -1,6 +1,6 @@
 import express from 'express';
 import { iniciaSesion, crearUsuario, actualizaUsuario } from '../controllers/controllersUsuarios.js';
-import { consultarActivos } from '../controllers/controllersActivos.js';
+import { consultarActivosTodos, crearActivo } from '../controllers/controllersActivos.js';
 
 const router = express.Router()
 
@@ -14,6 +14,8 @@ router.post('/actualizaPerfil', actualizaUsuario)
 
 // ruta de manejo de activos
 
-router.post('/consultarActivos', consultarActivos)
+router.get('/consultarActivosTodos', consultarActivosTodos)
+
+router.post('/crearActivos', crearActivo)
 
 export default  router
