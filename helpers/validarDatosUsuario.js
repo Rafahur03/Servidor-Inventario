@@ -2,7 +2,7 @@ import { validarExisteUsuario } from "../db/sqlUsuarios.js"
 
 const regularEmail = /^(([^<>()[\]\.,;:\s@\"]+(\.[^<>()[\]\.,;:\s@\"]+)*)|(\".+\"))@(([^<>()[\]\.,;:\s@\"]+\.)+[^<>()[\]\.,;:\s@\"]{2,})$/i
 const regularNumber = /^[0-9]+$/
-const regularNombre = /^[a-zA-Z ]*$/g
+const regularNombre = /^[a-zA-Z]*$/g
 
 const validarDatosUsuarios = async (datos, id) => {
 
