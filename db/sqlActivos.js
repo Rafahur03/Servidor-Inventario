@@ -100,9 +100,24 @@ const gudardarNuevoActivo = async (data) => {
     }
 }
 
+const guardarImagenes = async (imagenes, id) => {
+
+    try {
+        const pool = await conectardb()
+        const resultado = await pool.query(`UPDATE listado_activos
+        SET url_img ='${imagenes}'
+        WHERE id = '${id}'`)
+        return (resultado.recordset[0])
+    } catch (error) {
+        console.error(error);
+        return{msg:'Ha ocurido un error al intentar guardar los datos intentalo mas tarde'}
+    }
+}
+
 
 export{ 
     consultarActivos,
     dataConfActivo,
-    gudardarNuevoActivo   
+    gudardarNuevoActivo,
+    guardarImagenes   
 }

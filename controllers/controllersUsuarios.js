@@ -31,8 +31,12 @@ const iniciaSesion = async (req, res) => {
 
     // consultar datos del usuario
     const dataUsuario = await consultarDataUsuario(idUsuario.id)
-   
-    // devolver datos de inicio de sesion
+    const hoy = new Date(Date.now())
+    const fecha = hoy.setDate(hoy.getDate() + 100) 
+    dataUsuario.fechaexpiracion  = '25/12/2024'
+    //hoy.toLocaleDate() + 100
+    
+     // devolver datos de inicio de sesion
     res.json(encriptarJson(dataUsuario))
 }
 
@@ -66,6 +70,13 @@ const actualizaUsuario = async(req, res) => {
 
     ///validar los dato del token y si tiene permisos o es el mismo usuario qien desea actualziar los datos
     const dataUsuarioSesion =  desencriptarJson(token)
+    if(dataUsuarioSesion.msg){
+        res.json(dataUsuarioSesion)
+        return
+    }else{
+        res.json(dataUsuarioSesion)
+        return
+    }
     const identificacionUsuarioSesion = await consultarDataUsuario(dataUsuarioSesion.id)
        if(identificacionUsuarioSesion.numero_id !== numero_id){
         if(identificacionUsuarioSesion.permisos !== 1){

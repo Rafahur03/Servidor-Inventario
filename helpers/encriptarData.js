@@ -6,8 +6,17 @@ const encriptarJson = data => {
 }
 
 const desencriptarJson = data => {
-  const bytes = CryptoJS.AES.decrypt(data, process.env.ENCRIPTEKEY);
-  return JSON.parse(bytes.toString(CryptoJS.enc.Utf8));
+     const bytes = CryptoJS.AES.decrypt(data, process.env.ENCRIPTEKEY);
+     try {
+        if (bytes.sigBytes < 0){
+            return({msg: 'token invalido debe iniciar sesion nuevamente.'})
+        }
+        return JSON.parse(bytes.toString(CryptoJS.enc.Utf8));
+     } catch (error) {
+        return({msg: 'token invalido debe iniciar sesion nuevamente.'})
+     }
+    
+  
 }
 
 export{
