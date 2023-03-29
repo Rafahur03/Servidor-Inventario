@@ -4,9 +4,11 @@ const regularEmail = /^(([^<>()[\]\.,;:\s@\"]+(\.[^<>()[\]\.,;:\s@\"]+)*)|(\".+\
 const regularNumber = /^[0-9]+$/
 const regularNombre = /^[a-zA-Z]*$/g
 
-const validarDatosUsuarios = async (datos, id) => {
+const validarDatosUsuarios = async (datos, validarPassword = true) => {
 
-    const { numero_id,
+    const {
+        id,
+        numero_id,
         email,
         tipo_id,
         nombre,
@@ -58,7 +60,7 @@ const validarDatosUsuarios = async (datos, id) => {
 
     if (validacion[1][0]) {
         if(typeof id === 'undefined') {
-            return{ msg: 'El el email estan asociados a otro usuario'}
+            return{ msg: 'El email estan asociados a otro usuario'}
         }
 
         if(validacion[0][0].id !== id){
@@ -97,30 +99,49 @@ const validarDatosUsuarios = async (datos, id) => {
     }
 
     if (tipo_id == "") {
-        return{ msg: 'Debe seleccionar un estado'}
+        return{ msg: 'Debe seleccionar un tipo de documento'}
     }
 
     if (estado == "") {
         return{ msg: 'Debe seleccionar un estado'}
     }
-    if(password == "") {
+
+    if(validarPassword){
+        if(!password){
+            return{ msg: 'debe ingresar una contraseña'}
+        }       
+        
         if (password.trim() == "") {
             return{ msg: 'La contraseña es obligatoria'}
         }
-        
+
         if (password.trim().length < 6) {
+            return{ msg: 'La contraseña debe tener almenos 5 caracteres'}
+        }
+
+        if(!password){
+            return{ msg: 'debe ingresar una contraseña'}
+        } 
+
+        if(!confirmarPassword){
+            return{ msg: 'debe confirmar la contraseña'}
+        }  
+        
+        if (confirmarPassword.trim().length < 6) {
             return{ msg: 'La contraseña debe tener almenos 5 caracteres'}
         }
 
         if (confirmarPassword.trim() == "") {
             return{ msg: 'Debe confirmar la contraseña'}
         }
-
+    
         if (password !== confirmarPassword) {
             return{ msg: 'Las contraseñas no coinciden'}
         }
+        
+
     }
-    
+        
     if (!Id_proveedores[0]) {
         return{ msg: 'Debe seleccionar al menos un Proveedor'}
     }

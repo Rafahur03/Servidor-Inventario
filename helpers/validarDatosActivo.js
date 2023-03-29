@@ -1,7 +1,7 @@
 import { dataConfActivo } from "../db/sqlActivos.js";
 
 
-const validarDatosActivo =  async (data) => { 
+const validarDatosActivo =  async (data, actualizar = false) => { 
     const {clasificacion_id,
     nombre,
     marca_id,
@@ -89,10 +89,18 @@ const validarDatosActivo =  async (data) => {
     if(isNaN(Date.parse(vencimiento_garantia))){
         return {msg: 'Debe ingresar una fecha validad en el campo vencimiento de garantia'}
     }
-     
-    if(!validarinfoId(dataBd[0], clasificacion_id)){
-        return {msg:'debe seleccionar una clasificacion de activos de la lista desplegable'}
+    
+    if(!actualizar){
+        if(!validarinfoId(dataBd[0], clasificacion_id)){
+            return {msg:'debe seleccionar una clasificacion de activos de la lista desplegable'}
+        }
+    
+        if(!validarinfoId(dataBd[7], usuario_id)){
+            return {msg:'debe seleccionar un responsable de la lista desplegable'}
+        }
     }
+    
+
     if(!validarinfoId(dataBd[1], marca_id)){
         return {msg:'debe seleccionar una marca de la lista desplegable'}
     }
@@ -111,9 +119,7 @@ const validarDatosActivo =  async (data) => {
     if(!validarinfoId(dataBd[6], estado_id)){
         return {msg:'debe seleccionar una estado de la lista desplegable'}
     }
-    if(!validarinfoId(dataBd[7], usuario_id)){
-        return {msg:'debe seleccionar un responsable de la lista desplegable'}
-    }
+    
     if(!validarinfoId(dataBd[8], frecuencia_id)){
         return {msg:'debe seleccionar una frecuencia de mtto de la lista desplegable'}
     }

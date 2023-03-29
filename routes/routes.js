@@ -1,7 +1,7 @@
 import express from 'express';
 import { iniciaSesion, crearUsuario, actualizaUsuario } from '../controllers/controllersUsuarios.js';
 import { consultarActivosTodos, crearActivo, actualizarActivo } from '../controllers/controllersActivos.js';
-import {checkAuth, checkAuthImage} from '../middleware/authMiddlewareUsuario.js';
+import {checkAuth} from '../middleware/authMiddlewareUsuario.js';
 const router = express.Router()
 
 // router inicio sesion y administration de usuarios
@@ -16,8 +16,8 @@ router.post('/actualizaPerfil', checkAuth, actualizaUsuario)
 
 router.get('/consultarActivosTodos', checkAuth, consultarActivosTodos)
 
-router.post('/crearActivos', checkAuthImage, crearActivo)
+router.post('/crearActivos', checkAuth, crearActivo)
 
-router.post('/actualizarActivo', checkAuthImage, actualizarActivo)
+router.post('/actualizarActivo', checkAuth, actualizarActivo)
 
 export default  router

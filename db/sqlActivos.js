@@ -114,10 +114,44 @@ const guardarImagenes = async (imagenes, id) => {
     }
 }
 
+const actualizarActivo = async (data, id) => {
+
+    try {
+        const pool = await conectardb()
+        const resultado = await pool.query(`UPDATE listado_activos
+        SET url_img ='${imagenes}'
+        WHERE id = '${id}'`)
+        return (resultado.recordset[0])
+    } catch (error) {
+        console.error(error);
+        return{msg:'Ha ocurido un error al intentar guardar los datos intentalo mas tarde'}
+    }
+}
+
+const consultarCodigoInterno = async (id) => {
+
+    try {
+        const pool = await conectardb()
+
+        const resultado = await pool.query(`SELECT CONCAT( RTRIM(ca. siglas), la.consecutivo_interno) AS codigo
+                FROM listado_activos la
+                INNER JOIN clasificacion_activos ca
+                    on la.clasificacion_id =ca.id
+                 WHERE la.id = '${id}'`)
+
+        return (resultado.recordset[0])
+    } catch (error) {
+        console.error(error);
+        return{msg:'Ha ocurido un error al intentar consultar los datos intentalo mas tarde'}
+    }
+}
+
+
 
 export{ 
     consultarActivos,
     dataConfActivo,
     gudardarNuevoActivo,
-    guardarImagenes   
+    guardarImagenes,
+    consultarCodigoInterno
 }
