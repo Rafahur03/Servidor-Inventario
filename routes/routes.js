@@ -1,6 +1,11 @@
 import express from 'express';
 import { iniciaSesion, crearUsuario, actualizaUsuario } from '../controllers/controllersUsuarios.js';
-import { consultarActivosTodos, crearActivo, actualizarActivo } from '../controllers/controllersActivos.js';
+import {
+    consultarActivosTodos,
+    crearActivo,
+    actualizarActivo,
+    cambiarClasificacion,
+    eliminarActivo} from '../controllers/controllersActivos.js';
 import {checkAuth} from '../middleware/authMiddlewareUsuario.js';
 const router = express.Router()
 
@@ -19,5 +24,9 @@ router.get('/consultarActivosTodos', checkAuth, consultarActivosTodos)
 router.post('/crearActivos', checkAuth, crearActivo)
 
 router.post('/actualizarActivo', checkAuth, actualizarActivo)
+
+router.post('/cambiarClasificacion', checkAuth, cambiarClasificacion)
+
+router.post('/eliminarActivo', checkAuth, eliminarActivo)
 
 export default  router
