@@ -4,7 +4,9 @@ import fs from 'fs'
 
 import { consultarActivos } from "../db/sqlActivos.js"
 import { validarDatosActivo } from "../helpers/validarDatosActivo.js"
-import { copiarYCambiarNombre } from "../helpers/copiarCarpetasArchivos.js"
+import { copiarYCambiarNombre,
+         guardarImagenesNuevoActivo,
+         bufferimagenes  } from "../helpers/copiarCarpetasArchivos.js"
 import { 
     gudardarNuevoActivo,
     guardarImagenes,
@@ -51,48 +53,38 @@ const crearActivo = async (req, res) => {
         data.fecha_creacion = hoy.toLocaleDateString()
 
         // guardamos los datos en la bd y devolvemos el codigo el id y el tipo de activo
-        const dataActivo = await gudardarNuevoActivo(data)
-        //anexamos los datos de codigo
-          
-        data.codigo = dataActivo.codigo
-        data.id= dataActivo.id
+       const dataActivo = await gudardarNuevoActivo(data)
+       if(dataActivo.msg){
+        return res.json(dataActivo)
+       }
 
-       /// path fijo para gardar y distriuit las arhivos a guardar en el servidor
-        const destinoPath = 'G:\\Mi unidad\\Sistema de Gestión de Calidad COS en revision y actualizacion\\IMPLEMENTACIÓN\\2020\\GESTION DE INFRAESTRUCTURA\\Inventario\\'+ dataActivo.siglas + '\\' + dataActivo.codigo + '\\' 
+        
+       //anexamos los datos de codigo
+       data.codigo = dataActivo.codigo
+       data.id= dataActivo.id
 
-        // verificar si la ruta existe ni no se crean las carpetas
-        if(!fs.existsSync(destinoPath)){
-            fs.mkdirSync(destinoPath, { recursive:true });
+       // guarda las imagenes en la ruta perteneciente al activo y devolver los nombres de la imagenes
+
+        const url_img =  await guardarImagenesNuevoActivo(files, dataActivo)
+        if(url_img.msg){
+            return res.json(url_img)
         }
 
-        // copiar las imagenes a la carpeta de destino
-        let url_img=[]
-
-        files.Image.forEach((image, index)=>{
-            fs.copyFileSync(image.filepath, destinoPath + dataActivo.codigo + '-' + Date.now() + '.' + mime.extension(image.mimetype))
-            url_img[index] = dataActivo.codigo + '-' + index + '.' + mime.extension(image.mimetype)  
-        })
-
+        data.url_img = url_img
+ 
         // guardar el listado de images en la base de datos
-        const guardadoExitoso= await guardarImagenes(url_img.toString(), dataActivo.id)
+        const guardadoExitoso= await guardarImagenes(url_img.toString(), data.id)
         if(guardadoExitoso.msg){
            res.json({msg: 'los datos se guardaron correctamente, pero hubo un error al guardar las imagenes '})
         }
-        // agregar a data el listado de imagenes
-
-        //preparar respuesta enviando las imagenes y la informacion den nuevo activo
-        delete data.token
-        data.url_img = url_img
-
-        const imageBuffers = url_img.map(imageName => {
-            const imagePath = destinoPath + imageName
-            return fs.readFileSync(imagePath);
-          });
+      
+        //optener un buffer de las imagenes 
+        const Imagenes = bufferimagenes(url_img, dataActivo)
 
           // enviar respuesta con los datos del activo 
         res.json({
             data,
-            images: imageBuffers.map((buffer,index) => `data:${mime.lookup(url_img[index])};base64,${buffer.toString('base64')}`)
+            Imagenes
         })
         
     });

@@ -47,18 +47,19 @@ const consultarActivos = async () => {
 }
 
 const gudardarNuevoActivo = async (data) => {
+    const pool = await conectardb()
 
     try {
         const consecutivo = await pool.query(
             `SELECT TOP 1 consecutivo_interno 
                 FROM listado_activos 
-                WHERE clasificacion_id='${activo.clasificacion_id}' 
+                WHERE clasificacion_id='${data.clasificacion_id}' 
             ORDER BY consecutivo_interno DESC
         `)
-
+  
         const aumento = parseInt(consecutivo.recordset[0].consecutivo_interno) + 1
-        activo.consecutivo_interno = aumento.toString().padStart(4, 0)
-       
+        data.consecutivo_interno = aumento.toString().padStart(4, 0)
+   
         const resultado = await pool.query(`
             INSERT INTO listado_activos (clasificacion_id, 
                 consecutivo_interno,
@@ -81,14 +82,12 @@ const gudardarNuevoActivo = async (data) => {
                 recomendaciones_Mtto,
                 obervacion,
                 create_by,
-                ipo_activo_id,
-                fecha_creacion,
-                )
-                VALUES('${data.clasificacion_id}','${data.consecutivo_interno}','${data.nombre}','${data.marca_id}','${data.modelo}','${data.serie}','${data.proceso_id}','${data.area_id}','${data.ubicacion}','${data.usuario_id}','${data.estado_id}','${data.proveedor_id}','${data.numero_factura}','${data.valor}','${data.fecha_compra}','${data.vencimiento_garantia}','${activo.frecuencia_id}','${activo.descripcion}','${data.recomendaciones_Mtto}','${data.obervacion}','${data.create_by}','${data.data}','${data.fecha_creacion}')
+                tipo_activo_id,
+                fecha_creacion)
+                VALUES('${data.clasificacion_id}','${data.consecutivo_interno}','${data.nombre}','${data.marca_id}','${data.modelo}','${data.serie}','${data.proceso_id}','${data.area_id}','${data.ubicacion}','${data.usuario_id}','${data.estado_id}','${data.proveedor_id}','${data.numero_factura}','${data.valor}','${data.fecha_compra}','${data.vencimiento_garantia}','${data.frecuencia_id}','${data.descripcion}','${data.recomendaciones_Mtto}','${data.obervacion}','${data.create_by}','${data.tipo_activo_id}','${data.fecha_creacion}')
         
             SELECT IDENT_CURRENT('listado_activos') AS id
         `)
-
         const id = resultado.recordset[0].id
 
         const newActivo = await pool.query(`
@@ -100,11 +99,11 @@ const gudardarNuevoActivo = async (data) => {
                     on la.estado_id = es.id
             WHERE la.id = '${id}'
         `)
-
+      
         return (newActivo.recordset[0])
     } catch (error) {
         console.error(error);
-        return{msg:'Ha ocurido un error al intentar guardar los datos intentalo mas tarde'}
+        return{msg:'Ha ocurido un error al intentar crear los datos  del activo intentalo mas tarde'}
     }
 }
 

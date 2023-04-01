@@ -1,40 +1,105 @@
-import { promises as fs } from 'fs' ; // Importa el módulo fs con promesas
+import { promises as fspromises } from 'fs'; // Importa el módulo fs con promesas
+import fs from 'fs'
 import mime from 'mime-types'
 
-const copiarYCambiarNombre = async  (data)=> {
-  try {
-    
-    const {siglaAntigua, siglaNueva, codigoAntiguo, codigoNuevo} = data
 
-    const path = process.env.PATH_FILES
-    //Cambiar ubicacion y nombre de una carpeta
-    await fs.rename(`${path}\\${siglaAntigua}\\${codigoAntiguo}`, `${path}\\${siglaNueva}\\${codigoNuevo}`);
-    // cambia los nombres de los archivos al nuevo codigo
+const path = process.env.PATH_FILES
 
-    const carpeta = `${path}\\${siglaNueva}\\${codigoNuevo}`
-    const url_img =[]
-    const extenciones = ['jpg', 'png', 'jpeg']
-    const archivos = await fs.readdir(carpeta);
-    const promesasRenombramiento = archivos.map((archivo, indice) => {
-        const nuevoNombre = archivo.replace(codigoAntiguo, codigoNuevo)
-        const viejoNombre = `${carpeta}/${archivo}`;
-        const nuevoNombreCompleto = `${carpeta}/${nuevoNombre}`;
-        const tipo = mime.extension(mime.lookup(nuevoNombre))
-        if(extenciones.includes(tipo)) { 
-            url_img.push(nuevoNombre);
-        }
-      
-    return fs.rename(viejoNombre, nuevoNombreCompleto);
+const copiarYCambiarNombre = async (data) => {
+	try {
 
-    });
-    ;
-    await Promise.all(promesasRenombramiento);
-   return url_img
+		const { siglaAntigua, siglaNueva, codigoAntiguo, codigoNuevo } = data
 
-} catch (error) {
-    console.error(`Ha ocurrido un error: ${error.message}`);
-    return{msg:'error al guardar las imagenes'}
-  }
+
+		//Cambiar ubicacion y nombre de una carpeta
+		await fspromises.rename(`${path}\\${siglaAntigua}\\${codigoAntiguo}`, `${path}\\${siglaNueva}\\${codigoNuevo}`);
+		// cambia los nombres de los archivos al nuevo codigo
+
+		const carpeta = `${path}\\${siglaNueva}\\${codigoNuevo}`
+		const url_img = []
+		const extenciones = ['jpg', 'png', 'jpeg']
+		const archivos = await fspromises.readdir(carpeta);
+
+		const promesasRenombramiento = archivos.map((archivo) => {
+			const nuevoNombre = archivo.replace(codigoAntiguo, codigoNuevo)
+			const viejoNombre = `${carpeta}/${archivo}`;
+			const nuevoNombreCompleto = `${carpeta}/${nuevoNombre}`;
+			const tipo = mime.extension(mime.lookup(nuevoNombre))
+			if (extenciones.includes(tipo)) {
+				url_img.push(nuevoNombre);
+			}
+
+			return fspromises.rename(viejoNombre, nuevoNombreCompleto);
+
+		});
+
+		await Promise.all(promesasRenombramiento);
+		return url_img
+
+	} catch (error) {
+		console.error(`Ha ocurrido un error: ${error.message}`);
+		return { msg: 'error al guardar las imagenes' }
+	}
 }
 
-export {copiarYCambiarNombre}
+const guardarImagenesNuevoActivo = async (files, data) => {
+
+	function getRandomInt(max) {
+		return Math.floor(Math.random() * max);
+	}
+
+	try {
+		const pathActivo = `${path}${data.siglas}\\${data.codigo}\\`
+	
+		try {
+			await fspromises.access(pathActivo, fspromises.constants.F_OK);
+		} catch (error) {
+			await fspromises.mkdir(pathActivo);
+			console.log(`Carpeta ${pathActivo} creada.`);
+		}
+
+		// copia las imagenes a las carptea del activo
+		const url_img = []
+		const promesasDeCopia = files.Image.map(async file => {
+			const pathOrigen = file.filepath
+			const nuevoNombre = `${data.codigo}-${Date.now()}${getRandomInt(100)}.${mime.extension(file.mimetype)}`
+
+			const pathDestino = `${pathActivo}${nuevoNombre}`
+
+			url_img.push(nuevoNombre)
+			await  fspromises.copyFile(pathOrigen, pathDestino);
+		})
+		await Promise.all(promesasDeCopia);
+		
+
+		// elimina nos archivos temporales 
+		const promesasEliminar = files.Image.map(async file => {
+			const pathOrigen = file.filepath
+			await fspromises.unlink(pathOrigen);
+		})
+		await Promise.all(promesasEliminar);
+
+		return url_img
+
+	} catch (error) {
+		console.error(`Ha ocurrido un error: ${error.message}`);
+		return { msg: 'error al guardar las imagenes' }
+	}
+}
+const bufferimagenes = (url_img, data) =>{
+	const pathActivo = `${path}${data.siglas}\\${data.codigo}\\`
+	const imageBuffers = url_img.map(imageName => {
+		const imagePath = pathActivo + imageName
+		const buffer = fs.readFileSync(imagePath);
+		const bufferCompleto = `data:${mime.lookup(imageName)};base64,${buffer.toString('base64')}`
+		return bufferCompleto 
+	  });
+	  return imageBuffers
+}
+
+export {
+	copiarYCambiarNombre,
+	guardarImagenesNuevoActivo,
+	bufferimagenes
+
+}
