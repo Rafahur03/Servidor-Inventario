@@ -1,19 +1,21 @@
 import formidable from "formidable"
-import mime from 'mime-types'
-import fs from 'fs'
 
 import { consultarActivos } from "../db/sqlActivos.js"
 import { validarDatosActivo } from "../helpers/validarDatosActivo.js"
 import { copiarYCambiarNombre,
          guardarImagenesNuevoActivo,
-         bufferimagenes  } from "../helpers/copiarCarpetasArchivos.js"
+         bufferimagenes,
+         elimnarImagenes,
+         eliminarCarpetaActivo  } from "../helpers/copiarCarpetasArchivos.js"
+
 import { 
     gudardarNuevoActivo,
     guardarImagenes,
     consultarCodigoInterno,
     actualizarActivoDb,
     consultarCalsificacionActivoMod,
-    actualizarClasificacion } from "../db/sqlActivos.js"
+    actualizarClasificacion,
+    eliminarActivoDb } from "../db/sqlActivos.js"
 
 
 const consultarActivosTodos = async (req, res) => {
@@ -83,6 +85,7 @@ const crearActivo = async (req, res) => {
 
           // enviar respuesta con los datos del activo 
         res.json({
+            msg: 'Activo creado correctamente',
             data,
             Imagenes
         })
@@ -107,11 +110,11 @@ const actualizarActivo = async (req, res) => {
         }
         // extrae los datos del req 
         const data = JSON.parse(fields.data) 
-
+ 
         //validar que el id corresponde al codigo interno del equipo
-        const codigoInternoDb =  await consultarCodigoInterno(data.id)
+        const dataBd =  await consultarCodigoInterno(data.id)
         
-        if(codigoInternoDb.codigo !== data.codigo){
+        if(dataBd.codigo !== data.codigo){
             return res.json({msg: 'El Id del activo no corresponde al codigo interno no se puede actualizar los datos'})
         }
 
@@ -120,59 +123,59 @@ const actualizarActivo = async (req, res) => {
             return res.json({msg: 'No se puede eliminar todas las imagenes'})
         }
 
-        let imageneDb = codigoInternoDb.url_img.split(',')
+        let imageneDb = dataBd.url_img.split(',')
         const ElminoImagen = JSON.stringify(imageneDb) === JSON.stringify(data.url_img)
 
-        // crea un nuevo arreglo con losnombres de las imagenes
-        let nuevaUrl_imag
-        let imagenesEliminar
-
-        if(ElminoImagen){
-            nuevaUrl_imag = imageneDb
-        }else{  
-            nuevaUrl_imag = imageneDb.filter(image => data.url_img.includes(image))
-            imagenesEliminar = imageneDb.filter(image => !data.url_img.includes(image))
-        }
         // valida que esten normalizados para ingreso a la bd
         const validacion = await validarDatosActivo(data, true)
         if(validacion.msg){
             return res.json(validacion)
         }
-        // verificar si existen imagenes guardarlas y actualizar la bd
-        const destinoPath = 'G:\\Mi unidad\\Sistema de Gestión de Calidad COS en revision y actualizacion\\IMPLEMENTACIÓN\\2020\\GESTION DE INFRAESTRUCTURA\\Inventario\\'+ codigoInternoDb.siglas + '\\' + codigoInternoDb.codigo + '\\' 
 
-        if(files.Image){
-            let url_img=[]
-            files.Image.forEach((image, index)=>{
-                fs.copyFileSync(image.filepath, destinoPath + codigoInternoDb.codigo + '-' + Date.now() + '.' + mime.extension(image.mimetype))
-                url_img[index] = dataActivo.codigo + '-' + index + '.' + mime.extension(image.mimetype)  
-            })
-            nuevaUrl_imag.concat(url_img)
+        // crea un nuevo arreglo con losnombres de las imagenes
+        let imagenesEliminar
+
+        if(!ElminoImagen){
+            imagenesEliminar = imageneDb.filter(image => !data.url_img.includes(image))
         }
+        
+        // verificar si existen imagenes guardarlas
+        
+         if(files.Image){
+           const  nuevaUrl_imag= await guardarImagenesNuevoActivo(files, dataBd)
+            if(nuevaUrl_imag.msg){
+                return res.json(nuevaUrl_imag)
+            }
+            const  nuevasImages = nuevaUrl_imag.concat(data.url_img)
+            data.url_img = nuevasImages
 
-        if(imagenesEliminar.length > 0) {
-            imagenesEliminar.forEach( image =>{
-                fs.unlinkSync(destinoPath + image)
-            }) 
         }
-
-        data.url_img = nuevaUrl_imag
+       
         // actualizar activo en bd
+      
+        data.url_img = data.url_img.toString()
+        console.log(data)
         const actualizar = await actualizarActivoDb(data)
         if (actualizar.msg){
             return res.json(actualizar)
+        } 
+
+        if(!ElminoImagen){
+            await elimnarImagenes(imagenesEliminar, dataBd)
         }
+
+        data.url_img = data.url_img.split(',')
+    
         // devolver los nuevos datos del activo y las imagenes
-        const imageBuffers = data.url_img.map(imageName => {
-            const imagePath = destinoPath + imageName
-            return fs.readFileSync(imagePath);
-          });
+        
+        const Imagenes = bufferimagenes(data.url_img, dataBd)
+
 
           // enviar respuesta con los datos del activo e imagenes
         res.json({
             msg:'Activo actualizado correctamente',
             data,
-            images: imageBuffers.map((buffer,index) => `data:${mime.lookup(data.url_img[index])};base64,${buffer.toString('base64')}`)
+            Imagenes        
         })
 
     })
@@ -250,12 +253,25 @@ const eliminarActivo = async (req, res) => {
 
     const data = req.body
 
-    const codigointerno =  await consultarCodigoInterno(data.id)
-    if (codigointerno.codigo !== data.codigo) {
+    const datadb =  await consultarCodigoInterno(data.id)
+    if (datadb.codigo !== data.codigo) {
         return res.json({msg: 'El codigo ingresado no coincide con el codigo del activo'})
     }
+    const eliminado = eliminarActivoDb(data)
+    if(eliminado.msg){
+        return res.json(eliminado)  
+    }
 
-    res.json({data}  )
+    const carpetaEliminada = eliminarCarpetaActivo(datadb)
+    if(carpetaEliminada.msg){
+        return res.json(carpetaEliminada)
+    }
+   
+
+    res.json({
+        msg: 'Eliminado Correctamete',
+        data
+    })
 }
 
 export{     

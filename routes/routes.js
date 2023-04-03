@@ -1,12 +1,16 @@
 import express from 'express';
 import { iniciaSesion, crearUsuario, actualizaUsuario } from '../controllers/controllersUsuarios.js';
+import {checkAuth} from '../middleware/authMiddlewareUsuario.js';
 import {
     consultarActivosTodos,
     crearActivo,
     actualizarActivo,
     cambiarClasificacion,
     eliminarActivo} from '../controllers/controllersActivos.js';
-import {checkAuth} from '../middleware/authMiddlewareUsuario.js';
+import { consultarSoportesTodos,
+    crearSolicitud } from '../controllers/controllerSolicitudSoporte.js';
+
+
 const router = express.Router()
 
 // router inicio sesion y administration de usuarios
@@ -28,5 +32,11 @@ router.post('/actualizarActivo', checkAuth, actualizarActivo)
 router.post('/cambiarClasificacion', checkAuth, cambiarClasificacion)
 
 router.post('/eliminarActivo', checkAuth, eliminarActivo)
+
+// ruta de solicitudes de soporte 
+
+router.get('/consultarSoportesTodos', checkAuth, consultarSoportesTodos)
+
+router.post('/crearSolicitud', checkAuth, crearSolicitud)
 
 export default  router

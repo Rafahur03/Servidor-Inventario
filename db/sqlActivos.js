@@ -116,7 +116,6 @@ const guardarImagenes = async (imagenes, id) => {
                 SET url_img ='${imagenes}'
             WHERE id = '${id}'
         `)
-        console.log(resultado)
         return (resultado.rowsAffected)
     } catch (error) {
         console.error(error);
@@ -152,7 +151,7 @@ const actualizarActivoDb = async (data) => {
                 url_img ='${data.url_img}'
             WHERE id='${data.id}'
         `)
-        return (resultado.recordset[0])
+        return (resultado.rowsAffected)
     } catch (error) {
         console.error(error);
         return{msg:'Ha ocurido un error al intentar guardar los datos intentalo mas tarde'}
@@ -165,7 +164,7 @@ const consultarCodigoInterno = async (id) => {
         const pool = await conectardb()
 
         const resultado = await pool.query(`
-            SELECT CONCAT( RTRIM(ca. siglas), la.consecutivo_interno) AS codigo, la.url_img, RTRIM(ca.siglas) AS siglas
+            SELECT CONCAT( RTRIM(ca. siglas), la.consecutivo_interno) AS codigo, la.url_img, RTRIM(ca.siglas) AS siglas, la.estado
                 FROM listado_activos la
                 INNER JOIN clasificacion_activos ca
                     on la.clasificacion_id =ca.id
@@ -225,9 +224,22 @@ const actualizarClasificacion = async (idactivo, idclasificacion, consecutivo_in
     }
 }
 
-
-
-
+const eliminarActivoDb = async (data) => {
+    
+    try {
+        const pool = await conectardb()
+        const resultado = await pool.query(`
+            UPDATE listado_activos
+                SET estado_id ='3',
+                eliminacion_cambio ='${data.motivo}'
+            WHERE id='${data.id}'
+        `)
+         return (resultado.rowsAffected)
+    } catch (error) {
+        console.error(error);
+        return{msg:'Ha ocurido un error al intentar eliminar el activo'}
+    }
+}
 
 export{ 
     consultarActivos,
@@ -237,5 +249,6 @@ export{
     consultarCodigoInterno,
     actualizarActivoDb,
     consultarCalsificacionActivoMod,
-    actualizarClasificacion
+    actualizarClasificacion,
+    eliminarActivoDb
 }

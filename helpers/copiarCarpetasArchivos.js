@@ -46,11 +46,11 @@ const guardarImagenesNuevoActivo = async (files, data) => {
 
 	function getRandomInt(max) {
 		return Math.floor(Math.random() * max);
-	}
+	}	
 
 	try {
 		const pathActivo = `${path}${data.siglas}\\${data.codigo}\\`
-	
+
 		try {
 			await fspromises.access(pathActivo, fspromises.constants.F_OK);
 		} catch (error) {
@@ -60,25 +60,35 @@ const guardarImagenesNuevoActivo = async (files, data) => {
 
 		// copia las imagenes a las carptea del activo
 		const url_img = []
-		const promesasDeCopia = files.Image.map(async file => {
-			const pathOrigen = file.filepath
-			const nuevoNombre = `${data.codigo}-${Date.now()}${getRandomInt(100)}.${mime.extension(file.mimetype)}`
+		// verificamos si es una o mas de una imagen. 
+		const dimension = files.Image.length
+		const tipo = typeof dimension  === undefined
+	
+		if (!tipo) {
+				const promesasDeCopia = files.Image.map(async file => {
+				const pathOrigen = file.filepath
+				const nuevoNombre = `${data.codigo}-${Date.now()}${getRandomInt(100)}.${mime.extension(file.mimetype)}`
+				const pathDestino = `${pathActivo}${nuevoNombre}`
+				url_img.push(nuevoNombre)
+				await fspromises.copyFile(pathOrigen, pathDestino);
+			})
+			await Promise.all(promesasDeCopia);
 
+			// elimina nos archivos temporales 
+			const promesasEliminar = files.Image.map(async file => {
+				const pathOrigen = file.filepath
+				await fspromises.unlink(pathOrigen);
+			})
+			await Promise.all(promesasEliminar);
+
+		} else {
+			const pathOrigen = files.Image.filepath
+			const nuevoNombre = `${data.codigo}-${Date.now()}${getRandomInt(100)}.${mime.extension(files.Image.mimetype)}`
 			const pathDestino = `${pathActivo}${nuevoNombre}`
-
 			url_img.push(nuevoNombre)
-			await  fspromises.copyFile(pathOrigen, pathDestino);
-		})
-		await Promise.all(promesasDeCopia);
-		
-
-		// elimina nos archivos temporales 
-		const promesasEliminar = files.Image.map(async file => {
-			const pathOrigen = file.filepath
-			await fspromises.unlink(pathOrigen);
-		})
-		await Promise.all(promesasEliminar);
-
+			await fspromises.copyFile(pathOrigen, pathDestino)
+			await fspromises.unlink(pathOrigen)
+		}
 		return url_img
 
 	} catch (error) {
@@ -86,20 +96,54 @@ const guardarImagenesNuevoActivo = async (files, data) => {
 		return { msg: 'error al guardar las imagenes' }
 	}
 }
-const bufferimagenes = (url_img, data) =>{
+
+const bufferimagenes = (url_img, data) => {
+
 	const pathActivo = `${path}${data.siglas}\\${data.codigo}\\`
 	const imageBuffers = url_img.map(imageName => {
 		const imagePath = pathActivo + imageName
 		const buffer = fs.readFileSync(imagePath);
 		const bufferCompleto = `data:${mime.lookup(imageName)};base64,${buffer.toString('base64')}`
-		return bufferCompleto 
-	  });
-	  return imageBuffers
+		return bufferCompleto
+	});
+	return imageBuffers
+}
+
+const elimnarImagenes = async (files, data) => {
+	
+	try {
+		const pathActivo = `${path}${data.siglas}\\${data.codigo}\\`
+		const promesasEliminar = files.map(async file => {
+			const pathOrigen = pathActivo + file
+			await fspromises.unlink(pathOrigen);
+		})
+		await Promise.all(promesasEliminar);
+	} catch (error) {
+		console.error(`Ha ocurrido un error: ${error.message}`);
+		return { msg: 'error al elimiar las imagenes' }
+	}
+
+
+}
+
+const eliminarCarpetaActivo = async (data) => {
+
+	try {
+		const {siglas, codigo} = data
+		//renonbrar carpeta 
+		await fspromises.rename(`${path}\\${siglas}\\${codigo}`, `${path}\\${siglas}\\${codigo}-E`)
+		
+	} catch (error) {
+		console.error(`Ha ocurrido un error: ${error.message}`);
+		return { msg: 'Error al intentat eliminar la carpeta del activo' }
+	}
 }
 
 export {
 	copiarYCambiarNombre,
 	guardarImagenesNuevoActivo,
-	bufferimagenes
+	bufferimagenes,
+	elimnarImagenes,
+	eliminarCarpetaActivo
 
 }
