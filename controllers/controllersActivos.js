@@ -1,6 +1,6 @@
 import formidable from "formidable"
 
-import { consultarActivos } from "../db/sqlActivos.js"
+
 import { validarDatosActivo } from "../helpers/validarDatosActivo.js"
 import { copiarYCambiarNombre,
          guardarImagenesNuevoActivo,
@@ -8,7 +8,8 @@ import { copiarYCambiarNombre,
          elimnarImagenes,
          eliminarCarpetaActivo  } from "../helpers/copiarCarpetasArchivos.js"
 
-import { 
+import { consultarActivos,
+    consultarActivoUno,
     gudardarNuevoActivo,
     guardarImagenes,
     consultarCodigoInterno,
@@ -23,6 +24,24 @@ const consultarActivosTodos = async (req, res) => {
     res.json(listadoActivos)
 }
 
+const consultarActivo = async (req, res) => {
+    const id = req.body.id
+
+    const activo  = await consultarActivoUno(id)
+    const data = activo[0][0]
+    const codigo = activo[1][0].codigo
+    data.codigo = codigo
+
+    const dataBd =  await consultarCodigoInterno(id)
+    const url_img= dataBd.url_img.split(',')
+    const Imagenes = bufferimagenes(url_img, dataBd)
+    
+
+    res.json({
+        data,
+        Imagenes
+    })
+}
 const crearActivo = async (req, res) => {
 
     // validar permisos para crear activos
@@ -95,7 +114,7 @@ const crearActivo = async (req, res) => {
 
 const actualizarActivo = async (req, res) => {
 
-    const {sessionid, permisos} = req
+    const {permisos} = req
     const arrPermisos = JSON.parse(permisos)
     if (arrPermisos.indexOf(3) === -1) {
         return res.json({msg: 'Usted no tiene permisos para Actualizar Activos'})
@@ -141,14 +160,13 @@ const actualizarActivo = async (req, res) => {
         
         // verificar si existen imagenes guardarlas
         
-         if(files.Image){
+        if(files.Image){
            const  nuevaUrl_imag= await guardarImagenesNuevoActivo(files, dataBd)
             if(nuevaUrl_imag.msg){
                 return res.json(nuevaUrl_imag)
             }
             const  nuevasImages = nuevaUrl_imag.concat(data.url_img)
             data.url_img = nuevasImages
-
         }
        
         // actualizar activo en bd
@@ -274,11 +292,14 @@ const eliminarActivo = async (req, res) => {
     })
 }
 
+
+
 export{     
     consultarActivosTodos,
     crearActivo,
     actualizarActivo,
     cambiarClasificacion,
-    eliminarActivo
+    eliminarActivo,
+    consultarActivo
 }
 

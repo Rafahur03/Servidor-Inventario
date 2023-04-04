@@ -6,9 +6,12 @@ import {
     crearActivo,
     actualizarActivo,
     cambiarClasificacion,
-    eliminarActivo} from '../controllers/controllersActivos.js';
+    eliminarActivo,
+    consultarActivo} from '../controllers/controllersActivos.js';
 import { consultarSoportesTodos,
-    crearSolicitud } from '../controllers/controllerSolicitudSoporte.js';
+    crearSolicitud,
+    modificarSolicitud,
+    eliminarSolicitud } from '../controllers/controllerSolicitudSoporte.js';
 
 
 const router = express.Router()
@@ -25,6 +28,8 @@ router.post('/actualizaPerfil', checkAuth, actualizaUsuario)
 
 router.get('/consultarActivosTodos', checkAuth, consultarActivosTodos)
 
+router.post('/consultarActivo', checkAuth, consultarActivo)
+
 router.post('/crearActivos', checkAuth, crearActivo)
 
 router.post('/actualizarActivo', checkAuth, actualizarActivo)
@@ -33,10 +38,15 @@ router.post('/cambiarClasificacion', checkAuth, cambiarClasificacion)
 
 router.post('/eliminarActivo', checkAuth, eliminarActivo)
 
+
 // ruta de solicitudes de soporte 
 
 router.get('/consultarSoportesTodos', checkAuth, consultarSoportesTodos)
 
 router.post('/crearSolicitud', checkAuth, crearSolicitud)
+
+router.post('/modificarSolicitud', checkAuth, modificarSolicitud)
+
+router.post('/eliminarSolicitud', checkAuth, eliminarSolicitud)
 
 export default  router

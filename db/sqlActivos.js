@@ -46,6 +46,26 @@ const consultarActivos = async () => {
     }
 }
 
+const consultarActivoUno = async (id) => {
+
+    try {
+        const pool = await conectardb()
+        const resultado = await pool.query(`
+            SELECT * FROM listado_activos
+            WHERE id ='${id}'
+        
+            SELECT CONCAT(TRIM(ca.siglas),la.consecutivo_interno) as codigo FROM listado_activos la
+                INNER JOIN clasificacion_activos ca
+                ON ca.id = la.clasificacion_id
+            WHERE la.id ='${id}'
+        `)
+        return (resultado.recordsets)
+    } catch (error) {
+        console.error(error);
+        return{msg:'Ha ocurido un error al intentar consultar los dato'}
+    }
+}
+
 const gudardarNuevoActivo = async (data) => {
     const pool = await conectardb()
 
@@ -164,7 +184,7 @@ const consultarCodigoInterno = async (id) => {
         const pool = await conectardb()
 
         const resultado = await pool.query(`
-            SELECT CONCAT( RTRIM(ca. siglas), la.consecutivo_interno) AS codigo, la.url_img, RTRIM(ca.siglas) AS siglas, la.estado
+            SELECT CONCAT( RTRIM(ca. siglas), la.consecutivo_interno) AS codigo, la.url_img, RTRIM(ca.siglas) AS siglas, la.estado_id
                 FROM listado_activos la
                 INNER JOIN clasificacion_activos ca
                     on la.clasificacion_id =ca.id
@@ -250,5 +270,6 @@ export{
     actualizarActivoDb,
     consultarCalsificacionActivoMod,
     actualizarClasificacion,
-    eliminarActivoDb
+    eliminarActivoDb,
+    consultarActivoUno
 }

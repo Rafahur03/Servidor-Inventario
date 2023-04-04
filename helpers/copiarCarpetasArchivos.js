@@ -5,11 +5,11 @@ import mime from 'mime-types'
 
 const path = process.env.PATH_FILES
 
+// funcion para cuando cambian de clasificacion un activo
 const copiarYCambiarNombre = async (data) => {
 	try {
 
 		const { siglaAntigua, siglaNueva, codigoAntiguo, codigoNuevo } = data
-
 
 		//Cambiar ubicacion y nombre de una carpeta
 		await fspromises.rename(`${path}\\${siglaAntigua}\\${codigoAntiguo}`, `${path}\\${siglaNueva}\\${codigoNuevo}`);
@@ -42,14 +42,30 @@ const copiarYCambiarNombre = async (data) => {
 	}
 }
 
-const guardarImagenesNuevoActivo = async (files, data) => {
+const guardarImagenesNuevoActivo = async (files, data, destino) => {
 
 	function getRandomInt(max) {
 		return Math.floor(Math.random() * max);
-	}	
+	}
 
 	try {
-		const pathActivo = `${path}${data.siglas}\\${data.codigo}\\`
+
+		let pathActivo
+
+		switch (destino) {
+			case 1:
+				pathActivo = `${path}${data.siglas}\\${data.codigo}\\Solicitud\\`
+				break
+
+			case 2:
+				pathActivo = `${path}${data.siglas}\\${data.codigo}\\Reporte\\`
+				break
+
+			default:
+				pathActivo = `${path}${data.siglas}\\${data.codigo}\\`
+				break
+		}
+
 
 		try {
 			await fspromises.access(pathActivo, fspromises.constants.F_OK);
@@ -62,28 +78,39 @@ const guardarImagenesNuevoActivo = async (files, data) => {
 		const url_img = []
 		// verificamos si es una o mas de una imagen. 
 		const dimension = files.Image.length
-		const tipo = typeof dimension  === undefined
-	
+		const tipo = typeof dimension === 'undefined'
+
 		if (!tipo) {
-				const promesasDeCopia = files.Image.map(async file => {
+			const promesasDeCopia = files.Image.map(async file => {
 				const pathOrigen = file.filepath
-				const nuevoNombre = `${data.codigo}-${Date.now()}${getRandomInt(100)}.${mime.extension(file.mimetype)}`
+				let nuevoNombre
+				if (destino) {
+					nuevoNombre = `${Date.now()}${getRandomInt(100)}.${mime.extension(file.mimetype)}`
+				} else {
+					nuevoNombre = `${data.codigo}-${Date.now()}${getRandomInt(100)}.${mime.extension(file.mimetype)}`
+				}
+
 				const pathDestino = `${pathActivo}${nuevoNombre}`
 				url_img.push(nuevoNombre)
-				await fspromises.copyFile(pathOrigen, pathDestino);
+				return fspromises.copyFile(pathOrigen, pathDestino);
 			})
 			await Promise.all(promesasDeCopia);
 
 			// elimina nos archivos temporales 
 			const promesasEliminar = files.Image.map(async file => {
 				const pathOrigen = file.filepath
-				await fspromises.unlink(pathOrigen);
+				return fspromises.unlink(pathOrigen);
 			})
 			await Promise.all(promesasEliminar);
 
 		} else {
 			const pathOrigen = files.Image.filepath
-			const nuevoNombre = `${data.codigo}-${Date.now()}${getRandomInt(100)}.${mime.extension(files.Image.mimetype)}`
+			let nuevoNombre
+			if (destino) {
+				nuevoNombre = `${Date.now()}${getRandomInt(100)}.${mime.extension(files.Image.mimetype)}`
+			} else {
+				nuevoNombre = `${data.codigo}-${Date.now()}${getRandomInt(100)}.${mime.extension(files.Image.mimetype)}`
+			}
 			const pathDestino = `${pathActivo}${nuevoNombre}`
 			url_img.push(nuevoNombre)
 			await fspromises.copyFile(pathOrigen, pathDestino)
@@ -97,9 +124,22 @@ const guardarImagenesNuevoActivo = async (files, data) => {
 	}
 }
 
-const bufferimagenes = (url_img, data) => {
+const bufferimagenes = (url_img, data, destino) => {
+	let pathActivo
+	switch (destino) {
+		case 1:
+			pathActivo = `${path}${data.siglas}\\${data.codigo}\\Solicitud\\`
+			break
 
-	const pathActivo = `${path}${data.siglas}\\${data.codigo}\\`
+		case 2:
+			pathActivo = `${path}${data.siglas}\\${data.codigo}\\Reporte\\`
+			break
+
+		default:
+			pathActivo = `${path}${data.siglas}\\${data.codigo}\\`
+			break
+	}
+
 	const imageBuffers = url_img.map(imageName => {
 		const imagePath = pathActivo + imageName
 		const buffer = fs.readFileSync(imagePath);
@@ -109,10 +149,24 @@ const bufferimagenes = (url_img, data) => {
 	return imageBuffers
 }
 
-const elimnarImagenes = async (files, data) => {
-	
+const elimnarImagenes = async (files, data, destino) => {
+
 	try {
-		const pathActivo = `${path}${data.siglas}\\${data.codigo}\\`
+		let pathActivo
+		switch (destino) {
+			case 1:
+				pathActivo = `${path}${data.siglas}\\${data.codigo}\\Solicitud\\`
+				break
+
+			case 2:
+				pathActivo = `${path}${data.siglas}\\${data.codigo}\\Reporte\\`
+				break
+
+			default:
+				pathActivo = `${path}${data.siglas}\\${data.codigo}\\`
+				break
+		}
+
 		const promesasEliminar = files.map(async file => {
 			const pathOrigen = pathActivo + file
 			await fspromises.unlink(pathOrigen);
@@ -122,20 +176,47 @@ const elimnarImagenes = async (files, data) => {
 		console.error(`Ha ocurrido un error: ${error.message}`);
 		return { msg: 'error al elimiar las imagenes' }
 	}
-
-
 }
 
 const eliminarCarpetaActivo = async (data) => {
 
 	try {
-		const {siglas, codigo} = data
+		const { siglas, codigo } = data
 		//renonbrar carpeta 
 		await fspromises.rename(`${path}\\${siglas}\\${codigo}`, `${path}\\${siglas}\\${codigo}-E`)
-		
+
 	} catch (error) {
 		console.error(`Ha ocurrido un error: ${error.message}`);
 		return { msg: 'Error al intentat eliminar la carpeta del activo' }
+	}
+}
+
+const elimnarImagenesSoliRepor = async (files, data, destino) => {
+	console.log('aqui')
+	try {
+		let pathActivo
+		switch (destino) {
+			case 1:
+				pathActivo = `${path}${data.siglas}\\${data.codigo}\\Solicitud\\`
+				break
+
+			case 2:
+				pathActivo = `${path}${data.siglas}\\${data.codigo}\\Reporte\\`
+				break
+
+			default:
+				return({msg:'esta funcion es solo para reportes y solicitudes'})
+				break
+		}
+
+		const promesasEliminar = files.map(async file => {
+			const pathOrigen = pathActivo + file
+			return await fspromises.rename(pathActivo + file, `${pathActivo}\\E-${file}`);
+		})
+		await Promise.all(promesasEliminar);
+	} catch (error) {
+		console.error(`Ha ocurrido un error: ${error.message}`);
+		return { msg: 'error al elimiar las imagenes' }
 	}
 }
 
@@ -144,6 +225,7 @@ export {
 	guardarImagenesNuevoActivo,
 	bufferimagenes,
 	elimnarImagenes,
-	eliminarCarpetaActivo
+	eliminarCarpetaActivo,
+	elimnarImagenesSoliRepor
 
 }
