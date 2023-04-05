@@ -11,18 +11,36 @@ import {
 import {
     consultarSolicitudes,
     guardarSolicitud,
-    consultarSolicitud,
+    consultarSolicitudUno,
     actualizarSolicitud,
     eliminarSolicitudDb
 } from "../db/sqlSolicitudes.js"
 
-const consultarSoportesTodos = async (req, res) => {
+const consultarSolicitudTodos = async (req, res) => {
     const solicitudes = await consultarSolicitudes()
     if (solicitudes.msg) {
         return resizeBy.json(solicitudes[0])
     }
 
     res.json(solicitudes)
+
+}
+
+const consultarSolicitud = async (req, res) => {
+    const id = req.body.id
+    const solicitud = await consultarSolicitudUno(id)
+    if (solicitud.msg) {
+        return res.json(solicitud)
+    }
+    
+    solicitud.img_solicitud = solicitud.img_solicitud.split(',')
+    const Imagenes = bufferimagenes(solicitud.img_solicitud, solicitud, 1)
+
+    res.json({
+        solicitud,
+        Imagenes
+    })
+    
 
 }
 
@@ -215,8 +233,9 @@ const eliminarSolicitud = async (req, res) => {
 }
 
 export {
-    consultarSoportesTodos,
+    consultarSolicitudTodos,
     crearSolicitud,
     modificarSolicitud,
-    eliminarSolicitud
+    eliminarSolicitud,
+    consultarSolicitud
 }

@@ -18,7 +18,7 @@ const consultarSolicitudes = async (data) => {
     }
 }
 
-const consultarSolicitud = async (id) => {
+const consultarSolicitudUno = async (id) => {
     
     try {
         const pool = await conectardb()
@@ -91,7 +91,7 @@ const eliminarSolicitudDb = async (id) => {
 export{
     consultarSolicitudes,
     guardarSolicitud,
-    consultarSolicitud,
+    consultarSolicitudUno,
     actualizarSolicitud,
     eliminarSolicitudDb
 

@@ -1,6 +1,6 @@
 import { validarDatosUsuarios, validarUsuarioCreado } from "../helpers/validarDatosUsuario.js"
 import { encryptPassword, validarPassword } from "../helpers/hashpasswords.js"
-import { encriptarJson, desencriptarJson } from "../helpers/encriptarData.js"
+import { encriptarJson} from "../helpers/encriptarData.js"
 import { consultarDataUsuario, guardarUsuario, actualizarUsuario, guardarToken } from "../db/sqlUsuarios.js"
 import { json } from "express"
 

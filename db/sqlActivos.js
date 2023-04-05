@@ -59,7 +59,7 @@ const consultarActivoUno = async (id) => {
                 ON ca.id = la.clasificacion_id
             WHERE la.id ='${id}'
         `)
-        return (resultado.recordsets)
+        return (resultado.recordset)
     } catch (error) {
         console.error(error);
         return{msg:'Ha ocurido un error al intentar consultar los dato'}
