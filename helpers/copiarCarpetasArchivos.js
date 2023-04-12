@@ -79,20 +79,24 @@ const guardarImagenesNuevoActivo = async (files, data, destino) => {
 		// verificamos si es una o mas de una imagen. 
 		const dimension = files.Image.length
 		const tipo = typeof dimension === 'undefined'
-
+		const extenciones = ['jpg', 'png', 'jpeg', 'JPG', 'PNG', 'JEPG']
 		if (!tipo) {
-			const promesasDeCopia = files.Image.map(async file => {
-				const pathOrigen = file.filepath
-				let nuevoNombre
-				if (destino) {
-					nuevoNombre = `${Date.now()}${getRandomInt(100)}.${mime.extension(file.mimetype)}`
-				} else {
-					nuevoNombre = `${data.codigo}-${Date.now()}${getRandomInt(100)}.${mime.extension(file.mimetype)}`
-				}
 
-				const pathDestino = `${pathActivo}${nuevoNombre}`
-				url_img.push(nuevoNombre)
-				return fspromises.copyFile(pathOrigen, pathDestino);
+			const promesasDeCopia = files.Image.map(async file => {
+				const extencion = mime.extension(file.mimetype)
+				if (extenciones.includes(extencion)) {
+					const pathOrigen = file.filepath
+					let nuevoNombre
+					if (destino) {
+						nuevoNombre = `${Date.now()}${getRandomInt(100)}.${extencion}`
+					} else {
+						nuevoNombre = `${data.codigo}-${Date.now()}${getRandomInt(100)}.${extencion}`
+					}
+
+					const pathDestino = `${pathActivo}${nuevoNombre}`
+					url_img.push(nuevoNombre)
+					return fspromises.copyFile(pathOrigen, pathDestino);
+				}
 			})
 			await Promise.all(promesasDeCopia);
 
@@ -104,17 +108,20 @@ const guardarImagenesNuevoActivo = async (files, data, destino) => {
 			await Promise.all(promesasEliminar);
 
 		} else {
-			const pathOrigen = files.Image.filepath
-			let nuevoNombre
-			if (destino) {
-				nuevoNombre = `${Date.now()}${getRandomInt(100)}.${mime.extension(files.Image.mimetype)}`
-			} else {
-				nuevoNombre = `${data.codigo}-${Date.now()}${getRandomInt(100)}.${mime.extension(files.Image.mimetype)}`
+			const extencion = mime.extension(files.Image.mimetype)
+			if (extenciones.includes(extencion)) {
+				const pathOrigen = files.Image.filepath
+				let nuevoNombre
+				if (destino) {
+					nuevoNombre = `${Date.now()}${getRandomInt(100)}.${extencion}`
+				} else {
+					nuevoNombre = `${data.codigo}-${Date.now()}${getRandomInt(100)}.${extencion}`
+				}
+				const pathDestino = `${pathActivo}${nuevoNombre}`
+				url_img.push(nuevoNombre)
+				await fspromises.copyFile(pathOrigen, pathDestino)
+				await fspromises.unlink(pathOrigen)
 			}
-			const pathDestino = `${pathActivo}${nuevoNombre}`
-			url_img.push(nuevoNombre)
-			await fspromises.copyFile(pathOrigen, pathDestino)
-			await fspromises.unlink(pathOrigen)
 		}
 		return url_img
 
@@ -205,7 +212,7 @@ const elimnarImagenesSoliRepor = async (files, data, destino) => {
 				break
 
 			default:
-				return({msg:'esta funcion es solo para reportes y solicitudes'})
+				return ({ msg: 'esta funcion es solo para reportes y solicitudes' })
 				break
 		}
 
@@ -220,12 +227,84 @@ const elimnarImagenesSoliRepor = async (files, data, destino) => {
 	}
 }
 
+const guardarReporteExterno = async (files, data) => {
+
+	function getRandomInt(max) {
+		return Math.floor(Math.random() * max);
+	}
+
+	try {
+
+		try {
+			await fspromises.access(pathActivo, fspromises.constants.F_OK);
+		} catch (error) {
+			await fspromises.mkdir(pathActivo);
+			console.log(`Carpeta ${pathActivo} creada.`);
+		}
+
+		// copia las imagenes a las carptea del activo
+		const url_Reportes = []
+		// verificamos si es una o mas de una imagen. 
+		const dimension = files.File.length
+		const tipo = typeof dimension === 'undefined'
+
+		if (!tipo) {
+			const promesasDeCopia = files.File.map(async file => {
+				const extencion = mime.extension(file.mimetype)
+				if (extencion === 'pdf' || extencion === 'PDF') {
+					const pathOrigen = file.filepath
+					let nuevoNombre
+					if (destino) {
+						nuevoNombre = `${Date.now()}${getRandomInt(100)}.${extencion}`
+					} else {
+						nuevoNombre = `${data.codigo}-${Date.now()}${getRandomInt(100)}.${extencion}`
+					}
+
+					const pathDestino = `${pathActivo}${nuevoNombre}`
+					url_Reportes.push(nuevoNombre)
+					return fspromises.copyFile(pathOrigen, pathDestino);
+				}
+			})
+			await Promise.all(promesasDeCopia);
+
+			// elimina nos archivos temporales 
+			const promesasEliminar = files.File.map(async file => {
+				const pathOrigen = file.filepath
+				return fspromises.unlink(pathOrigen);
+			})
+			await Promise.all(promesasEliminar);
+
+		} else {
+			const extencion = mime.extension(files.File.mimetype)
+			if (extencion === 'pdf' || extencion === 'PDF') {
+				const pathOrigen = files.File.filepath
+				let nuevoNombre
+				if (destino) {
+					nuevoNombre = `${Date.now()}${getRandomInt(100)}.${extencion}`
+				} else {
+					nuevoNombre = `${data.codigo}-${Date.now()}${getRandomInt(100)}.${extencion}`
+				}
+				const pathDestino = `${pathActivo}${nuevoNombre}`
+				url_Reportes.push(nuevoNombre)
+				await fspromises.copyFile(pathOrigen, pathDestino)
+				await fspromises.unlink(pathOrigen)
+			}
+		}
+		return url_Reportes
+
+	} catch (error) {
+		console.error(`Ha ocurrido un error: ${error.message}`);
+		return { msg: 'error al guardar las imagenes' }
+	}
+}
+
 export {
 	copiarYCambiarNombre,
 	guardarImagenesNuevoActivo,
 	bufferimagenes,
 	elimnarImagenes,
 	eliminarCarpetaActivo,
-	elimnarImagenesSoliRepor
+	elimnarImagenesSoliRepor,
+	guardarReporteExterno
 
 }

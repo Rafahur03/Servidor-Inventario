@@ -35,7 +35,8 @@ const iniciaSesion = async (req, res) => {
     const fecha = hoy.toLocaleDateString
     const dataToken ={
         id:idUsuario.id,
-        fechaexpiracion: fecha
+        fechaexpiracion: fecha,
+        
     } 
      // devolver datos de inicio de sesion
     const token = encriptarJson(dataToken)

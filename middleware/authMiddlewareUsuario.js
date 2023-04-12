@@ -33,6 +33,7 @@ const checkAuth = async(req, res, next) => {
 
         req.sessionid = tokenExisteBD.id
         req.permisos= tokenExisteBD.permisos
+        req.Id_proveedores = tokenExisteBD.Id_proveedores
         return   next()  
       
     }

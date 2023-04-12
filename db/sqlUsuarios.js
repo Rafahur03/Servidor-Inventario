@@ -100,7 +100,7 @@ const consultarToken = async (token) => {
     try {
         const pool = await conectardb()
         const resultado = await pool.query(`
-            SELECT id, permisos
+            SELECT id, permisos, Id_proveedores
                 FROM usuarios
             WHERE token = '${token}'
         `)

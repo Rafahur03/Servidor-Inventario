@@ -16,9 +16,13 @@ import { consultarSolicitudTodos,
     consultarSolicitud } from '../controllers/controllerSolicitudSoporte.js'
 
 import { consultarReportesTodos,
-        consultarReporte,
-        crearReporte } from '../controllers/controllersReportes.js'
+    consultarReporte,
+    crearReporte,
+    modificarReporte } from '../controllers/controllersReportes.js'
 
+import { consultarconfig,
+    actualizarConfig,
+    crearConfig } from '../controllers/controlerConfig.js';
 
 const router = express.Router()
 
@@ -44,7 +48,6 @@ router.post('/cambiarClasificacion', checkAuth, cambiarClasificacion)
 
 router.post('/eliminarActivo', checkAuth, eliminarActivo)
 
-
 // ruta de solicitudes de soporte 
 
 router.get('/consultarSoportesTodos', checkAuth, consultarSolicitudTodos)
@@ -65,5 +68,14 @@ router.get('/consultarReportesTodos', checkAuth, consultarReportesTodos)
 router.post('/consultarReporte', checkAuth, consultarReporte)
 
 router.post('/crearReporte', checkAuth, crearReporte)
+
+router.post('/modificarReporte', checkAuth, modificarReporte)
+
+// router areas
+router.post('/consultarconfig', checkAuth, consultarconfig)
+
+router.post('/actualizarConfig', checkAuth, actualizarConfig)
+
+router.post('/crearConfig', checkAuth, crearConfig)
 
 export default  router

@@ -74,8 +74,7 @@ const crearSolicitud = async (req, res) => {
         }
 
         data.id_usuario = sessionid
-        const hoy = new Date(Date.now())
-        data.fecha_solicitud = hoy.toLocaleDateString()
+        data.fecha_solicitud = new Date(Date.now()).toISOString().substring(0, 19).replace('T', ' ')
         data.id_estado = 1
         delete data.codigo
 
