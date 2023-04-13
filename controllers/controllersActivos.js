@@ -1,14 +1,20 @@
 import formidable from "formidable"
 
 
-import { validarDatosActivo } from "../helpers/validarDatosActivo.js"
-import { copiarYCambiarNombre,
-         guardarImagenesNuevoActivo,
-         bufferimagenes,
-         elimnarImagenes,
-         eliminarCarpetaActivo  } from "../helpers/copiarCarpetasArchivos.js"
+import { validarDatosActivo, validarFilesActivo } from "../helpers/validarDatosActivo.js"
+import {
+    copiarYCambiarNombre,
+    guardarImagenesNuevoActivo,
+    bufferimagenes,
+    elimnarImagenes,
+    eliminarCarpetaActivo,
+    guardarPDF,
+    bufferSoportespdf,
+    elimnarSoportePdf
+} from "../helpers/copiarCarpetasArchivos.js"
 
-import { consultarActivos,
+import {
+    consultarActivos,
     consultarActivoUno,
     gudardarNuevoActivo,
     guardarImagenes,
@@ -16,7 +22,10 @@ import { consultarActivos,
     actualizarActivoDb,
     consultarCalsificacionActivoMod,
     actualizarClasificacion,
-    eliminarActivoDb } from "../db/sqlActivos.js"
+    eliminarActivoDb,
+    guardarSoportes
+} from "../db/sqlActivos.js"
+import { json } from "express"
 
 
 const consultarActivosTodos = async (req, res) => {
@@ -27,119 +36,202 @@ const consultarActivosTodos = async (req, res) => {
 const consultarActivo = async (req, res) => {
     const id = req.body.id
 
-    const activo  = await consultarActivoUno(id)
+    const activo = await consultarActivoUno(id)
     const data = activo[0][0]
     const codigo = activo[1][0].codigo
     data.codigo = codigo
 
-    const dataBd =  await consultarCodigoInterno(id)
-    const url_img= dataBd.url_img.split(',')
+    const dataBd = await consultarCodigoInterno(id)
+    const url_img = dataBd.url_img.split(',')
     const Imagenes = bufferimagenes(url_img, dataBd)
-    
+
 
     res.json({
         data,
         Imagenes
     })
 }
+
 const crearActivo = async (req, res) => {
 
     // validar permisos para crear activos
-    const {sessionid, permisos} = req
+    const { sessionid, permisos } = req
     const arrPermisos = JSON.parse(permisos)
     if (arrPermisos.indexOf(3) === -1) {
-        return res.json({msg: 'Usted no tiene permisos para crear Activos'})
+        return res.json({ msg: 'Usted no tiene permisos para crear Activos' })
     }
 
     // usa  formidable para recibir el req de imagenes y datos
     const form = formidable({ multiples: true });
 
     form.parse(req, async function (err, fields, files) {
-        
+
         if (err) {
-            console.error(err); 
+            console.error(err);
             return res.status(500).json({ error: err });
-        }        
+        }
         // extrae los datos del req y valida que esten normalizados para ingreso a la bd
-        const data = JSON.parse(fields.data) 
+        const data = JSON.parse(fields.data)
         const validacion = await validarDatosActivo(data)
 
-        if(validacion.msg){
+        if (validacion.msg) {
             res.json(validacion)
         }
-                
+
+        const validarFiles = validarFilesActivo(files)
+
+        if (validarFiles.msg) {
+            return res.json(validarFiles)
+        }
+
         // anexamos los datos de create by, fecha de creacion
         data.create_by = sessionid
-        const hoy = new Date(Date.now())
-        data.fecha_creacion = hoy.toLocaleDateString()
+        data.fecha_creacion = new Date(Date.now()).toISOString().substring(0, 19).replace('T', ' ')
 
         // guardamos los datos en la bd y devolvemos el codigo el id y el tipo de activo
-       const dataActivo = await gudardarNuevoActivo(data)
-       if(dataActivo.msg){
-        return res.json(dataActivo)
-       }
-
-        
-       //anexamos los datos de codigo
-       data.codigo = dataActivo.codigo
-       data.id= dataActivo.id
-
-       // guarda las imagenes en la ruta perteneciente al activo y devolver los nombres de la imagenes
-
-        const url_img =  await guardarImagenesNuevoActivo(files, dataActivo)
-        if(url_img.msg){
-            return res.json(url_img)
+        const dataActivo = await gudardarNuevoActivo(data)
+        if (dataActivo.msg) {
+            return res.json(dataActivo)
         }
 
-        data.url_img = url_img
- 
-        // guardar el listado de images en la base de datos
-        const guardadoExitoso= await guardarImagenes(url_img.toString(), data.id)
-        if(guardadoExitoso.msg){
-           res.json({msg: 'los datos se guardaron correctamente, pero hubo un error al guardar las imagenes '})
+        //anexamos los datos de codigo
+        data.codigo = dataActivo.codigo
+        data.id = dataActivo.id
+
+        //almacena los errores  que se presenten
+        let error = {}
+        // guarda las imagenes en la ruta perteneciente al activo y devolver los nombres de la imagenes
+        const url_img = await guardarImagenesNuevoActivo(files, dataActivo)
+        if (url_img.msg) {
+            error.url_img = url_img.msg
+        } else {
+            data.url_img = url_img
+            // guardar el listado de images en la base de datos
+            const guardadoExitoso = await guardarImagenes(url_img.toString(), data.id)
+            if (guardadoExitoso.msg) {
+                error.url_img = 'los datos se guardaron correctamente, pero hubo un error al guardar las imagenes en la Base de datos '
+            }
         }
-      
+
+        let soportes = {}
+
+        if (files.Factura) {
+            const factura = await guardarPDF(files.Factura, dataActivo, 'Factura')
+            if (factura.msg) {
+                error.factura = factura.msg
+            } else {
+                soportes.factura = factura
+            }
+        }
+
+        if (files.Importacion) {
+            const importacion = await guardarPDF(files.Importacion, dataActivo, 'Importacion')
+            if (importacion.msg) {
+                error.importacion = importacion.msg
+            } else {
+                soportes.importacion = importacion
+            }
+        }
+
+        if (files.Invima) {
+            const invima = await guardarPDF(files.Invima, dataActivo, 'Invima')
+            if (invima.msg) {
+                error.invima = invima.msg
+            } else {
+                soportes.invima = invima
+            }
+        }
+
+        if (files.ActaEntrega) {
+            const actaEntrega = await guardarPDF(files.ActaEntrega, dataActivo, 'ActaEntrega')
+            if (actaEntrega.msg) {
+                error.actaEntrega = actaEntrega.msg
+            } else {
+                soportes.actaEntrega = actaEntrega
+            }
+        }
+
+        if (files.Garantia) {
+            const garantia = await guardarPDF(files.Garantia, dataActivo, 'Garantia')
+            if (garantia.msg) {
+                error.garantia = garantia.msg
+            } else {
+                soportes.garantia = garantia
+            }
+        }
+
+        if (files.Manual) {
+            const manual = await guardarPDF(files.Manual, dataActivo, 'Manual')
+            if (manual.msg) {
+                error.manual = manual.msg
+            } else {
+                soportes.manual = manual
+            }
+        }
+
+        if (files.Otro) {
+            const otro = await guardarPDF(files.Otro, dataActivo, 'Otro')
+            if (otro.msg) {
+                error.otro = otro.msg
+            } else {
+                soportes.otro = otro
+            }
+        }
+
+        const soportestring = JSON.stringify(soportes)
+        if (Object.keys(soportes).length !== 0) {
+            const guardardo = await guardarSoportes(soportestring, data.id)
+            if (guardardo.msg) {
+                error.soporte = 'ocurrio un error al guardar los soportes en la base de datos'
+            }
+        }
+
+        if (Object.keys(error).length !== 0) {
+            data.error = error
+        }
         //optener un buffer de las imagenes 
         const Imagenes = bufferimagenes(url_img, dataActivo)
-
-          // enviar respuesta con los datos del activo 
+        const bufferSoportes = bufferSoportespdf(soportes, dataActivo)
+        data.soportes = JSON.parse(soportestring)
+        // enviar respuesta con los datos del activo 
         res.json({
             msg: 'Activo creado correctamente',
             data,
-            Imagenes
+            Imagenes,
+            bufferSoportes
         })
-        
+
     });
 }
 
 const actualizarActivo = async (req, res) => {
 
-    const {permisos} = req
+    const { permisos } = req
     const arrPermisos = JSON.parse(permisos)
     if (arrPermisos.indexOf(3) === -1) {
-        return res.json({msg: 'Usted no tiene permisos para Actualizar Activos'})
+        return res.json({ msg: 'Usted no tiene permisos para Actualizar Activos' })
     }
     // usa  formidable para recibir el req de imagenes y datos
     const form = formidable({ multiples: true });
     form.parse(req, async function (err, fields, files) {
-        
+
         if (err) {
-            console.error(err); 
+            console.error(err);
             return res.status(500).json({ error: err });
         }
         // extrae los datos del req 
-        const data = JSON.parse(fields.data) 
- 
+        const data = JSON.parse(fields.data)
+
         //validar que el id corresponde al codigo interno del equipo
-        const dataBd =  await consultarCodigoInterno(data.id)
-        
-        if(dataBd.codigo !== data.codigo){
-            return res.json({msg: 'El Id del activo no corresponde al codigo interno no se puede actualizar los datos'})
+        const dataBd = await consultarCodigoInterno(data.id)
+
+        if (dataBd.codigo !== data.codigo) {
+            return res.json({ msg: 'El Id del activo no corresponde al codigo interno no se puede actualizar los datos' })
         }
 
         // validar si se elimino alguna imagen
-        if(data.url_img.length <=0 && !files.Image){
-            return res.json({msg: 'No se puede eliminar todas las imagenes'})
+        if (data.url_img.length <= 0 && !files.Image) {
+            return res.json({ msg: 'No se puede eliminar todas las imagenes' })
         }
 
         let imageneDb = dataBd.url_img.split(',')
@@ -147,53 +239,177 @@ const actualizarActivo = async (req, res) => {
 
         // valida que esten normalizados para ingreso a la bd
         const validacion = await validarDatosActivo(data, true)
-        if(validacion.msg){
+        if (validacion.msg) {
             return res.json(validacion)
         }
 
+        // validar archivos enviados 
+        const validarFiles = validarFilesActivo(files)
+        if (validarFiles.msg) {
+            return res.json(validarFiles)
+        }
         // crea un nuevo arreglo con losnombres de las imagenes
         let imagenesEliminar
 
-        if(!ElminoImagen){
+        if (!ElminoImagen) {
             imagenesEliminar = imageneDb.filter(image => !data.url_img.includes(image))
         }
-        
-        // verificar si existen imagenes guardarlas
-        
-        if(files.Image){
-           const  nuevaUrl_imag= await guardarImagenesNuevoActivo(files, dataBd)
-            if(nuevaUrl_imag.msg){
-                return res.json(nuevaUrl_imag)
-            }
-            const  nuevasImages = nuevaUrl_imag.concat(data.url_img)
-            data.url_img = nuevasImages
-        }
-       
-        // actualizar activo en bd
-      
-        data.url_img = data.url_img.toString()
-        console.log(data)
-        const actualizar = await actualizarActivoDb(data)
-        if (actualizar.msg){
-            return res.json(actualizar)
-        } 
 
-        if(!ElminoImagen){
+        // verificar si existen imagenes guardarlas
+        let error = {}
+        if (files.Image) {
+            const nuevaUrl_imag = await guardarImagenesNuevoActivo(files, dataBd)
+            if (nuevaUrl_imag.msg) {
+                error.url_img = nuevaUrl_imag.msg
+            } else {
+                const nuevasImages = nuevaUrl_imag.concat(data.url_img)
+                data.url_img = nuevasImages
+            }
+        }
+
+        // validar que soporte se va a elimiar o reemplazar
+        let nuevosSoportes = {}
+        if (dataBd.soportes !== JSON.stringify(data.soportes)) {
+            //extrae los soportes de bd y los enviados en la actualizacion
+            console.log(dataBd)
+            const soportesBD = JSON.parse(dataBd.soportes)
+            const { soportes } = data
+            // valida si la factura se elimina o reemplaza
+            if (!soportes.factura) {
+
+                await elimnarSoportePdf(soportesBD.factura, dataBd)
+            } else {
+                nuevosSoportes.factura = soportes.factura
+            }
+
+            if (files.Factura) {
+                const factura = await guardarPDF(files.Factura, dataBd, 'Factura')
+                if (factura.msg) {
+                    error.factura = factura.msg
+                } else {
+                    nuevosSoportes.factura = factura
+                }
+            }
+            // valida si la importacion se elimina o reemplaza
+            if (!soportes.importacion) {
+                elimnarSoportePdf(soportesBD.importacion, dataBd)
+            } else {
+                nuevosSoportes.importacion = soportes.importacion
+            }
+            if (files.Importacion) {
+                const importacion = await guardarPDF(files.Importacion, dataBd, 'Importacion')
+                if (importacion.msg) {
+                    error.importacion = importacion.msg
+                } else {
+                    nuevosSoportes.importacion = importacion
+                }
+            }
+
+            // valida si la invima se elimina o reemplaza
+            if (!soportes.invima) {
+                elimnarSoportePdf(soportesBD.invima, dataBd)
+            } else {
+                nuevosSoportes.invima = soportes.invima
+            }
+            if (files.Invima) {
+                const invima = await guardarPDF(files.Invima, dataBd, 'Invima')
+                if (invima.msg) {
+                    error.invima = invima.msg
+                } else {
+                    nuevosSoportes.invima = invima
+                }
+            }
+
+            // valida si la actaEntrega se elimina o reemplaza
+            if (!soportes.actaEntrega) {
+                elimnarSoportePdf(soportesBD.actaEntrega, dataBd)
+            } else {
+                nuevosSoportes.actaEntrega = soportes.actaEntrega
+            }
+            if (files.ActaEntrega) {
+                const actaEntrega = await guardarPDF(files.ActaEntrega, dataBd, 'ActaEntrega')
+                if (actaEntrega.msg) {
+                    error.actaEntrega = actaEntrega.msg
+                } else {
+                    nuevosSoportes.actaEntrega = actaEntrega
+                }
+            }
+
+            // valida si la garantia se elimina o reemplaza
+            if (!soportes.garantia) {
+                elimnarSoportePdf(soportesBD.garantia, dataBd)
+            } else {
+                nuevosSoportes.garantia = soportes.garantia
+            }
+            if (files.Garantia) {
+                const garantia = await guardarPDF(files.Garantia, dataBd, 'Garantia')
+                if (garantia.msg) {
+                    error.garantia = garantia.msg
+                } else {
+                    nuevosSoportes.garantia = garantia
+                }
+            }
+
+            if (!soportes.manual) {
+                elimnarSoportePdf(soportesBD.manual, dataBd)
+            } else {
+                nuevosSoportes.manual = soportes.manual
+            }
+            if (files.Manual) {
+                const manual = await guardarPDF(files.Manual, dataBd, 'Manual')
+                if (manual.msg) {
+                    error.manual = manual.msg
+                } else {
+                    nuevosSoportes.manual = manual
+                }
+            }
+
+            if (!soportes.otro) {
+                elimnarSoportePdf(soportesBD.otro, dataBd)
+            } else {
+                nuevosSoportes.otro = soportes.otro
+            }
+            if (files.Otro) {
+                const otro = await guardarPDF(files.Otro, dataBd, 'Otro')
+                if (otro.msg) {
+                    error.otro = otro.msg
+                } else {
+                    nuevosSoportes.otro = otro
+                }
+            }
+
+            // pasa el nuvo objeto de soportes
+            data.soportes = nuevosSoportes
+        }
+
+        // actualizar activo en bd
+
+        data.url_img = data.url_img.toString()
+        data.soportes = JSON.stringify(data.soportes)
+        const actualizar = await actualizarActivoDb(data)
+        if (actualizar.msg) {
+            return res.json(actualizar)
+        }
+
+        if (!ElminoImagen) {
             await elimnarImagenes(imagenesEliminar, dataBd)
         }
 
+       
         data.url_img = data.url_img.split(',')
-    
+        data.soportes = JSON.parse(data.soportes)
         // devolver los nuevos datos del activo y las imagenes
-        
+
         const Imagenes = bufferimagenes(data.url_img, dataBd)
+        const bufferSoportes = bufferSoportespdf(data.soportes, dataBd)
 
-
-          // enviar respuesta con los datos del activo e imagenes
+        // enviar respuesta con los datos del activo e imagenes
         res.json({
-            msg:'Activo actualizado correctamente',
+            msg: 'Activo actualizado correctamente',
             data,
-            Imagenes        
+            Imagenes,
+            bufferSoportes,
+            error
         })
 
     })
@@ -203,25 +419,25 @@ const actualizarActivo = async (req, res) => {
 const cambiarClasificacion = async (req, res) => {
 
     // verifica si tiene permios para camiar la clasificacion
-    const {sessionid, permisos} = req
+    const { sessionid, permisos } = req
     const arrPermisos = JSON.parse(permisos)
     if (arrPermisos.indexOf(4) === -1) {
-        return res.json({msg: 'Usted no tiene permisos para Actualizar Activos'})
+        return res.json({ msg: 'Usted no tiene permisos para Actualizar Activos' })
     }
 
     const data = req.body
 
     // consulta y verifica que la calsificacion actual sea diferente a la nueva
-    const datosDb = await  consultarCalsificacionActivoMod(data.id, data.nuevaClasificacion)
+    const datosDb = await consultarCalsificacionActivoMod(data.id, data.nuevaClasificacion)
     const clasificacionActual = datosDb[0][0]
-  
-    if (clasificacionActual.clasificacionActual === data.nuevaClasificacion){
-        return res.json({msg:'El activo pertenea la clasificacion seleccionada'})
+
+    if (clasificacionActual.clasificacionActual === data.nuevaClasificacion) {
+        return res.json({ msg: 'El activo pertenea la clasificacion seleccionada' })
     }
 
     // verificar que exista la clasificacion
-    if(!datosDb[1][0]){
-        return res.json({msg:'Debe seleccionar una clasificacion del listado'})
+    if (!datosDb[1][0]) {
+        return res.json({ msg: 'Debe seleccionar una clasificacion del listado' })
     }
     const clasificacionNueva = datosDb[1][0].existe
 
@@ -231,8 +447,8 @@ const cambiarClasificacion = async (req, res) => {
     const consecutivo_interno = aumento.toString().padStart(4, 0)
 
     // actualiza los datos de la nueva clasificacion en la bd
-    const actualizado = actualizarClasificacion(data.id, clasificacionNueva, consecutivo_interno )
-    if(actualizado.msg){
+    const actualizado = actualizarClasificacion(data.id, clasificacionNueva, consecutivo_interno)
+    if (actualizado.msg) {
         return res.json(actualizado);
     }
 
@@ -241,50 +457,50 @@ const cambiarClasificacion = async (req, res) => {
 
     // copiar la carpeta, renombrarla y copiar los archivos
 
-    const datafile={
-        siglaAntigua:clasificacionActual.siglaActual,
-        siglaNueva:nuevoCodigoInterno.siglas ,
+    const datafile = {
+        siglaAntigua: clasificacionActual.siglaActual,
+        siglaNueva: nuevoCodigoInterno.siglas,
         codigoAntiguo: clasificacionActual.codigoActual,
         codigoNuevo: nuevoCodigoInterno.codigo
     }
 
     const url_img = await copiarYCambiarNombre(datafile)
-    if(url_img.msg){
+    if (url_img.msg) {
         return request.json(url_img)
     }
     console.log(url_img)
-    const guardar  = await guardarImagenes(url_img.toString(), data.id)
-    if(guardar.msg){
+    const guardar = await guardarImagenes(url_img.toString(), data.id)
+    if (guardar.msg) {
         return res.json(guardar)
     }
-    
-    res.json({codigoInterno: nuevoCodigoInterno.codigo})
-   
+
+    res.json({ codigoInterno: nuevoCodigoInterno.codigo })
+
 }
 
 const eliminarActivo = async (req, res) => {
-    const {sessionid, permisos} = req
+    const { sessionid, permisos } = req
     const arrPermisos = JSON.parse(permisos)
     if (arrPermisos.indexOf(4) === -1) {
-        return res.json({msg: 'Usted no tiene permisos para eliminar Activos'})
+        return res.json({ msg: 'Usted no tiene permisos para eliminar Activos' })
     }
 
     const data = req.body
 
-    const datadb =  await consultarCodigoInterno(data.id)
+    const datadb = await consultarCodigoInterno(data.id)
     if (datadb.codigo !== data.codigo) {
-        return res.json({msg: 'El codigo ingresado no coincide con el codigo del activo'})
+        return res.json({ msg: 'El codigo ingresado no coincide con el codigo del activo' })
     }
     const eliminado = eliminarActivoDb(data)
-    if(eliminado.msg){
-        return res.json(eliminado)  
+    if (eliminado.msg) {
+        return res.json(eliminado)
     }
 
     const carpetaEliminada = eliminarCarpetaActivo(datadb)
-    if(carpetaEliminada.msg){
+    if (carpetaEliminada.msg) {
         return res.json(carpetaEliminada)
     }
-   
+
 
     res.json({
         msg: 'Eliminado Correctamete',
@@ -294,7 +510,7 @@ const eliminarActivo = async (req, res) => {
 
 
 
-export{     
+export {
     consultarActivosTodos,
     crearActivo,
     actualizarActivo,

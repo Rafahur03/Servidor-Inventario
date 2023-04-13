@@ -143,6 +143,22 @@ const guardarImagenes = async (imagenes, id) => {
     }
 }
 
+const guardarSoportes = async (soportes, id) => {
+    
+    try {
+        const pool = await conectardb()
+        const resultado = await pool.query(`
+            UPDATE listado_activos
+                SET soportes ='${soportes}'
+            WHERE id = '${id}'
+        `)
+        return (resultado.rowsAffected)
+    } catch (error) {
+        console.error(error);
+        return{msg:'Ha ocurido un error al intentar guardar los datos de las imagenes'}
+    }
+}
+
 const actualizarActivoDb = async (data) => {
 
     try {
@@ -168,7 +184,9 @@ const actualizarActivoDb = async (data) => {
                 recomendaciones_Mtto ='${data.recomendaciones_Mtto}',
                 obervacion ='${data.obervacion}',
                 tipo_activo_id ='${data.tipo_activo_id}',
-                url_img ='${data.url_img}'
+                url_img ='${data.url_img}',
+                soportes ='${data.soportes}'
+
             WHERE id='${data.id}'
         `)
         return (resultado.rowsAffected)
@@ -184,7 +202,7 @@ const consultarCodigoInterno = async (id) => {
         const pool = await conectardb()
 
         const resultado = await pool.query(`
-            SELECT CONCAT( RTRIM(ca. siglas), la.consecutivo_interno) AS codigo, la.url_img, RTRIM(ca.siglas) AS siglas, la.estado_id
+            SELECT CONCAT( RTRIM(ca. siglas), la.consecutivo_interno) AS codigo, la.url_img, RTRIM(ca.siglas) AS siglas, soportes, la.estado_id
                 FROM listado_activos la
                 INNER JOIN clasificacion_activos ca
                     on la.clasificacion_id =ca.id
@@ -271,5 +289,6 @@ export{
     consultarCalsificacionActivoMod,
     actualizarClasificacion,
     eliminarActivoDb,
-    consultarActivoUno
+    consultarActivoUno,
+    guardarSoportes
 }

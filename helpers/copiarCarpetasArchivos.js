@@ -71,7 +71,6 @@ const guardarImagenesNuevoActivo = async (files, data, destino) => {
 			await fspromises.access(pathActivo, fspromises.constants.F_OK);
 		} catch (error) {
 			await fspromises.mkdir(pathActivo);
-			console.log(`Carpeta ${pathActivo} creada.`);
 		}
 
 		// copia las imagenes a las carptea del activo
@@ -81,7 +80,6 @@ const guardarImagenesNuevoActivo = async (files, data, destino) => {
 		const tipo = typeof dimension === 'undefined'
 		const extenciones = ['jpg', 'png', 'jpeg', 'JPG', 'PNG', 'JEPG']
 		if (!tipo) {
-
 			const promesasDeCopia = files.Image.map(async file => {
 				const extencion = mime.extension(file.mimetype)
 				if (extenciones.includes(extencion)) {
@@ -227,76 +225,60 @@ const elimnarImagenesSoliRepor = async (files, data, destino) => {
 	}
 }
 
-const guardarReporteExterno = async (files, data) => {
-
-	function getRandomInt(max) {
-		return Math.floor(Math.random() * max);
-	}
+const guardarPDF = async (file, data, complemento) => {
 
 	try {
 
+		//valida que la carpeta del activo exista
+		const pathActivo = `${path}${data.siglas}\\${data.codigo}\\`
 		try {
 			await fspromises.access(pathActivo, fspromises.constants.F_OK);
 		} catch (error) {
 			await fspromises.mkdir(pathActivo);
-			console.log(`Carpeta ${pathActivo} creada.`);
 		}
 
 		// copia las imagenes a las carptea del activo
-		const url_Reportes = []
-		// verificamos si es una o mas de una imagen. 
-		const dimension = files.File.length
-		const tipo = typeof dimension === 'undefined'
 
-		if (!tipo) {
-			const promesasDeCopia = files.File.map(async file => {
-				const extencion = mime.extension(file.mimetype)
-				if (extencion === 'pdf' || extencion === 'PDF') {
-					const pathOrigen = file.filepath
-					let nuevoNombre
-					if (destino) {
-						nuevoNombre = `${Date.now()}${getRandomInt(100)}.${extencion}`
-					} else {
-						nuevoNombre = `${data.codigo}-${Date.now()}${getRandomInt(100)}.${extencion}`
-					}
+		//crea los paht y los nombres de archivo
+		const extencion = mime.extension(file.mimetype)
+		const pathOrigen = file.filepath
+		const nuevoNombre = `${data.codigo}-${complemento}.${extencion}`
+		const pathDestino = `${pathActivo}${nuevoNombre}`
+		await fspromises.copyFile(pathOrigen, pathDestino)
+		await fspromises.unlink(pathOrigen)
+		//devuelve el nombre del archivo
+		return (nuevoNombre)
 
-					const pathDestino = `${pathActivo}${nuevoNombre}`
-					url_Reportes.push(nuevoNombre)
-					return fspromises.copyFile(pathOrigen, pathDestino);
-				}
-			})
-			await Promise.all(promesasDeCopia);
-
-			// elimina nos archivos temporales 
-			const promesasEliminar = files.File.map(async file => {
-				const pathOrigen = file.filepath
-				return fspromises.unlink(pathOrigen);
-			})
-			await Promise.all(promesasEliminar);
-
-		} else {
-			const extencion = mime.extension(files.File.mimetype)
-			if (extencion === 'pdf' || extencion === 'PDF') {
-				const pathOrigen = files.File.filepath
-				let nuevoNombre
-				if (destino) {
-					nuevoNombre = `${Date.now()}${getRandomInt(100)}.${extencion}`
-				} else {
-					nuevoNombre = `${data.codigo}-${Date.now()}${getRandomInt(100)}.${extencion}`
-				}
-				const pathDestino = `${pathActivo}${nuevoNombre}`
-				url_Reportes.push(nuevoNombre)
-				await fspromises.copyFile(pathOrigen, pathDestino)
-				await fspromises.unlink(pathOrigen)
-			}
-		}
-		return url_Reportes
 
 	} catch (error) {
 		console.error(`Ha ocurrido un error: ${error.message}`);
-		return { msg: 'error al guardar las imagenes' }
+		return { msg: `error al guardar el archivo ${complemento} ` }
 	}
 }
+
+const elimnarSoportePdf = async (file, data) => {
+
+	try {
+		const pathActivo = `${path}${data.siglas}\\${data.codigo}\\`
+			 await fspromises.rename(pathActivo + file, `${pathActivo}E-${file}`);
+	} catch (error) {
+		console.error(`Ha ocurrido un error: ${error.message}`);
+		return { msg: 'error al elimiar las imagenes' }
+	}
+}
+
+const bufferSoportespdf = (soportes, data) => {
+	const pathActivo = `${path}${data.siglas}\\${data.codigo}\\`
+	let bufferpdf={}
+	for (let soporte in soportes) {
+		const imagePath = pathActivo + soportes[soporte]
+		const buffer = fs.readFileSync(imagePath);
+		bufferpdf[soporte] = `data:${mime.lookup(soportes[soporte])};base64,${buffer.toString('base64')}`
+	};
+	return bufferpdf
+}
+
+
 
 export {
 	copiarYCambiarNombre,
@@ -305,6 +287,10 @@ export {
 	elimnarImagenes,
 	eliminarCarpetaActivo,
 	elimnarImagenesSoliRepor,
-	guardarReporteExterno
+	guardarPDF,
+	bufferSoportespdf,
+	elimnarSoportePdf
+	
+
 
 }

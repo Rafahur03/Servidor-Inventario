@@ -14,11 +14,10 @@ const consultaconfi = async (conf) => {
     }
 }
 
-const actualizarConfig = async (query) => {
+const actualizarConfigDb = async (query) => {
 
     try {
         const pool = await conectardb()
-        console.log(query)
         const resultado = await pool.query( query )
         return (resultado.rowsAffected)
     } catch (error) {
@@ -27,7 +26,21 @@ const actualizarConfig = async (query) => {
     }
 }
 
+const guardarConfig = async (query) => {
+
+    try {
+        const pool = await conectardb()
+        console.log(query)
+        const resultado = await pool.query( query )
+        return (resultado.recordset[0].id)
+    } catch (error) {
+        console.error(error);
+        return{msg:'Ha ocurido un error al intentar actualizar los datos intentalo mas tarde'}
+    }
+}
+
 export{
     consultaconfi,
-    actualizarConfig
+    actualizarConfigDb,
+    guardarConfig
 }
