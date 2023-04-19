@@ -1,7 +1,8 @@
 import formidable from "formidable"
 
 
-import { validarDatosActivo, validarFilesActivo } from "../helpers/validarDatosActivo.js"
+import { validarDatosActivo} from "../helpers/validarDatosActivo.js"
+import { validarFiles } from "../helpers/validarFiles.js"
 import {
     copiarYCambiarNombre,
     guardarImagenesNuevoActivo,
@@ -25,7 +26,7 @@ import {
     eliminarActivoDb,
     guardarSoportes
 } from "../db/sqlActivos.js"
-import { json } from "express"
+
 
 
 const consultarActivosTodos = async (req, res) => {
@@ -37,18 +38,16 @@ const consultarActivo = async (req, res) => {
     const id = req.body.id
 
     const activo = await consultarActivoUno(id)
-    const data = activo[0][0]
-    const codigo = activo[1][0].codigo
-    data.codigo = codigo
-
-    const dataBd = await consultarCodigoInterno(id)
-    const url_img = dataBd.url_img.split(',')
-    const Imagenes = bufferimagenes(url_img, dataBd)
-
+    console.log(activo.url_img)
+    const url_img = activo.url_img.split(',')
+    const Imagenes = bufferimagenes(url_img, activo)
+    activo.soportes = JSON.parse(activo.soportes)
+    const bufferSoportes = bufferSoportespdf(activo.soportes, activo)
 
     res.json({
-        data,
-        Imagenes
+        activo,
+        Imagenes,
+        bufferSoportes
     })
 }
 
@@ -78,10 +77,10 @@ const crearActivo = async (req, res) => {
             res.json(validacion)
         }
 
-        const validarFiles = validarFilesActivo(files)
+        const validarFile = validarFiles(files)
 
-        if (validarFiles.msg) {
-            return res.json(validarFiles)
+        if (validarFile.msg) {
+            return res.json(validarFile)
         }
 
         // anexamos los datos de create by, fecha de creacion
@@ -244,9 +243,9 @@ const actualizarActivo = async (req, res) => {
         }
 
         // validar archivos enviados 
-        const validarFiles = validarFilesActivo(files)
-        if (validarFiles.msg) {
-            return res.json(validarFiles)
+        const validarFile = validarFiles(files)
+        if (validarFile.msg) {
+            return res.json(validarFile)
         }
         // crea un nuevo arreglo con losnombres de las imagenes
         let imagenesEliminar
@@ -395,7 +394,7 @@ const actualizarActivo = async (req, res) => {
             await elimnarImagenes(imagenesEliminar, dataBd)
         }
 
-       
+
         data.url_img = data.url_img.split(',')
         data.soportes = JSON.parse(data.soportes)
         // devolver los nuevos datos del activo y las imagenes
@@ -454,7 +453,7 @@ const cambiarClasificacion = async (req, res) => {
 
     // consulta el nuevo codigo interno del activo y las nuevas siglas 
     const nuevoCodigoInterno = await consultarCodigoInterno(data.id)
-
+    console.log(nuevoCodigoInterno)
     // copiar la carpeta, renombrarla y copiar los archivos
 
     const datafile = {
@@ -464,14 +463,33 @@ const cambiarClasificacion = async (req, res) => {
         codigoNuevo: nuevoCodigoInterno.codigo
     }
 
-    const url_img = await copiarYCambiarNombre(datafile)
-    if (url_img.msg) {
-        return request.json(url_img)
+    // cambiar path de carpteta y nombre de los archivos 
+    const cambioNombreCarpetas = await copiarYCambiarNombre(datafile)
+    if (cambioNombreCarpetas.msg) {
+        return res.json(cambioNombreCarpetas)
     }
-    console.log(url_img)
-    const guardar = await guardarImagenes(url_img.toString(), data.id)
-    if (guardar.msg) {
-        return res.json(guardar)
+    // cambiar nombre de los datos almacenados en la BD
+
+    const { url_img, soportes } = nuevoCodigoInterno
+
+    let error ={}
+    if (url_img !== null || url_img !== '') {
+        console.log('aqui')
+        // actualizar la nombre d elas imagenes en la BD
+        const nuevaUrl = url_img.replaceAll(datafile.codigoAntiguo, datafile.codigoNuevo)
+        console.log(nuevaUrl, datafile.codigoAntiguo, datafile.codigoNuevo)
+        const actualizarUrl_Ima = await guardarImagenes(nuevaUrl, data.id)
+        if (actualizarUrl_Ima.msg) {
+           error.url_img = actualizarUrl_Ima
+           console.log(error.url_img)
+        }
+    }
+    if (soportes !== null || soportes !== '') {
+        const nuevoSoportes = soportes.replaceAll(datafile.codigoAntiguo, datafile.codigoNuevo)
+        const actualizarSoportes = await guardarSoportes(nuevoSoportes, data.id)
+        if (actualizarSoportes.msg) {
+            error.actualizarSoportes = actualizarSoportes
+        }
     }
 
     res.json({ codigoInterno: nuevoCodigoInterno.codigo })

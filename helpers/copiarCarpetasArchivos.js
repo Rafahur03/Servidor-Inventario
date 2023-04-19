@@ -15,26 +15,22 @@ const copiarYCambiarNombre = async (data) => {
 		await fspromises.rename(`${path}\\${siglaAntigua}\\${codigoAntiguo}`, `${path}\\${siglaNueva}\\${codigoNuevo}`);
 		// cambia los nombres de los archivos al nuevo codigo
 
-		const carpeta = `${path}\\${siglaNueva}\\${codigoNuevo}`
-		const url_img = []
-		const extenciones = ['jpg', 'png', 'jpeg']
+		const carpeta = `${path}\\${siglaNueva}\\${codigoNuevo}\\`
+		const extenciones = ['jpg', 'JPG', 'png', 'PNG', 'jpeg', 'JPEG', 'pdf','PDF']
 		const archivos = await fspromises.readdir(carpeta);
 
 		const promesasRenombramiento = archivos.map((archivo) => {
 			const nuevoNombre = archivo.replace(codigoAntiguo, codigoNuevo)
-			const viejoNombre = `${carpeta}/${archivo}`;
-			const nuevoNombreCompleto = `${carpeta}/${nuevoNombre}`;
+			const viejoNombre = `${carpeta}${archivo}`;
+			const nuevoNombreCompleto = `${carpeta}${nuevoNombre}`;
 			const tipo = mime.extension(mime.lookup(nuevoNombre))
 			if (extenciones.includes(tipo)) {
-				url_img.push(nuevoNombre);
+				return fspromises.rename(viejoNombre, nuevoNombreCompleto);
 			}
-
-			return fspromises.rename(viejoNombre, nuevoNombreCompleto);
-
 		});
 
 		await Promise.all(promesasRenombramiento);
-		return url_img
+		return true
 
 	} catch (error) {
 		console.error(`Ha ocurrido un error: ${error.message}`);

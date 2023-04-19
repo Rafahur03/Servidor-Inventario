@@ -1,12 +1,22 @@
 import formidable from "formidable"
+
 import { validarDatoReporte } from "../helpers/validarDatosReporte.js"
+import { validarFiles } from "../helpers/validarFiles.js"
 import { consultarCodigoInterno } from "../db/sqlActivos.js"
-import { consultarSolicitudUno} from "../db/sqlSolicitudes.js"
-import { guardarImagenesNuevoActivo, bufferimagenes, elimnarImagenes } from "../helpers/copiarCarpetasArchivos.js"
-import { consultarReportes,
+import { consultarSolicitudUno } from "../db/sqlSolicitudes.js"
+import {
+    guardarImagenesNuevoActivo,
+    bufferimagenes,
+    elimnarImagenes,
+    guardarPDF
+} from "../helpers/copiarCarpetasArchivos.js"
+
+import {
+    consultarReportes,
     consultarReporteUno,
     guardarReporte,
-    actualizarReporte } from "../db/sqlReportes.js"
+    actualizarReporte
+} from "../db/sqlReportes.js"
 
 
 
@@ -27,13 +37,15 @@ const consultarReporte = async (req, res) => {
 
     res.json({
         reporte,
-       // Imagenes
+        // Imagenes
     })
-    
+
 
 }
 
 const crearReporte = async (req, res) => {
+
+
 
     // validar permisos para crear activos
     const { sessionid, permisos, Id_proveedores } = req
@@ -43,7 +55,7 @@ const crearReporte = async (req, res) => {
     const proveedores = JSON.parse(Id_proveedores)
 
     if (arrPermisos.indexOf(5) === -1) {
-        res.json({msg: 'Usted no tiene permisos para crear crear reportes de mantenimiento'})
+        res.json({ msg: 'Usted no tiene permisos para crear crear reportes de mantenimiento' })
         return
     }
 
@@ -57,8 +69,8 @@ const crearReporte = async (req, res) => {
             return res.status(500).json({ error: err });
         }
         const data = JSON.parse(fields.data)
- 
-     
+
+
         // validar que la solicitud exista y que no este cerrada o eliminada
         const dataSolicitud = await consultarSolicitudUno(data.solicitud_id)
 
@@ -66,49 +78,78 @@ const crearReporte = async (req, res) => {
             return res.json(dataSolicitud)
         }
 
-        if(dataSolicitud.id_estado == 3 ){
-            return res.json({msg: 'la solicitu esta en estado cerrada y no puede modificarse'})
+        if (dataSolicitud.id_estado == 3) {
+            return res.json({ msg: 'la solicitu esta en estado cerrada y no puede modificarse' })
         }
 
-        if(dataSolicitud.id_estado == 4 ){
-            return res.json({msg: 'la solicitu no existe o fue eliminada'})
+        if (dataSolicitud.id_estado == 4) {
+            return res.json({ msg: 'la solicitu no existe o fue eliminada' })
         }
-        
-        if(dataSolicitud.id_activo !== data.id_activo){
-            return res.json({msg: 'La solicitud no corresponde al activo selecionado'})
+
+        if (dataSolicitud.id_activo !== data.id_activo) {
+            return res.json({ msg: 'La solicitud no corresponde al activo selecionado' })
         }
-             
-        if(proveedores.indexOf(data.proveedor_id) === -1) {
-            return res.json({msg: 'Usted no esta asociado al proveedor de mantenimientos seleccionado, favor seleccione uno al cual este asociado.'})
-            
+
+        if (proveedores.indexOf(data.proveedor_id) === -1) {
+            return res.json({ msg: 'Usted no esta asociado al proveedor de mantenimientos seleccionado, favor seleccione uno al cual este asociado.' })
+
         }
 
         const fechaSolicitud = new Date(dataSolicitud.fecha_solicitud)
         const fechaReporte = new Date(data.fechareporte)
-     
+
         if (fechaSolicitud > fechaReporte) {
-            res.json({msg: 'La fecha de realizacion del mantenimiento no puede ser inferior a la fecha de solicitud'})
+            res.json({ msg: 'La fecha de realizacion del mantenimiento no puede ser inferior a la fecha de solicitud' })
             return
         }
 
+        // validar datos y files
         const validarDatos = validarDatoReporte(data)
-       
+
         if (validarDatos.msg) {
             return res.json(validarDatos)
         }
+
+        const validarFile = validarFiles(files)
+        if (validarFile.msg) {
+            return res.json(validarFile)
+        }
+
         data.usuario_idReporte = sessionid
         data.fechaCreacion = new Date(Date.now()).toISOString().substring(0, 19).replace('T', ' ')
-        
-        const dataBd = await consultarCodigoInterno(data.id_activo)
 
+        const dataBd = await consultarCodigoInterno(data.id_activo)
+        let error = {}
         if (files.Image) {
-           //  sin nada para activos, 1 para solicitudes, 2 reportes
+            //  sin nada para activos, 1 para solicitudes, 2 reportes
             const img_reporte = await guardarImagenesNuevoActivo(files, dataBd, 2)
             if (img_reporte.msg) {
-                return res.json(img_solicitud)
+                error.img_reporte = img_solicitud.msg
+            }else{
+                data.img_reporte = img_reporte
             }
-            data.img_reporte = img_reporte
         }
+
+        if (files.ReporteExterno) {
+            //  sin nada para activos, 1 para solicitudes, 2 reportes
+            let consecutivo
+            if (dataBd.reportes == null || dataBd.reportes == '') {
+                consecutivo = 1
+            } else {
+                const arrayReportes = arrs.split(',')
+                const length = arrn.length - 1
+                consecutivo = parseInt(arrayReportes[length]) + 1
+            }
+
+            const reporte = await guardarPDF(files.ReporteExterno, dataBd, consecutivo)
+            if (reporte.msg) {
+                error.reportes = reporte.msg
+            }else{
+                arrayReportes.push(consecutivo)
+                dataBd.reporte = arrayReportes.toString()
+            } 
+        }
+
 
         const guardado = await guardarReporte(data)
 
@@ -118,10 +159,10 @@ const crearReporte = async (req, res) => {
 
         data.id = guardado
         let Imagenes
-        if(data.img_reporte){
-             Imagenes = await bufferimagenes(data.img_reporte, dataBd, 2) //
+        if (data.img_reporte) {
+            Imagenes = await bufferimagenes(data.img_reporte, dataBd, 2) //
         }
-                
+
         res.json({
             data,
             Imagenes
@@ -157,8 +198,8 @@ const modificarReporte = async (req, res) => {
         }
 
         const dataReporte = await consultarReporteUno(data.id)
-        if(typeof dataReporte === 'undefined'){
-            return res.json({ msg:'La solicitud no existe'})
+        if (typeof dataReporte === 'undefined') {
+            return res.json({ msg: 'La solicitud no existe' })
         }
         if (dataReporte.usuario_idReporte !== sessionid) {
             const arrPermisos = JSON.parse(permisos)
@@ -169,15 +210,15 @@ const modificarReporte = async (req, res) => {
             }
         }
 
-        if(dataReporte.id_activo !== dataReporte.id_activo){
+        if (dataReporte.id_activo !== dataReporte.id_activo) {
             return res.json({ msg: 'El activo no corresponde al ID del reporte que intenta modificar' })
         }
 
         const fechaSolicitud = new Date(dataSolicitud.fecha_solicitud).toLocaleDateString()
         const fechaReporte = new Date(data.fechareporte).toLocaleDateString()
-          
+
         if (new Date(fechaSolicitud).getTime() > new Date(fechaReporte).getTime()) {
-            res.json({msg: 'La fecha de realizacion del mantenimiento no puede ser inferior a la fecha de solicitud'})
+            res.json({ msg: 'La fecha de realizacion del mantenimiento no puede ser inferior a la fecha de solicitud' })
             return
         }
 
@@ -198,27 +239,27 @@ const modificarReporte = async (req, res) => {
         let imagenesEliminar
 
         if (!ElminoImagen) {
-             imagenesEliminar = imageneDb.filter(image => !data.img_reporte.includes(image))
+            imagenesEliminar = imageneDb.filter(image => !data.img_reporte.includes(image))
         }
 
-         const dataActivo = await consultarCodigoInterno(data.id_activo)
+        const dataActivo = await consultarCodigoInterno(data.id_activo)
 
 
         if (files.Image) {
-           const nuevaUrl_imag = await guardarImagenesNuevoActivo(files, dataActivo, 2)
+            const nuevaUrl_imag = await guardarImagenesNuevoActivo(files, dataActivo, 2)
             if (nuevaUrl_imag.msg) {
-               return res.json(nuevaUrl_imag)
+                return res.json(nuevaUrl_imag)
             }
             const nuevasImages = nuevaUrl_imag.concat(data.img_reporte)
             data.img_reporte = nuevasImages
         }
-         
+
         if (!ElminoImagen) {
             await elimnarImagenes(imagenesEliminar, dataActivo, 2)
         }
         data.img_reporte = data.img_reporte.toString()
         data.fechaCierre = new Date(Date.now()).toISOString().substring(0, 19).replace('T', ' ')
- 
+
         const actualizar = await actualizarReporte(data)
         if (actualizar.msg) {
             return res.json(actualizar)
@@ -240,7 +281,8 @@ const modificarReporte = async (req, res) => {
 
 }
 
-export{consultarReportesTodos,
+export {
+    consultarReportesTodos,
     consultarReporte,
     crearReporte,
     modificarReporte

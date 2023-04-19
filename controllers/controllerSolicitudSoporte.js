@@ -1,6 +1,7 @@
 import formidable from "formidable"
 
 import { validarDatoSolicitud } from "../helpers/validarDatosSolicitud.js"
+import { validarFiles } from "../helpers/validarFiles.js"
 import { consultarCodigoInterno } from "../db/sqlActivos.js"
 import {
     guardarImagenesNuevoActivo,
@@ -67,10 +68,17 @@ const crearSolicitud = async (req, res) => {
             return res.json({ msg: 'El Id del activo no corresponde al codigo interno debe selecionar un activo valido' })
         }
 
+        
+        // validar datos y files
         const validarDatos = validarDatoSolicitud(data)
 
-        if (!validarDatos) {
+        if (!validarDatos.msg) {
             return res.json(validarDatos)
+        }
+
+        const validarFile = validarFiles(files)
+        if (!validarFile.msg) {
+            return res.json(validarFile)
         }
 
         data.id_usuario = sessionid
@@ -140,10 +148,16 @@ const modificarSolicitud = async (req, res) => {
             }
         }
 
+        // validar datos y files
         const validarDatos = validarDatoSolicitud(data)
 
-        if (!validarDatos) {
+        if (!validarDatos.msg) {
             return res.json(validarDatos)
+        }
+
+        const validarFile = validarFiles(files)
+        if (!validarFile.msg) {
+            return res.json(validarFile)
         }
 
         // validar si se elimino alguna imagen

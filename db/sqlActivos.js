@@ -51,15 +51,14 @@ const consultarActivoUno = async (id) => {
     try {
         const pool = await conectardb()
         const resultado = await pool.query(`
-            SELECT * FROM listado_activos
-            WHERE id ='${id}'
-        
-            SELECT CONCAT(TRIM(ca.siglas),la.consecutivo_interno) as codigo FROM listado_activos la
+            SELECT  la.id, CONCAT(TRIM(ca.siglas),la.consecutivo_interno) AS codigo, TRIM(ca.siglas) AS siglas, la.nombre, la.marca_id, la.modelo, la.serie, la.proceso_id, la.area_id, la.ubicacion, la.usuario_id, la.estado_id, la.proveedor_id, la.numero_factura, la.valor, la.fecha_compra, la.vencimiento_garantia, la.frecuencia_id, la.descripcion, la.recomendaciones_Mtto, la.obervacion, la.url_img, la.create_by, la.fecha_creacion, la.tipo_activo_id, la.fecha_proximo_mtto, la.soportes FROM listado_activos la
                 INNER JOIN clasificacion_activos ca
                 ON ca.id = la.clasificacion_id
             WHERE la.id ='${id}'
         `)
-        return (resultado.recordset)
+
+        return (resultado.recordset[0])
+        
     } catch (error) {
         console.error(error);
         return{msg:'Ha ocurido un error al intentar consultar los dato'}
@@ -155,7 +154,7 @@ const guardarSoportes = async (soportes, id) => {
         return (resultado.rowsAffected)
     } catch (error) {
         console.error(error);
-        return{msg:'Ha ocurido un error al intentar guardar los datos de las imagenes'}
+        return{msg:'Ha ocurido un error al intentar guardar los soportes en la bd'}
     }
 }
 
@@ -202,7 +201,7 @@ const consultarCodigoInterno = async (id) => {
         const pool = await conectardb()
 
         const resultado = await pool.query(`
-            SELECT CONCAT( RTRIM(ca. siglas), la.consecutivo_interno) AS codigo, la.url_img, RTRIM(ca.siglas) AS siglas, soportes, la.estado_id
+            SELECT CONCAT( RTRIM(ca. siglas), la.consecutivo_interno) AS codigo, la.url_img, RTRIM(ca.siglas) AS siglas, la.soportes, la.reportes, la.estado_id
                 FROM listado_activos la
                 INNER JOIN clasificacion_activos ca
                     on la.clasificacion_id =ca.id

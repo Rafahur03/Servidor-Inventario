@@ -38,14 +38,14 @@ const guardarReporte = async (data) => {
         let resultado
         if(data.id_estado = 3){
             resultado = await pool.query(`
-                INSERT INTO repotesMtto (solicitud_id, tipoMtoo_id, fechareporte, costo_mo, costo_mp, proveedor_id, usuario_idReporte, usuario_idaprovado, hallazgos, reporte, recomendaciones, id_activo, img_reporte, fechaCreacion, fechaCierre)
-                    VALUES ('${data.solicitud_id}', '${data.tipoMtoo_id}', '${data.fechareporte}', '${data.costo_mo}', '${data.costo_mp}', '${data.proveedor_id}', '${data.usuario_idReporte}', '${data.usuario_idaprovado}', '${data.hallazgos}', '${data.reporte}', '${data.recomendaciones}', '${data.id_activo}', '${data.img_reporte}', '${data.fechaCreacion}' , '${data.fechaCreacion}')
+                INSERT INTO repotesMtto (solicitud_id, tipoMtoo_id, fechareporte, costo_mo, costo_mp, proveedor_id, usuario_idReporte, usuario_idaprovado, hallazgos, reporte, recomendaciones, id_activo, img_reporte, reportes, fechaCreacion, fechaCierre)
+                    VALUES ('${data.solicitud_id}', '${data.tipoMtoo_id}', '${data.fechareporte}', '${data.costo_mo}', '${data.costo_mp}', '${data.proveedor_id}', '${data.usuario_idReporte}', '${data.usuario_idaprovado}', '${data.hallazgos}', '${data.reporte}', '${data.recomendaciones}', '${data.id_activo}', '${data.img_reporte}', '${data.reportes}', '${data.fechaCreacion}' , '${data.fechaCreacion}')
                 SELECT IDENT_CURRENT('repotesMtto') AS id
             `)
         }else{
             resultado = await pool.query(`
-                INSERT INTO repotesMtto (solicitud_id, tipoMtoo_id, fechareporte, costo_mo, costo_mp, proveedor_id, usuario_idReporte, usuario_idaprovado, hallazgos, reporte, recomendaciones, id_activo, img_reporte, fechaCreacion)
-                    VALUES ('${data.solicitud_id}', '${data.tipoMtoo_id}', '${data.fechareporte}', '${data.costo_mo}', '${data.costo_mp}', '${data.proveedor_id}', '${data.usuario_idReporte}', '${data.usuario_idaprovado}', '${data.hallazgos}', '${data.reporte}', '${data.recomendaciones}', '${data.id_activo}', '${data.img_reporte}', '${data.fechaCreacion}')
+                INSERT INTO repotesMtto (solicitud_id, tipoMtoo_id, fechareporte, costo_mo, costo_mp, proveedor_id, usuario_idReporte, usuario_idaprovado, hallazgos, reporte, recomendaciones, id_activo, img_reporte, reportes, fechaCreacion)
+                    VALUES ('${data.solicitud_id}', '${data.tipoMtoo_id}', '${data.fechareporte}', '${data.costo_mo}', '${data.costo_mp}', '${data.proveedor_id}', '${data.usuario_idReporte}', '${data.usuario_idaprovado}', '${data.hallazgos}', '${data.reporte}', '${data.recomendaciones}', '${data.id_activo}', '${data.img_reporte}', '${data.reportes}', '${data.fechaCreacion}')
                 SELECT IDENT_CURRENT('repotesMtto') AS id
             `)
         }
