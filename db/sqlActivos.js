@@ -15,12 +15,13 @@ const dataConfActivo = async () => {
             SELECT id, nombre, nombre_1, apellido, apellido_1 FROM usuarios
             SELECT * FROM frecuencia_Mtto
             SELECT * FROM estado_solicitudes
-            SELECT * FROM tipo_mantenimeintos`
+            SELECT * FROM tipo_mantenimeintos
+            SELECT * FROM lista_componentes`
         )
         return (resultado.recordsets)
     } catch (error) {
         console.error(error);
-        return{msg:'Ha ocurido un error al intentar cargar los datos de configuracion'}
+        return { msg: 'Ha ocurido un error al intentar cargar los datos de configuracion' }
     }
 }
 
@@ -42,7 +43,7 @@ const consultarActivos = async () => {
         return (resultado.recordset)
     } catch (error) {
         console.error(error);
-        return{msg:'Ha ocurido un error al intentar guardar los datos intentalo mas tarde'}
+        return { msg: 'Ha ocurido un error al intentar guardar los datos intentalo mas tarde' }
     }
 }
 
@@ -58,10 +59,10 @@ const consultarActivoUno = async (id) => {
         `)
 
         return (resultado.recordset[0])
-        
+
     } catch (error) {
         console.error(error);
-        return{msg:'Ha ocurido un error al intentar consultar los dato'}
+        return { msg: 'Ha ocurido un error al intentar consultar los dato' }
     }
 }
 
@@ -75,10 +76,10 @@ const gudardarNuevoActivo = async (data) => {
                 WHERE clasificacion_id='${data.clasificacion_id}' 
             ORDER BY consecutivo_interno DESC
         `)
-  
+
         const aumento = parseInt(consecutivo.recordset[0].consecutivo_interno) + 1
         data.consecutivo_interno = aumento.toString().padStart(4, 0)
-   
+
         const resultado = await pool.query(`
             INSERT INTO listado_activos (clasificacion_id, 
                 consecutivo_interno,
@@ -108,6 +109,8 @@ const gudardarNuevoActivo = async (data) => {
             SELECT IDENT_CURRENT('listado_activos') AS id
         `)
         const id = resultado.recordset[0].id
+        if (data.componentes) {
+        }
 
         const newActivo = await pool.query(`
             SELECT la.id, RTRIM(ca.siglas) AS siglas, CONCAT( RTRIM(ca. siglas), la.consecutivo_interno) AS codigo
@@ -118,16 +121,16 @@ const gudardarNuevoActivo = async (data) => {
                     on la.estado_id = es.id
             WHERE la.id = '${id}'
         `)
-      
+
         return (newActivo.recordset[0])
     } catch (error) {
         console.error(error);
-        return{msg:'Ha ocurido un error al intentar crear los datos  del activo intentalo mas tarde'}
+        return { msg: 'Ha ocurido un error al intentar crear los datos  del activo intentalo mas tarde' }
     }
 }
 
 const guardarImagenes = async (imagenes, id) => {
-    
+
     try {
         const pool = await conectardb()
         const resultado = await pool.query(`
@@ -138,12 +141,12 @@ const guardarImagenes = async (imagenes, id) => {
         return (resultado.rowsAffected)
     } catch (error) {
         console.error(error);
-        return{msg:'Ha ocurido un error al intentar guardar los datos de las imagenes'}
+        return { msg: 'Ha ocurido un error al intentar guardar los datos de las imagenes' }
     }
 }
 
 const guardarSoportes = async (soportes, id) => {
-    
+
     try {
         const pool = await conectardb()
         const resultado = await pool.query(`
@@ -154,7 +157,7 @@ const guardarSoportes = async (soportes, id) => {
         return (resultado.rowsAffected)
     } catch (error) {
         console.error(error);
-        return{msg:'Ha ocurido un error al intentar guardar los soportes en la bd'}
+        return { msg: 'Ha ocurido un error al intentar guardar los soportes en la bd' }
     }
 }
 
@@ -191,7 +194,7 @@ const actualizarActivoDb = async (data) => {
         return (resultado.rowsAffected)
     } catch (error) {
         console.error(error);
-        return{msg:'Ha ocurido un error al intentar guardar los datos intentalo mas tarde'}
+        return { msg: 'Ha ocurido un error al intentar guardar los datos intentalo mas tarde' }
     }
 }
 
@@ -210,7 +213,7 @@ const consultarCodigoInterno = async (id) => {
         return (resultado.recordset[0])
     } catch (error) {
         console.error(error);
-        return{msg:'Ha ocurido un error al intentar consultar los datos intentalo mas tarde'}
+        return { msg: 'Ha ocurido un error al intentar consultar los datos intentalo mas tarde' }
     }
 }
 
@@ -239,7 +242,7 @@ const consultarCalsificacionActivoMod = async (idactivo, idclasificacion) => {
         return (resultado.recordsets)
     } catch (error) {
         console.error(error);
-        return{msg:'Ha ocurido un error al intentar consultar los datos intentalo mas tarde'}
+        return { msg: 'Ha ocurido un error al intentar consultar los datos intentalo mas tarde' }
     }
 }
 
@@ -257,12 +260,12 @@ const actualizarClasificacion = async (idactivo, idclasificacion, consecutivo_in
         return (resultado.recordsets)
     } catch (error) {
         console.error(error);
-        return{msg:'Ha ocurido un error al intentar consultar los datos intentalo mas tarde'}
+        return { msg: 'Ha ocurido un error al intentar consultar los datos intentalo mas tarde' }
     }
 }
 
 const eliminarActivoDb = async (data) => {
-    
+
     try {
         const pool = await conectardb()
         const resultado = await pool.query(`
@@ -271,14 +274,95 @@ const eliminarActivoDb = async (data) => {
                 eliminacion_cambio ='${data.motivo}'
             WHERE id='${data.id}'
         `)
-         return (resultado.rowsAffected)
+        return (resultado.rowsAffected)
     } catch (error) {
         console.error(error);
-        return{msg:'Ha ocurido un error al intentar eliminar el activo'}
+        return { msg: 'Ha ocurido un error al intentar eliminar el activo' }
     }
 }
 
-export{ 
+const crearComponenteActivo = async (componentes, id) => {
+
+    let quereyComponentes = `('${id}', '${componentes[0].componenteId}', '${componentes[0].marcaId}',  '${componentes[0].modelo}', '${componentes[0].serie}', '${componentes[0].capacidad}', '${componentes[0].estadoId}')`
+
+    if (componentes.length > 1) {
+        componentes.forEach((element, index) => {
+            if (index !== 0) {
+                quereyComponentes += `,\n ('${id}', '${element.componenteId}', '${element.marcaId}',  '${element.modelo}', '${element.serie}', '${element.capacidad}', '${element.estadoId}')`
+            }
+        });
+    }
+    const query = `INSERT INTO componentes_activos( idactivo, componenteId, marca , modelo, serie, capacidad, estado)
+    VALUES ${quereyComponentes}
+
+    SELECT ca.id, ca.componenteId, TRIM(lp.componente) AS nombre, ca.marca AS marcaId, TRIM(ca.modelo) AS modelo, TRIM(ca.serie) AS serie,TRIM(ca.capacidad) AS capacidad, ca.estado as estadoId
+        FROM componentes_activos ca
+        INNER JOIN lista_componentes lp
+        ON lp.id = ca.componenteId
+    WHERE ca.idactivo = '${id}' AND  ca.estado = '1'`
+
+    try {
+        const pool = await conectardb()
+        const resultado = await pool.query(query)
+        return (resultado.recordsets)
+    } catch (error) {
+        console.error(error);
+        return { msg: 'Ha ocurido un error al intentar crear los componentes' }
+    }
+}
+
+const consultarComponentes = async (id) => {
+
+    try {
+        const pool = await conectardb()
+        const resultado = await pool.query(`
+            SELECT ca.id, ca.componenteId, TRIM(lp.componente) AS nombre, ca.marca AS marcaId, TRIM(ca.modelo) AS modelo, TRIM(ca.serie) AS serie,TRIM(ca.capacidad) AS capacidad, ca.estado as estadoId
+                FROM componentes_activos ca
+                INNER JOIN lista_componentes lp
+                ON lp.id = ca.componenteId
+            WHERE ca.idactivo = '${id}' AND  ca.estado = '1'
+        `)
+        return (resultado.recordsets[0])
+    } catch (error) {
+        console.error(error);
+        return { msg: 'Ha ocurido un error al intentar consultar los componentes' }
+    }
+}
+
+const actualizarComponentes = async (componentes, id) => {
+
+    let quereyComponentes = `UPDATE componentes_activos
+	    SET componenteId ='${componentes[0].componenteId}', marca = '${componentes[0].marcaId}', modelo= '${componentes[0].modelo}', serie = '${componentes[0].serie}', capacidad='${componentes[0].capacidad}', estado= '${componentes[0].estadoId}'
+    WHERE id = '${componentes[0].id}'`
+
+    
+    componentes.forEach((element, index) => {
+        if (index !== 0) {
+            quereyComponentes += `\n UPDATE componentes_activos
+                SET componenteId ='${element.componenteId}', marca = '${element.marcaId}', modelo= '${element.modelo}', serie = '${element.serie}', capacidad='${element.capacidad}', estado= '${element.estadoId}'
+            WHERE id = '${element.id}'`
+        }
+    });
+
+    const query = `${quereyComponentes} \n SELECT ca.id, ca.componenteId, TRIM(lp.componente) AS nombre, ca.marca AS marcaId, TRIM(ca.modelo) AS modelo, TRIM(ca.serie) AS serie,TRIM(ca.capacidad) AS capacidad, ca.estado as estadoId
+        FROM componentes_activos ca
+        INNER JOIN lista_componentes lp
+        ON lp.id = ca.componenteId
+    WHERE ca.idactivo = '${id}' AND  ca.estado = '1'`
+    
+    try {
+        const pool = await conectardb()
+        const resultado = await pool.query(query)
+        return (resultado.recordsets[0])
+    } catch (error) {
+        console.error(error);
+        return { msg: 'Ha ocurido un error al intentar crear los componentes' }
+    }
+}
+
+
+
+export {
     consultarActivos,
     dataConfActivo,
     gudardarNuevoActivo,
@@ -289,5 +373,8 @@ export{
     actualizarClasificacion,
     eliminarActivoDb,
     consultarActivoUno,
-    guardarSoportes
+    guardarSoportes,
+    crearComponenteActivo,
+    consultarComponentes,
+    actualizarComponentes
 }

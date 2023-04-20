@@ -14,10 +14,11 @@ const consultarconfig = async (req, res) => {
         '1': 'areas',
         '2': 'marca_activos',
         '3': 'tipo_activo',
-        '4': 'frecuencia_Mtto',
-        '5': 'procesos',
-        '6': 'clasificacion_activos',
-        '7': 'proveedores'
+        '4': 'lista_componentes',
+        '5': 'frecuencia_Mtto',
+        '6': 'procesos',
+        '7': 'clasificacion_activos',
+        '8': 'proveedores'
     }
     const { config } = req.body
 
@@ -46,7 +47,7 @@ const crearConfig = async (req, res) => {
         return res.json(validar)
     }
 
-    
+
     switch (config) {
         case 1:
             query = `INSERT INTO areas (area, estado) VALUES('${data.nombre}', '1') 
@@ -61,29 +62,32 @@ const crearConfig = async (req, res) => {
                     SELECT IDENT_CURRENT('tipo_activo') AS id`
             break
         case 4:
+            query = `INSERT INTO lista_componentes (componente, estado) VALUES('${data.nombre}', '1') 
+                        SELECT IDENT_CURRENT('lista_componentes') AS id`
+            break
+        case 5:
             query = `INSERT INTO frecuencia_Mtto (frecuencia, dias, estado) VALUES('${data.nombre}', '${data.dias}', '1') 
                     SELECT IDENT_CURRENT('frecuencia_Mtto') AS id`
             break
-        case 5:
+        case 6:
             data.sigla = data.sigla.toUpperCase()
 
             query = `INSERT INTO procesos (proceso, sigla, estado) VALUES('${data.nombre}', '${data.sigla}', '1') 
                     SELECT IDENT_CURRENT('procesos') AS id`
             break
-        case 6:
-            data.siglas = data.siglas.toUpperCase() 
+        case 7:
+            data.siglas = data.siglas.toUpperCase()
 
             query = `INSERT INTO clasificacion_activos (nombre, siglas, estado) VALUES('${data.nombre}', '${data.siglas}', '1') 
                     SELECT IDENT_CURRENT('clasificacion_activos') AS id`
             break
-        case 7:
+        case 8:
             query = `INSERT INTO proveedores (nombre_comercial, razon_social, nit, dv, telefonos, contacto, direccion, estado) VALUES('${data.nombre}', '${data.razon_social}', '${data.nit}', '${data.dv}', '${data.telefonos}', '${data.contacto}', '${data.direccion}', '1') 
                     SELECT IDENT_CURRENT('proveedores') AS id`
             break
         default:
             return res.json({ msg: 'Solicitud invalida' })
 
-            break
     }
 
     const actualizar = await guardarConfig(query)
@@ -127,24 +131,25 @@ const actualizarConfig = async (req, res) => {
             query = `UPDATE tipo_activo SET tipo_activo = '${data.nombre}', estado = '${data.estado}' WHERE id = '${data.id}'`
             break
         case 4:
-            query = `UPDATE frecuencia_Mtto SET frecuencia = '${data.nombre}', dias = '${data.dias}',  estado = '${data.estado}' WHERE id = '${data.id}'`
+            query = `UPDATE lista_componentes SET componente = '${data.nombre}', estado = '${data.estado}' WHERE id = '${data.id}'`
             break
         case 5:
+            query = `UPDATE frecuencia_Mtto SET frecuencia = '${data.nombre}', dias = '${data.dias}',  estado = '${data.estado}' WHERE id = '${data.id}'`
+            break
+        case 6:
             data.sigla = data.sigla.toUpperCase()
             query = `UPDATE procesos SET proceso = '${data.nombre}', sigla = '${data.sigla}',  estado = '${data.estado}' WHERE id = '${data.id}'`
             break
-        case 6:
+        case 7:
             data.siglas = data.siglas.toUpperCase()
             query = `UPDATE clasificacion_activos SET nombre = '${data.nombre}', siglas = '${data.siglas}',  estado = '${data.estado}' WHERE id = '${data.id}'`
             break
-        case 7:
+        case 8:
             query = `UPDATE proveedores SET nombre_comercial = '${data.nombre}', razon_social = '${data.razon_social}', nit = '${data.nit}', dv = '${data.dv}', telefonos = '${data.telefonos}', contacto = '${data.contacto}', direccion = '${data.direccion}', estado = '${data.estado}' WHERE id = '${data.id}'`
             break
 
         default:
             return res.json({ msg: 'Solicitud invalida' })
-
-            break
     }
 
     const actualizar = await actualizarConfigDb(query)

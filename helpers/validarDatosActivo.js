@@ -22,7 +22,8 @@ const validarDatosActivo = async (data, actualizar = false) => {
         descripcion,
         recomendaciones_Mtto,
         obervacion,
-        tipo_activo_id } = data
+        tipo_activo_id,
+        componentes } = data
 
 
     const dataBd = await dataConfActivo()
@@ -123,6 +124,40 @@ const validarDatosActivo = async (data, actualizar = false) => {
 
     if (!validarinfoId(dataBd[8], frecuencia_id)) {
         return { msg: 'debe seleccionar una frecuencia de mtto de la lista desplegable' }
+    }
+    if (componentes) {
+        let validacionComponentes =[]
+        componentes.map((element) => {
+           
+            if (!validarinfoId(dataBd[11], element.componenteId)) {
+                validacionComponentes.push(1)
+                return 1
+            }
+            if (validarText(element.serie)) {
+                validacionComponentes.push(2)
+                return 3
+            }
+            if (validarText(element.modelo)) {
+                validacionComponentes.push(3)
+                return 4
+            }
+            if (validarText(element.capacidad)) {
+                validacionComponentes.push(4)
+                return 4
+            }
+            if (!validarinfoId(dataBd[1], element.marcaId)) {
+                validacionComponentes.push(5)
+                return 5
+            }
+            if (!validarinfoId(dataBd[6], element.estadoId)) {
+                validacionComponentes.push(6)
+                return 6
+            }
+
+        })
+        if(validacionComponentes.length > 0) {
+            return { msg: 'Verifique la informacion de los componentes' }
+        }
     }
 
     return true

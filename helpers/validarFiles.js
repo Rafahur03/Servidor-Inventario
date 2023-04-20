@@ -1,4 +1,5 @@
-const validarFiles =  (files) => {
+import mime from 'mime-types'
+    const validarFiles =  (files) => {
  
     if (files.Image) {
         const dimension = files.Image.length

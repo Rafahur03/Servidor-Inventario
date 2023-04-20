@@ -1,7 +1,7 @@
 import formidable from "formidable"
 
 
-import { validarDatosActivo} from "../helpers/validarDatosActivo.js"
+import { validarDatosActivo } from "../helpers/validarDatosActivo.js"
 import { validarFiles } from "../helpers/validarFiles.js"
 import {
     copiarYCambiarNombre,
@@ -24,7 +24,10 @@ import {
     consultarCalsificacionActivoMod,
     actualizarClasificacion,
     eliminarActivoDb,
-    guardarSoportes
+    guardarSoportes,
+    crearComponenteActivo,
+    consultarComponentes,
+    actualizarComponentes
 } from "../db/sqlActivos.js"
 
 
@@ -93,12 +96,23 @@ const crearActivo = async (req, res) => {
             return res.json(dataActivo)
         }
 
+        // cargamos en la base de datos loc componentes asociados al activo
+        //almacena los errores  que se presenten
+        let error = {}
+
+        if (data.componentes) {
+            const guardarComponentes = await crearComponenteActivo(data.componentes, dataActivo.id)
+            if (guardarComponentes.msg) {
+                error.guardarComponentes = guardarComponentes
+            } else {
+                data.componentes = guardarComponentes[0]
+            }
+        }
+        // quitar espacios en blanco y devolver el id del componente 
         //anexamos los datos de codigo
         data.codigo = dataActivo.codigo
         data.id = dataActivo.id
 
-        //almacena los errores  que se presenten
-        let error = {}
         // guarda las imagenes en la ruta perteneciente al activo y devolver los nombres de la imagenes
         const url_img = await guardarImagenesNuevoActivo(files, dataActivo)
         if (url_img.msg) {
@@ -210,6 +224,7 @@ const actualizarActivo = async (req, res) => {
     if (arrPermisos.indexOf(3) === -1) {
         return res.json({ msg: 'Usted no tiene permisos para Actualizar Activos' })
     }
+
     // usa  formidable para recibir el req de imagenes y datos
     const form = formidable({ multiples: true });
     form.parse(req, async function (err, fields, files) {
@@ -221,8 +236,13 @@ const actualizarActivo = async (req, res) => {
         // extrae los datos del req 
         const data = JSON.parse(fields.data)
 
+
+
         //validar que el id corresponde al codigo interno del equipo
         const dataBd = await consultarCodigoInterno(data.id)
+        if (dataBd.msg) {
+            return request.json({ msg: 'En estos momentos no es posible validar la informaciona  actualizar intetelo más tarde' })
+        }
 
         if (dataBd.codigo !== data.codigo) {
             return res.json({ msg: 'El Id del activo no corresponde al codigo interno no se puede actualizar los datos' })
@@ -235,19 +255,29 @@ const actualizarActivo = async (req, res) => {
 
         let imageneDb = dataBd.url_img.split(',')
         const ElminoImagen = JSON.stringify(imageneDb) === JSON.stringify(data.url_img)
-
         // valida que esten normalizados para ingreso a la bd
         const validacion = await validarDatosActivo(data, true)
         if (validacion.msg) {
             return res.json(validacion)
         }
+        // validar si hubo cambio en los componentes
+        let error = {}
+        let modificoComponentes = true
+        const componentesDb = await consultarComponentes(data.id)
+        if (componentesDb.msg) {
+            error.componentes = componentesDb.msg
+        } else {
+            modificoComponentes = JSON.stringify(componentesDb) === JSON.stringify(data.componentes)
+        }
+
 
         // validar archivos enviados 
         const validarFile = validarFiles(files)
         if (validarFile.msg) {
             return res.json(validarFile)
         }
-        // crea un nuevo arreglo con losnombres de las imagenes
+
+        // crea un nuevo arreglo con los nombres de las imagenes
         let imagenesEliminar
 
         if (!ElminoImagen) {
@@ -255,7 +285,7 @@ const actualizarActivo = async (req, res) => {
         }
 
         // verificar si existen imagenes guardarlas
-        let error = {}
+
         if (files.Image) {
             const nuevaUrl_imag = await guardarImagenesNuevoActivo(files, dataBd)
             if (nuevaUrl_imag.msg) {
@@ -270,7 +300,7 @@ const actualizarActivo = async (req, res) => {
         let nuevosSoportes = {}
         if (dataBd.soportes !== JSON.stringify(data.soportes)) {
             //extrae los soportes de bd y los enviados en la actualizacion
-            console.log(dataBd)
+
             const soportesBD = JSON.parse(dataBd.soportes)
             const { soportes } = data
             // valida si la factura se elimina o reemplaza
@@ -382,18 +412,30 @@ const actualizarActivo = async (req, res) => {
         }
 
         // actualizar activo en bd
-
         data.url_img = data.url_img.toString()
         data.soportes = JSON.stringify(data.soportes)
-        const actualizar = await actualizarActivoDb(data)
-        if (actualizar.msg) {
-            return res.json(actualizar)
+
+        //actualiza los components en la bd
+
+        if (!modificoComponentes) {
+            const componentesActualizado = await actualizarComponentes(data.componentes, data.id)
+            if (componentesActualizado.msg) {
+                error.componentes = componentesActualizado.msg
+            } else {
+                data.componentes = componentesActualizado
+            }
         }
+
+        // actualzia el activo en la bd
+        const actualizarActivo = await actualizarActivoDb(data)
+        if (actualizarActivo.msg) {
+            return res.json(actualizarActivo)
+        }
+
 
         if (!ElminoImagen) {
             await elimnarImagenes(imagenesEliminar, dataBd)
         }
-
 
         data.url_img = data.url_img.split(',')
         data.soportes = JSON.parse(data.soportes)
@@ -472,7 +514,7 @@ const cambiarClasificacion = async (req, res) => {
 
     const { url_img, soportes } = nuevoCodigoInterno
 
-    let error ={}
+    let error = {}
     if (url_img !== null || url_img !== '') {
         console.log('aqui')
         // actualizar la nombre d elas imagenes en la BD
@@ -480,8 +522,8 @@ const cambiarClasificacion = async (req, res) => {
         console.log(nuevaUrl, datafile.codigoAntiguo, datafile.codigoNuevo)
         const actualizarUrl_Ima = await guardarImagenes(nuevaUrl, data.id)
         if (actualizarUrl_Ima.msg) {
-           error.url_img = actualizarUrl_Ima
-           console.log(error.url_img)
+            error.url_img = actualizarUrl_Ima
+            console.log(error.url_img)
         }
     }
     if (soportes !== null || soportes !== '') {
@@ -537,3 +579,119 @@ export {
     consultarActivo
 }
 
+const d = {
+    "msg": "Activo creado correctamente",
+    "data": {
+        "clasificacion_id": 9,
+        "nombre": "prueba creacion con archivos soportes y componentes",
+        "marca_id": 8,
+        "modelo": "prueba",
+        "serie": "pureba123",
+        "proceso_id": 1,
+        "area_id": 5,
+        "ubicacion": "patio trasero prueba",
+        "usuario_id": 48,
+        "estado_id": 1,
+        "proveedor_id": 18,
+        "numero_factura": "1lkkl",
+        "valor": "899966",
+        "fecha_compra": "12/05/2023",
+        "vencimiento_garantia": "11/05/2023",
+        "frecuencia_id": 1,
+        "descripcion": "prueba de si de verdad guarda el activo en la base de datos",
+        "recomendaciones_Mtto": " puedes describir mejor los recomendaciones de mtto",
+        "obervacion": " vas bien te lo aseguro",
+        "tipo_activo_id": 2,
+        "componentes": [
+            [
+                {
+                    "id": 9,
+                    "componenteId": 8,
+                    "nombre": "Mouse",
+                    "marca": 3,
+                    "modelo": "jllodkkkskss",
+                    "serie": "jsjjs5555552",
+                    "capacidad": ""
+                },
+                {
+                    "id": 10,
+                    "componenteId": 1,
+                    "nombre": "Disco Duro",
+                    "marca": 20,
+                    "modelo": "jlffloffkkskss",
+                    "serie": "fsvdvdsds",
+                    "capacidad": "256 Gb"
+                },
+                {
+                    "id": 11,
+                    "componenteId": 6,
+                    "nombre": "Teclado",
+                    "marca": 4,
+                    "modelo": "jllodkkkskss",
+                    "serie": "jsjjs5555552",
+                    "capacidad": ""
+                },
+                {
+                    "id": 12,
+                    "componenteId": 9,
+                    "nombre": "Microfono",
+                    "marca": 10,
+                    "modelo": "jllodkkkskss",
+                    "serie": "jsjjs5555552",
+                    "capacidad": ""
+                }
+            ]
+        ],
+        "codigo": "IN0018",
+        "id": 574,
+        "url_img": [
+            "IN0018-168201013513218.jpeg",
+            "IN0018-168201013513278.jpeg"
+        ],
+        "soportes": {
+            "factura": "IN0018-Factura.pdf",
+            "importacion": "IN0018-Importacion.pdf",
+            "invima": "IN0018-Invima.pdf",
+            "actaEntrega": "IN0018-ActaEntrega.pdf",
+            "garantia": "IN0018-Garantia.pdf",
+            "manual": "IN0018-Manual.pdf",
+            "otro": "IN0018-Otro.pdf"
+        }
+    }
+}
+
+const c = {
+    "nombre": "prueba creacion con archivos soportes",
+    "marca_id": 8,
+    "modelo": "prueba",
+    "serie": "pureba123",
+    "proceso_id": 1,
+    "area_id": 5,
+    "ubicacion": "patio trasero prueba",
+    "usuario_id": 48,
+    "estado_id": 1,
+    "proveedor_id": 18,
+    "numero_factura": "1lkkl",
+    "valor": "899966",
+    "fecha_compra": "12/05/2023",
+    "vencimiento_garantia": "11/05/2023",
+    "frecuencia_id": 1,
+    "descripcion": "prueba de si de verdad guarda el activo en la base de datos",
+    "recomendaciones_Mtto": " puedes describir mejor los recomendaciones de mtto",
+    "obervacion": " vas bien te lo aseguro",
+    "tipo_activo_id": 2,
+    "codigo": "IN0012",
+    "id": 568,
+    "url_img": [
+        "IN0012-168141366678554.jpeg",
+        "IN0012-168141366678692.jpeg"
+    ],
+    "soportes": {
+        "importacion": "IN0012-Importacion.pdf",
+        "invima": "IN0012-Invima.pdf",
+        "actaEntrega": "IN0012-ActaEntrega.pdf",
+        "garantia": "IN0012-Garantia.pdf",
+        "manual": "IN0012-Manual.pdf",
+        "otro": "IN0012-Otro.pdf"
+    }
+}
