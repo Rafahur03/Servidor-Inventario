@@ -193,7 +193,7 @@ const eliminarCarpetaActivo = async (data) => {
 }
 
 const elimnarImagenesSoliRepor = async (files, data, destino) => {
-	console.log('aqui')
+
 	try {
 		let pathActivo
 		switch (destino) {
