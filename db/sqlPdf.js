@@ -55,7 +55,50 @@ const dataReporte = async (id) => {
         return { msg: 'Ha ocurido un error al intentar cargar los datos del reporte' }
     }
 }
+const dataSolicitud = async (id) => {
+
+    try {
+        const pool = await conectardb()
+        const resultado = await pool.query(`
+            SELECT  TRIM(LA.nombre) AS nombre, CONCAT(TRIM(CA.siglas), TRIM(LA.consecutivo_interno)) AS codigo, TRIM(MA.marca) AS marca,
+                TRIM(LA.modelo) AS modelo, TRIM(LA.serie) AS serie, LA.tipo_activo_id, TRIM(LA.ubicacion) AS ubicacion,
+                CONCAT(TRIM(USA.nombre),' ', TRIM(USA.nombre_1),' ', TRIM(USA.apellido),' ', TRIM(USA.apellido_1)) AS responsable,
+                CONCAT(TRIM(USS.nombre),' ', TRIM(USS.nombre_1),' ', TRIM(USS.apellido),' ', TRIM(USS.apellido_1)) AS usuarioSolicitud,
+                TRIM(ES.estado) AS estado, TRIM(FR.frecuencia) AS frecuencia, TRIM(PR.proceso) AS proceso, TRIM(AR.area) AS area,
+                TRIM(PRO.razon_social) AS proveedor, SO.id AS idSolicitud, SO.fecha_solicitud AS fechaSolicitud, SO.solicitud AS solicitud,
+                SO.img_solicitud AS imgSolicitud, LA.url_img, TRIM(CA.siglas) as siglas
+                FROM solicitudes_mtto SO
+                INNER JOIN listado_activos LA
+                ON LA.id = SO.id_activo
+                INNER JOIN clasificacion_activos CA
+                ON CA.id = LA.clasificacion_id
+                INNER JOIN marca_activos MA
+                ON MA.id = la.marca_id
+                INNER JOIN usuarios USA
+                ON USA.id = LA.usuario_id
+                INNER JOIN usuarios USS
+                ON USS.id = SO.id_usuario
+                INNER JOIN estados ES
+                ON ES.id = LA.estado_id
+                INNER JOIN frecuencia_Mtto FR
+                ON FR.id = la.frecuencia_id
+                INNER JOIN procesos PR
+                ON PR.id = LA.proceso_id
+                INNER JOIN areas AR
+                ON AR.id = LA.area_id
+                INNER JOIN proveedores PRO
+                ON PRO.id =LA.proveedor_id
+            WHERE SO.id = '${id}'
+
+        `)
+        return (resultado.recordset[0])
+    } catch (error) {
+        console.error(error);
+        return { msg: 'Ha ocurido un error al intentar cargar los datos del reporte' }
+    }
+}
 
 export {
     dataReporte,
+    dataSolicitud
 }

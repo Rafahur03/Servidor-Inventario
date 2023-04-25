@@ -2,10 +2,11 @@
 import pdfMake from "pdfmake/build/pdfmake.js"
 import fs from 'fs'
 import mime from 'mime-types'
-import { dataReporte } from "../db/sqlPdf.js";
+import { dataReporte, dataSolicitud } from "../db/sqlPdf.js";
 import { ddReporte } from "./docDefinitionPdfMake/pdfReporte.js"
 import { ddSolicitud } from "./docDefinitionPdfMake/pdfSolicitud.js";
-
+import { ddHojaDeVida } from "./docDefinitionPdfMake/pdfHojadeVida.js";
+const pathBase = process.env.PATH_FILES
 
 
 // generamos el pdf
@@ -19,8 +20,13 @@ async function crearPdfMake(id, tipo) {
     }
 
     if (tipo === 'Solicitud') {
-        //data = await reporteData(id)
+        data = await solicitudData(id)
         dd = await ddSolicitud(data)
+    }
+
+    if (tipo === 'Activo') {
+       // data = await solicitudData(id)
+        dd = await ddHojaDeVida(data)
     }
 
     const pdfDocGenerator = pdfMake.createPdf(dd);
@@ -46,7 +52,46 @@ async function crearPdfMake(id, tipo) {
 
 export { crearPdfMake }
 
+const solicitudData = async id=>{
+    const datadb = await dataSolicitud(id)
 
+    datadb.fechaSolicitud = new Date(datadb.fechaSolicitud).toLocaleDateString()
+
+    if (datadb.tipo_activo_id === 1) {
+        datadb.apoyo = ''
+        datadb.biomedico = 'X'
+    } else {
+        datadb.apoyo = 'X'
+        datadb.biomedico = ''
+    }
+    // seleccionamos una imagen del activo la primera 
+    datadb.url_img = datadb.url_img.split(',')[0]
+    // creamos el path de la ruta donde se encuentran los archivos del activo
+    const path = pathBase + datadb.siglas + '\\' + datadb.codigo + '\\'
+
+    // leemos la imagen del activo de la ruta donde se encuentran los archivos y creamos un buffer de la imagen gurnadola en data.urL_imagens
+    const imageData = fs.readFileSync(path + datadb.url_img);
+    datadb.url_img = `data:${mime.lookup(datadb.url_img)};base64,${Buffer.from(imageData).toString('base64')}`
+    
+    // selecciona mos solo 4 imagenes de las cargadas en en el durante la creaccion del reporte 
+    datadb.imgSolicitud = datadb.imgSolicitud.split(',')
+    if (datadb.imgSolicitud.length > 4) datadb.imgSolicitud = datadb.imgSolicitud.slice(0, 4)
+
+    // creamos un buffer de las imagenes en un array que se pude insertar  dirrectamente en el PDF del reporte
+    const bodyImagenes = datadb.imgSolicitud.map(imagen => {
+        const imageData = fs.readFileSync(path + 'Solicitud\\' + imagen);
+        const buffer = `data:${mime.lookup(imagen)};base64,${Buffer.from(imageData).toString('base64')}`
+        return {
+            image: buffer,
+            width: 110,
+            height: 50,
+        }
+    })
+    datadb.imgSolicitud = bodyImagenes
+
+
+    return datadb
+}
 
 const reporteData = async id => {
     // consultamos los datos del reporte,
@@ -85,8 +130,7 @@ const reporteData = async id => {
     datadb.url_img = datadb.url_img.split(',')[0]
 
     // creamos el path de la ruta donde se encuentran los archivos del activo
-    const pathBase = process.env.PATH_FILES
-    const path = pathBase + datadb.siglas + '\\' + datadb.codigo + '\\'
+     const path = pathBase + datadb.siglas + '\\' + datadb.codigo + '\\'
 
     // leemos la imagen del activo de la ruta donde se encuentran los archivos y creamos un buffer de la imagen gurnadola en data.urL_imagens
     const imageData = fs.readFileSync(path + datadb.url_img);
@@ -94,12 +138,12 @@ const reporteData = async id => {
 
     // selecciona mos solo 4 imagenes de las cargadas en en el durante la creaccion del reporte 
     datadb.img_reporte = datadb.img_reporte.split(',')
-    if (datadb.img_reporte.length > 4) datadb.img_reporte.slice(0, 4)
+    if (datadb.img_reporte.length > 4) datadb.img_reporte = datadb.img_reporte.slice(0, 4)
 
     // creamos un buffer de las imagenes en un array que se pude insertar  dirrectamente en el PDF del reporte
     const bodyImagenes = datadb.img_reporte.map(imagen => {
         const imageData = fs.readFileSync(path + 'Reporte\\' + imagen);
-        const buffer = `data:${mime.lookup(datadb.url_img)};base64,${Buffer.from(imageData).toString('base64')}`
+        const buffer = `data:${mime.lookup(imagen)};base64,${Buffer.from(imageData).toString('base64')}`
         return {
             image: buffer,
             width: 110,

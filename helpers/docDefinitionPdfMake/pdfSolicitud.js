@@ -6,30 +6,28 @@ const imageData = fs.readFileSync('C:\\Users\\USER\\Pictures\\COS.png');
 const imageDataURLprueba = `data:image/png;base64,${Buffer.from(imageData).toString('base64')}`;
 
 pdfMake.vfs = vfsFonts.pdfMake.vfs;
-const data = {
-	nombre: 'Maquina Anestesica',
-	codigo: 'EM0001',
-	marca: 'Mindray',
-	modelo: 'WATO EX-20',
-	serie: '12255sss',
-	apoyo: '',
-	biomedico: 'X',
-	ubicacion: 'Quirofano',
-	responsable: 'Maira Gisela Dominguez Perez',
-	usuarioSolicitud: 'Martha Cecilia Bitar Calle',
-	estado: 'Dado de baja',
-	frecuencia: 'Anual',
-	proceso: 'Gestion Administrativa Y Financiera',
-	area: 'Admisiones',
-	proveedor: 'Clinica Oftalmologica de Sincelejo Ltda',
-	idSolicitud: 546,
-	fechaSolicitud: '20/05/2023',
-	solicitud: 'SolicitoSolicitoSolicitoSolicitoSolicitoSolicitoSolicito SolicitoSolicitoSolicitoSolicitoSolicito SolicitoSolicitoSolicitoSolicitoSolicitoSolicitoSolicitoSolicito SolicitoSolicitoSolicitoSolicitoSolicitoSolicitoSoliSolicito SolicitoSolicitoSolicitoSolicitoSolicitoSolicitoSolicitoSolicito SolicitoSolicitoSolicitoSolicitoSolicitoSolicitoSolicitoSolicitoSolicito SolicitoSolicitoSolicitoSolicitoSolicitoSolicitoSolicitoSolicito SolicitoSolicitoSolicitoSolicitoSolicitoSolicitoSolicito citoSolicitoSolicito SolicitoSolicitoSolicitoSolicitoSolicitoSolicito SolicitoSolicitoSolicitoSolicitoSolicitoSolicitoSolicitoSolicito SolicitoSolicitoSolicitoSolicitoSolicitoSolicitoSolicitoSolicitoSolicito SolicitoSolicitoSolicitoSolicitoSolicitoSolicitoSolicitoSolicito SolicitoSolicitoSolicitoSolicitoSolicitoSolicitoSolicito Solicito',
-	width: 140,
-	height: 140,
-}
+// const data = {
+// 	nombre: 'Maquina Anestesica',
+// 	codigo: 'EM0001',
+// 	marca: 'Mindray',
+// 	modelo: 'WATO EX-20',
+// 	serie: '12255sss',
+// 	apoyo: '',
+// 	biomedico: 'X',
+// 	ubicacion: 'Quirofano',
+// 	responsable: 'Maira Gisela Dominguez Perez',
+// 	usuarioSolicitud: 'Martha Cecilia Bitar Calle',
+// 	estado: 'Dado de baja',
+// 	frecuencia: 'Anual',
+// 	proceso: 'Gestion Administrativa Y Financiera',
+// 	area: 'Admisiones',
+// 	proveedor: 'Clinica Oftalmologica de Sincelejo Ltda',
+// 	idSolicitud: 546,
+// 	fechaSolicitud: '20/05/2023',
+// 	solicitud: 'SolicitoSolicitoSolicitoSolicitoSolicitoSolicitoSolicito SolicitoSolicitoSolicitoSolicitoSolicito SolicitoSolicitoSolicitoSolicitoSolicitoSolicitoSolicitoSolicito SolicitoSolicitoSolicitoSolicitoSolicitoSolicitoSoliSolicito SolicitoSolicitoSolicitoSolicitoSolicitoSolicitoSolicitoSolicito SolicitoSolicitoSolicitoSolicitoSolicitoSolicitoSolicitoSolicitoSolicito SolicitoSolicitoSolicitoSolicitoSolicitoSolicitoSolicitoSolicito SolicitoSolicitoSolicitoSolicitoSolicitoSolicitoSolicito citoSolicitoSolicito SolicitoSolicitoSolicitoSolicitoSolicitoSolicito SolicitoSolicitoSolicitoSolicitoSolicitoSolicitoSolicitoSolicito SolicitoSolicitoSolicitoSolicitoSolicitoSolicitoSolicitoSolicitoSolicito SolicitoSolicitoSolicitoSolicitoSolicitoSolicitoSolicitoSolicito SolicitoSolicitoSolicitoSolicitoSolicitoSolicitoSolicito Solicito',
+// }
 
-const ddSolicitud = async gg => {
+const ddSolicitud = async data => {
 	const dd = {
 		pageSize: 'LETTER',
 		pageMargins: [40, 83, 40, 40],
@@ -44,11 +42,10 @@ const ddSolicitud = async gg => {
 							{
 								rowSpan: 5,
 								colSpan: 2,
-								image: imageDataURLprueba,
-								width: data.width,
-								height: data.height,
+								image: data.url_img,
+								width: 140,
+								height: 140,
 								margin: [2, 0, 6, 0]
-
 							},
 							'',
 							{ text: 'Nombre:', bold: true },
@@ -159,32 +156,7 @@ const ddSolicitud = async gg => {
 				table: {
 					widths: [124.7, 124.7, 124.7, 124.7],
 					body: [
-						[
-							{
-								image: imageDataURLprueba,
-								width: 120,
-								height: 110,
-								margin: [0, 0, 0, 5]
-							},
-							{
-								image: imageDataURLprueba,
-								width: 120,
-								height: 110,
-
-							},
-							{
-								image: imageDataURLprueba,
-								width: 120,
-								height: 110,
-
-							},
-							{
-								image: imageDataURLprueba,
-								width: 120,
-								height: 110,
-
-							}
-						],
+						data.imgSolicitud,
 					]
 				},
 				layout: 'noBorders'

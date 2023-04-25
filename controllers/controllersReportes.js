@@ -175,8 +175,8 @@ const modificarReporte = async (req, res) => {
     
 
     form.parse(req, async function (err, fields, files) {
-        const id = 913
-        const pdf = await crearPdfMake(id, 'Solicitud')
+        const id = 560
+        const pdf = await crearPdfMake(id, 'Activo')
          return res.json(pdf)
 
         if (err) {
