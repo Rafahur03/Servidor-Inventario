@@ -94,11 +94,89 @@ const dataSolicitud = async (id) => {
         return (resultado.recordset[0])
     } catch (error) {
         console.error(error);
-        return { msg: 'Ha ocurido un error al intentar cargar los datos del reporte' }
+        return { msg: 'Ha ocurido un error al intentar cargar los datos del solicitud' }
     }
 }
 
+const dataActivo = async (id) => {
+
+    try {
+        const pool = await conectardb()
+        const resultado = await pool.query(`
+            SELECT  LA.id, LA.nombre, CONCAT(TRIM(CA.siglas), TRIM(LA.consecutivo_interno)) AS codigo, TRIM(MA.marca) AS marca, LA.modelo,
+                LA.serie, LA.riesgo, LA.fecha_compra AS fechaCompra , LA.vencimiento_garantia AS garantia, LA.tipo_activo_id, 
+                TRIM(LA.ubicacion) AS ubicacion, 
+                CONCAT(TRIM(USR.nombre), ' ', TRIM(USR.nombre_1), ' ', TRIM(USR.apellido), ' ', TRIM(USR.apellido) ) AS responsable,
+                TRIM(ES.estado) AS estado, TRIM(FR.frecuencia) AS frecuencia, TRIM(PR.proceso) AS proceso, TRIM(AR.area) AS area,
+                TRIM(PRO.razon_social) AS proveedor, TRIM(LA.numero_factura) AS factura, TRIM(LA.valor) AS valor, la.fecha_creacion AS ingreso,
+                TRIM(LA.descripcion) AS descripcion, TRIM(LA.recomendaciones_Mtto) AS recomendaciones, TRIM(LA.obervacion) AS observacion,
+                LA.url_img, TRIM(CA.siglas) AS siglas
+                FROM listado_activos LA
+                INNER JOIN clasificacion_activos CA
+                ON CA.id = LA.clasificacion_id
+                INNER JOIN marca_activos MA
+                ON MA.id = LA.marca_id
+                INNER JOIN usuarios USR
+                ON USR.id = LA.usuario_id
+                INNER JOIN estados ES
+                ON ES.id = LA.estado_id
+                INNER JOIN frecuencia_Mtto FR
+                ON FR.id = LA.frecuencia_id
+                INNER JOIN procesos PR
+                ON PR.id = LA.proceso_id
+                INNER JOIN areas AR
+                ON AR.id = LA.area_id
+                INNER JOIN proveedores PRO
+                ON PRO.id = LA.proveedor_id
+            
+            WHERE LA.id = '${id}'
+        
+            SELECT TRIM(LC.componente) AS nombre, TRIM(ma.marca) AS marca, TRIM(CO.modelo) AS modelo, TRIM(CO.serie) AS serie, TRIM(CO.capacidad) AS capacidad
+                FROM componentes_activos CO
+                INNER JOIN lista_componentes LC
+                ON LC.id = CO.componenteId
+                INNER JOIN marca_activos MA
+                ON MA.id = CO.marca
+            WHERE CO.idactivo = '${id}'
+
+        `)
+        return (resultado.recordsets)
+    } catch (error) {
+        console.error(error);
+        return { msg: 'Ha ocurido un error al intentar cargar los datos del activo' }
+    }
+}
+
+const dataListaReporte = async (id) => {
+
+    try {
+        const pool = await conectardb()
+        const resultado = await pool.query(`
+            SELECT TRIM(LA.nombre) AS nombre, CONCAT(TRIM(CA.siglas), TRIM(LA.consecutivo_interno)) AS codigo, RM.id, RM.fechareporte AS fechaReporte,
+                TRIM(RM.hallazgos) AS hallazgos, TRIM(RM.reporte) AS reporte, TRIM(RM.recomendaciones) AS recomendaciones, RM.proximoMtto AS fechaProximo,
+                TRIM(PRO.razon_social) AS proveedor
+                FROM repotesMtto RM 
+                INNER JOIN listado_activos LA
+                ON LA.id = RM.id_activo
+                INNER JOIN clasificacion_activos CA
+                ON CA.id = LA.clasificacion_id
+                INNER JOIN proveedores PRO
+                ON PRO.id = RM.proveedor_id
+                WHERE RM.id_activo = '${id}'
+            ORDER BY RM.fechareporte DESC
+
+        `)
+        return (resultado.recordsets[0])   
+    } catch (error) {
+        console.error(error);
+        return { msg: 'Ha ocurido un error al intentar cargar los datos del activo' }
+    }
+}
+
+
 export {
     dataReporte,
-    dataSolicitud
+    dataSolicitud,
+    dataActivo,
+    dataListaReporte
 }

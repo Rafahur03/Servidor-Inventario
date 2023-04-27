@@ -2,16 +2,17 @@
 import pdfMake from "pdfmake/build/pdfmake.js"
 import fs from 'fs'
 import mime from 'mime-types'
-import { dataReporte, dataSolicitud } from "../db/sqlPdf.js";
+import { dataReporte, dataSolicitud, dataActivo, dataListaReporte } from "../db/sqlPdf.js";
 import { ddReporte } from "./docDefinitionPdfMake/pdfReporte.js"
 import { ddSolicitud } from "./docDefinitionPdfMake/pdfSolicitud.js";
 import { ddHojaDeVida } from "./docDefinitionPdfMake/pdfHojadeVida.js";
+import { ddListadoReporte } from "./docDefinitionPdfMake/pdfListadoMtto.js";
 const pathBase = process.env.PATH_FILES
 
 
 // generamos el pdf
 async function crearPdfMake(id, tipo) {
-    let data 
+    let data
     let dd
 
     if (tipo === 'Reporte') {
@@ -25,8 +26,13 @@ async function crearPdfMake(id, tipo) {
     }
 
     if (tipo === 'Activo') {
-       // data = await solicitudData(id)
+        data = await activoData(id)
         dd = await ddHojaDeVida(data)
+    }
+
+    if (tipo === 'listadoReportes') {
+        data = await listadoReporteData(id)
+        dd = await ddListadoReporte(data)
     }
 
     const pdfDocGenerator = pdfMake.createPdf(dd);
@@ -49,10 +55,8 @@ async function crearPdfMake(id, tipo) {
     }
 
 }
-
-export { crearPdfMake }
-
-const solicitudData = async id=>{
+// normalizamos los daros para solicitudes
+const solicitudData = async id => {
     const datadb = await dataSolicitud(id)
 
     datadb.fechaSolicitud = new Date(datadb.fechaSolicitud).toLocaleDateString()
@@ -72,7 +76,7 @@ const solicitudData = async id=>{
     // leemos la imagen del activo de la ruta donde se encuentran los archivos y creamos un buffer de la imagen gurnadola en data.urL_imagens
     const imageData = fs.readFileSync(path + datadb.url_img);
     datadb.url_img = `data:${mime.lookup(datadb.url_img)};base64,${Buffer.from(imageData).toString('base64')}`
-    
+
     // selecciona mos solo 4 imagenes de las cargadas en en el durante la creaccion del reporte 
     datadb.imgSolicitud = datadb.imgSolicitud.split(',')
     if (datadb.imgSolicitud.length > 4) datadb.imgSolicitud = datadb.imgSolicitud.slice(0, 4)
@@ -93,6 +97,7 @@ const solicitudData = async id=>{
     return datadb
 }
 
+//normalizamos los daros para un reporte
 const reporteData = async id => {
     // consultamos los datos del reporte,
     const datadb = await dataReporte(id)
@@ -130,7 +135,7 @@ const reporteData = async id => {
     datadb.url_img = datadb.url_img.split(',')[0]
 
     // creamos el path de la ruta donde se encuentran los archivos del activo
-     const path = pathBase + datadb.siglas + '\\' + datadb.codigo + '\\'
+    const path = pathBase + datadb.siglas + '\\' + datadb.codigo + '\\'
 
     // leemos la imagen del activo de la ruta donde se encuentran los archivos y creamos un buffer de la imagen gurnadola en data.urL_imagens
     const imageData = fs.readFileSync(path + datadb.url_img);
@@ -167,3 +172,139 @@ const reporteData = async id => {
     return datadb
 
 }
+
+// normalizamos los datos para un activo
+const activoData = async id => {
+    // consultamos los datos del reporte,
+    const datos = await dataActivo(id)
+    const datadb = datos[0][0]
+    if (datos[1].length > 0) datadb.componentes = datos[1]
+    // normalizamos los datos del reporte para su ingreso a pdf y creamos los buffer de imagenes para ingresarlos al pdf 
+    // normalizamos las fechas 
+    datadb.fechaCompra = new Date(datadb.fechaCompra).toLocaleDateString()
+    datadb.garantia = new Date(datadb.garantia).toLocaleDateString()
+    datadb.ingreso = new Date(datadb.ingreso).toLocaleDateString()
+    // determinamos el tipo de  activo
+    if (datadb.tipo_activo_id === 1) {
+        datadb.apoyo = ''
+        datadb.biomedico = 'X'
+    } else {
+        datadb.apoyo = 'X'
+        datadb.biomedico = ''
+    }
+
+    // seleccionamos una imagen del activo la primera 
+    datadb.url_img = datadb.url_img.split(',')[0]
+
+    // creamos el path de la ruta donde se encuentran los archivos del activo
+    const path = pathBase + datadb.siglas + '\\' + datadb.codigo + '\\'
+
+    // leemos la imagen del activo de la ruta donde se encuentran los archivos y creamos un buffer de la imagen gurnadola en data.urL_imagens
+    const imageData = fs.readFileSync(path + datadb.url_img);
+    datadb.url_img = `data:${mime.lookup(datadb.url_img)};base64,${Buffer.from(imageData).toString('base64')}`
+
+    if (datadb.componentes) {
+        const arrayComponentes = datadb.componentes.map(element => {
+            return (
+                [
+                    { text: element.nombre },
+                    { text: element.marca },
+                    { text: element.modelo },
+                    { text: element.serie },
+                    { text: element.capacidad },
+                ]
+            )
+        })
+        arrayComponentes.unshift(
+            [
+                { text: 'ESPECIFICACIONES TECNICAS DE COMPONENTES', fontSize: 12, margin: [0, 0, 0, 5], colSpan: 5, bold: true, alignment: 'center' },
+                '',
+                '',
+                '',
+                ''
+            ],
+            [
+                { text: 'COMPONENTE:', bold: true },
+                { text: 'Marca:', bold: true },
+                { text: 'Modelo:', bold: true },
+                { text: 'Serie:', bold: true },
+                { text: 'Capacidad:', bold: true },
+            ]
+        )
+
+        datadb.componentes = arrayComponentes
+    } else {
+        datadb.componentes = [
+            [
+                { text: 'ESPECIFICACIONES TECNICAS DE COMPONENTES', fontSize: 12, margin: [0, 0, 0, 5], colSpan: 5, bold: true, alignment: 'center' },
+                '',
+                '',
+                '',
+                ''
+            ],
+            [
+                { text: 'COMPONENTE:', bold: true },
+                { text: 'Marca:', bold: true },
+                { text: 'Modelo:', bold: true },
+                { text: 'Serie:', bold: true },
+                { text: 'Capacidad:', bold: true },
+            ]
+        ]
+
+    }
+    return datadb
+
+}
+
+// normalizamos los datos para el lisato de reprotes
+const listadoReporteData = async id => {
+    // consultamos los datos del reporte,
+    const datos = await dataListaReporte(id)
+    if (datos < 1) return { msg: 'No se encontraron reportes' }
+    
+    const datadb ={
+        codigo: datos[0].codigo,
+        nombre: datos[0].nombre
+
+    }
+
+    datadb.body = datos.map((element, index) => {
+        element.fechaReporte = new Date(element.fechaReporte).toLocaleDateString()
+        element.fechaProximo=  new Date(element.fechaProximo).toLocaleDateString()
+        return [
+            { text: index+1 },
+            { text: element.id },
+            { text: element.fechaReporte },
+            { text: element.hallazgos },
+            { text: element.reporte },
+            { text: element.recomendaciones },
+            { text: element.proveedor },
+            { text: element.fechaProximo },
+        ]
+    });
+
+    datadb.body.unshift(
+
+        [
+            { text: '#', bold: true, alignment: 'center' },
+            { text: 'Id', bold: true, alignment: 'center' },
+            { text: 'Fecha del reporte', bold: true, alignment: 'center' },
+            { text: 'Hallazgos', bold: true, alignment: 'center' },
+            { text: 'Reporte Tecnico', bold: true, alignment: 'center' },
+            { text: 'Recomendaciones', bold: true, alignment: 'center' },
+            { text: 'Proveedor', bold: true, alignment: 'center' },
+            { text: 'Fecha Proximo Mtto', bold: true, alignment: 'center' },
+
+        ]
+    )
+
+    return datadb
+}
+
+// generamos el logo
+const bufferLogo = () => {
+    const imageData = fs.readFileSync(path + datadb.url_img);
+    datadb.url_img = `data:${mime.lookup(datadb.url_img)};base64,${Buffer.from(imageData).toString('base64')}`
+}
+
+export { crearPdfMake }

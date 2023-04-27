@@ -4,36 +4,8 @@ import vfsFonts from 'pdfmake/build/vfs_fonts.js'
 const imageData = fs.readFileSync('C:\\Users\\USER\\Pictures\\COS.png');
 const imageDataURLprueba = `data:image/png;base64,${Buffer.from(imageData).toString('base64')}`;
 
-// playground requires you to assign document definition to a variable called dd
-const data = {
-	nombre: 'Maquina Anestesica',
-	codigo: 'EM0001',
-	marca: 'Mindray',
-	modelo: 'WATO EX-20',
-	serie: '12255sss',
-	riesgo: 'VII',
-	fechaCompra: '01/05/2022',
-	garantia: '30/04/2023',
-	apoyo: '',
-	biomedico: 'X',
-	ubicacion: 'Quirofano',
-	responsable: 'Maira Gisela Dominguez Perez',
-	estado: 'Dado de baja',
-	frecuencia: 'Anual',
-	proceso: 'Gestion Administrativa Y Financiera',
-	area: 'Admisiones',
-	proveedor: 'Clinica Oftalmologica de Sincelejo Ltda',
-	factura: 'factura 25666',
-	valor: 256566666,
-	ingreso: '17/04/2023',
-	descripcion: 'La lámpara para procedimientos menores GS 900: Seis LED que combinan una impresionante durabilidad, una excelente maniobrabilidad, una calidad de enfoque incomparable y varias opciones de montaje. Emisión de calor mínima y temperatura de color elevada. Menor consumo de energía. Sin necesidad de sustituir la bombilla',
-	recomendaciones: '"Mantenimiento general, limpieza de todos los módulos del equipo,limpieza externa, Calibración, verificación de estado general "',
-	observacion: 'ingresa del invetario anterior con codigo 0620',
-	width: 140,
-	height: 140,
-}
 
-const ddHojaDeVida = aaa => {
+const ddHojaDeVida = async data => {
 	pdfMake.vfs = vfsFonts.pdfMake.vfs;
 	const dd = {
 		pageSize: 'LETTER',
@@ -47,15 +19,15 @@ const ddHojaDeVida = aaa => {
 					widths: [150, 41, '*', 48, '*', 60.5, 5, '*', 5, 60.5, '*'],
 					body: [
 						[
-							{ rowSpan: 5, image: imageDataURLprueba, width: data.width, height: data.height, margin: [2, 0, 6, 0] },
+							{ rowSpan: 5, image:data.url_img, width: 140, height: 140, margin: [2, 0, 6, 0] },
 							{ text: 'Nombre:', bold: true },
 							{ colSpan: 2, text: data.nombre },
 							'',
 							{ text: 'Tipo Activo:', bold: true },
-							{ text: 'Medico:', bold: true },
-							data.biomedico,
-							{ text: 'Apoyo:', bold: true },
-							data.apoyo,
+							{ text: 'Medico: ' + data.biomedico, bold: true },
+							'',
+							{ text: 'Apoyo: ' + data.apoyo, bold: true },
+							'',
 							{ text: 'Codigo:', bold: true },
 							data.codigo
 						],
@@ -112,6 +84,19 @@ const ddHojaDeVida = aaa => {
 							data.ingreso,
 						],
 						[
+							{ text: 'Id:  ' + data.id, bold: true, alignment: 'center', color: 'red' },
+							'',
+							'',
+							'',
+							'',
+							'',
+							'',
+							'',
+							'',
+							'',
+							'',
+						],
+						[
 							{ colSpan: 11, text: 'Descripcion:', bold: true },
 						],
 						[
@@ -156,86 +141,7 @@ const ddHojaDeVida = aaa => {
 				style: 'tableBodyComponentes',
 				table: {
 					widths: [150, 120, 121, 150, 125],
-					body: [
-						[
-							{ text: 'ESPECIFICACIONES TECNICAS DE COMPONENTES', fontSize: 12, margin: [0, 0, 0, 5], colSpan: 5, bold: true, alignment: 'center' },
-							'',
-							'',
-							'',
-							''
-						],
-						[
-							{ text: 'COMPONENTE:', bold: true },
-							{ text: 'Marca:', bold: true },
-							{ text: 'Modelo:', bold: true },
-							{ text: 'Serie:', bold: true },
-							{ text: 'Capacidad:', bold: true },
-						],
-						[
-							{ text: 'Disco Duro:', bold: true },
-							'Marca',
-							'Modelo',
-							'Serie',
-							'Capacidad'
-						],
-						[
-							{ text: 'M. RAM:', bold: true },
-							'Marca',
-							'Modelo',
-							'Serie',
-							'Capacidad'
-						],
-						[
-							{ text: 'Procesador:', bold: true },
-							'Marca',
-							'Modelo',
-							'Serie',
-							'Capacidad'
-						],
-						[
-							{ text: 'Board:', bold: true },
-							'Marca',
-							'Modelo',
-							'Serie',
-							'Capacidad'
-						],
-						[
-							{ text: 'Monitor:', bold: true },
-							'Marca',
-							'Modelo',
-							'Serie',
-							'Capacidad'
-						],
-						[
-							{ text: 'Teclado:', bold: true },
-							'Marca',
-							'Modelo',
-							'Serie',
-							'Capacidad'
-						],
-						[
-							{ text: 'Camara:', bold: true },
-							'Marca',
-							'Modelo',
-							'Serie',
-							'Capacidad'
-						],
-						[
-							{ text: 'Mouse:', bold: true },
-							'Marca',
-							'Modelo',
-							'Serie',
-							'Capacidad'
-						],
-						[
-							{ text: 'Otros:', bold: true },
-							'Marca',
-							'Modelo',
-							'Serie',
-							'Capacidad'
-						],
-
-					]
+					body: data.componentes
 				},
 
 				layout: {
@@ -319,4 +225,4 @@ const ddHojaDeVida = aaa => {
 }
 
 
-export {ddHojaDeVida}
+export { ddHojaDeVida }

@@ -71,8 +71,8 @@ const ddReporte = async (data) => {
 
                         ],
                         [
-                            { text: 'Id Activo:', bold: true, fillColor: '#dddddd' },
-                            data.idActivo,
+                            { text: 'Id Activo:', bold: true, fillColor: '#dddddd',color: 'red' },
+                            { text:data.idActivo, color: 'red'},
                             { text: 'Serie:', bold: true },
                             { text: data.serie },
                             { text: 'Frecuencia de Mtto:', bold: true },
