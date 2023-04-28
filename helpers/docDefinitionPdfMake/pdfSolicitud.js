@@ -110,7 +110,7 @@ const ddSolicitud = async data => {
 							{ colSpan: 10, text: 'DATOS DE LA SOLICITUD:', bold: true, margin: [0, 15, 0, 10] },
 						],
 						[
-							{ text: 'Id Solicitud:', bold: true },
+							{ text: 'Id Solicitud:', bold: true, color:'red' },
 							data.idSolicitud,
 							{ colSpan: 2, text: 'Fecha Solicitud', bold: true },
 							'',
@@ -173,7 +173,7 @@ const ddSolicitud = async data => {
 						widths: [70, '*', 50, 50],
 						body: [
 							[
-								{ rowSpan: 3, image: imageDataURLprueba,  fit: [60, 30], margin: [3, 7, 0, 0], borderColor: ['#8DC049', '#8DC049', '#8DC049', '#8DC049'] },
+								{ rowSpan: 3, image: data.logo,  fit: [60, 30], margin: [3, 7, 0, 0], borderColor: ['#8DC049', '#8DC049', '#8DC049', '#8DC049'] },
 								{ text: 'SISTEMA DE GESTION INTEGRAL', borderColor: ['#8DC049', '#8DC049', '#8DC049', '#8DC049'] },
 								{ text: 'CODIGO', borderColor: ['#8DC049', '#8DC049', '#8DC049', '#8DC049'] },
 								{ text: 'F-IN-02', borderColor: ['#8DC049', '#8DC049', '#8DC049', '#8DC049'] }

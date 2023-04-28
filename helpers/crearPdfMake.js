@@ -1,5 +1,6 @@
 
 import pdfMake from "pdfmake/build/pdfmake.js"
+import { URL } from "url";
 import fs from 'fs'
 import mime from 'mime-types'
 import { dataReporte, dataSolicitud, dataActivo, dataListaReporte } from "../db/sqlPdf.js";
@@ -8,7 +9,7 @@ import { ddSolicitud } from "./docDefinitionPdfMake/pdfSolicitud.js";
 import { ddHojaDeVida } from "./docDefinitionPdfMake/pdfHojadeVida.js";
 import { ddListadoReporte } from "./docDefinitionPdfMake/pdfListadoMtto.js";
 const pathBase = process.env.PATH_FILES
-
+const __dirname = new URL('.', import.meta.url).pathname.substring(1)
 
 // generamos el pdf
 async function crearPdfMake(id, tipo) {
@@ -73,26 +74,38 @@ const solicitudData = async id => {
     // creamos el path de la ruta donde se encuentran los archivos del activo
     const path = pathBase + datadb.siglas + '\\' + datadb.codigo + '\\'
 
-    // leemos la imagen del activo de la ruta donde se encuentran los archivos y creamos un buffer de la imagen gurnadola en data.urL_imagens
-    const imageData = fs.readFileSync(path + datadb.url_img);
-    datadb.url_img = `data:${mime.lookup(datadb.url_img)};base64,${Buffer.from(imageData).toString('base64')}`
+    if (datadb.url_img != null && datadb.url_img != '') {
+        // seleccionamos una imagen del activo la primera 
+        datadb.url_img = datadb.url_img.split(',')[0]
 
-    // selecciona mos solo 4 imagenes de las cargadas en en el durante la creaccion del reporte 
-    datadb.imgSolicitud = datadb.imgSolicitud.split(',')
-    if (datadb.imgSolicitud.length > 4) datadb.imgSolicitud = datadb.imgSolicitud.slice(0, 4)
+        // leemos la imagen del activo de la ruta donde se encuentran los archivos y creamos un buffer de la imagen gurnadola en data.urL_imagens
+        const imageData = fs.readFileSync(path + datadb.url_img);
+        datadb.url_img = `data:${mime.lookup(datadb.url_img)};base64,${Buffer.from(imageData).toString('base64')}`
 
-    // creamos un buffer de las imagenes en un array que se pude insertar  dirrectamente en el PDF del reporte
-    const bodyImagenes = datadb.imgSolicitud.map(imagen => {
-        const imageData = fs.readFileSync(path + 'Solicitud\\' + imagen);
-        const buffer = `data:${mime.lookup(imagen)};base64,${Buffer.from(imageData).toString('base64')}`
-        return {
-            image: buffer,
-            width: 110,
-            height: 50,
-        }
-    })
-    datadb.imgSolicitud = bodyImagenes
+    } else {
+        datadb.url_img = await bufferNoImage()
+    }
 
+    console.log(datadb.imgSolicitud)
+    if (datadb.imgSolicitud != null && datadb.imgSolicitud != '') {
+        // selecciona mos solo 4 imagenes de las cargadas en en el durante la creaccion del reporte 
+        datadb.imgSolicitud = datadb.imgSolicitud.split(',')
+        if (datadb.imgSolicitud.length > 4) datadb.imgSolicitud = datadb.imgSolicitud.slice(0, 4)
+
+        // creamos un buffer de las imagenes en un array que se pude insertar  dirrectamente en el PDF del reporte
+        const bodyImagenes = datadb.imgSolicitud.map(imagen => {
+            const imageData = fs.readFileSync(path + 'Solicitud\\' + imagen);
+            const buffer = `data:${mime.lookup(imagen)};base64,${Buffer.from(imageData).toString('base64')}`
+            return {
+                image: buffer,
+                width: 110,
+                height: 50,
+            }
+        })
+        datadb.imgSolicitud = bodyImagenes
+    }
+
+    datadb.logo = await bufferLogo()
 
     return datadb
 }
@@ -131,43 +144,77 @@ const reporteData = async id => {
         datadb.perventivo = ''
         datadb.Predictivo = ''
     }
-    // seleccionamos una imagen del activo la primera 
-    datadb.url_img = datadb.url_img.split(',')[0]
-
     // creamos el path de la ruta donde se encuentran los archivos del activo
     const path = pathBase + datadb.siglas + '\\' + datadb.codigo + '\\'
+    if (datadb.url_img != null && datadb.url_img != '') {
+        // seleccionamos una imagen del activo la primera 
+        datadb.url_img = datadb.url_img.split(',')[0]
 
-    // leemos la imagen del activo de la ruta donde se encuentran los archivos y creamos un buffer de la imagen gurnadola en data.urL_imagens
-    const imageData = fs.readFileSync(path + datadb.url_img);
-    datadb.url_img = `data:${mime.lookup(datadb.url_img)};base64,${Buffer.from(imageData).toString('base64')}`
+        // leemos la imagen del activo de la ruta donde se encuentran los archivos y creamos un buffer de la imagen gurnadola en data.urL_imagens
+        const imageData = fs.readFileSync(path + datadb.url_img);
+        datadb.url_img = `data:${mime.lookup(datadb.url_img)};base64,${Buffer.from(imageData).toString('base64')}`
 
-    // selecciona mos solo 4 imagenes de las cargadas en en el durante la creaccion del reporte 
-    datadb.img_reporte = datadb.img_reporte.split(',')
-    if (datadb.img_reporte.length > 4) datadb.img_reporte = datadb.img_reporte.slice(0, 4)
+    } else {
+        datadb.url_img = await bufferNoImage()
+    }
 
-    // creamos un buffer de las imagenes en un array que se pude insertar  dirrectamente en el PDF del reporte
-    const bodyImagenes = datadb.img_reporte.map(imagen => {
-        const imageData = fs.readFileSync(path + 'Reporte\\' + imagen);
-        const buffer = `data:${mime.lookup(imagen)};base64,${Buffer.from(imageData).toString('base64')}`
-        return {
-            image: buffer,
-            width: 110,
-            height: 50,
+    if (datadb.img_reporte != null && datadb.img_reporte != '') {
+        // selecciona mos solo 4 imagenes de las cargadas en en el durante la creaccion del reporte 
+        datadb.img_reporte = datadb.img_reporte.split(',')
+        if (datadb.img_reporte.length > 4) datadb.img_reporte = datadb.img_reporte.slice(0, 4)
 
-        }
-    })
-    datadb.img_reporte = bodyImagenes
+        // creamos un buffer de las imagenes en un array que se pude insertar  dirrectamente en el PDF del reporte
+        const bodyImagenes = datadb.img_reporte.map(imagen => {
+            const imageData = fs.readFileSync(path + 'Reporte\\' + imagen);
+            const buffer = `data:${mime.lookup(imagen)};base64,${Buffer.from(imageData).toString('base64')}`
+            return {
+                image: buffer,
+                width: 110,
+                height: 50,
+
+            }
+        })
+        datadb.img_reporte = bodyImagenes
+    }
+
+
 
     // creammor un buffer de las imagenes de las firmas del quiern realzia el reporte y recibe el reporte 
-    if (datadb.firmaReporte !== '' || datadb.firmaReporte !== null) {
+    if (datadb.firmaReporte !== '' && datadb.firmaReporte !== null) {
         const firmaUsuarioReporte = fs.readFileSync(pathBase + 'Usuarios\\' + datadb.firmaReporte)
-        datadb.firmaReporte = `data:${mime.lookup(datadb.firmaReporte)};base64,${Buffer.from(firmaUsuarioReporte).toString('base64')}`
+        datadb.firma = [
+            {
+                image: `data:${mime.lookup(datadb.firmaReporte)};base64,${Buffer.from(firmaUsuarioReporte).toString('base64')}`,
+                fit: [50, 50]
+            },
+        ]
+    } else {
+        datadb.firma = [
+            {
+                text: '',
+            },
+        ]
+
     }
 
-    if (datadb.frimaAprobado !== '' || datadb.frimaAprobado !== null) {
+    if (datadb.frimaAprobado !== '' && datadb.frimaAprobado !== null) {
         const firmaUsuarioAprovado = fs.readFileSync(pathBase + 'Usuarios\\' + datadb.frimaAprobado)
-        datadb.frimaAprobado = `data:${mime.lookup(datadb.frimaAprobado)};base64,${Buffer.from(firmaUsuarioAprovado).toString('base64')}`
+        datadb.firma.push(
+            {
+                image: `data:${mime.lookup(datadb.frimaAprobado)};base64,${Buffer.from(firmaUsuarioAprovado).toString('base64')}`,
+                fit: [50, 50]
+            }
+        )
+    } else {
+        datadb.firma.push(
+            {
+                text: '',
+            },
+
+        )
     }
+
+    datadb.logo = await bufferLogo()
 
     return datadb
 
@@ -193,15 +240,22 @@ const activoData = async id => {
         datadb.biomedico = ''
     }
 
+    // creamos el path de la ruta donde se encuentran los archivos del activo
+    const path = pathBase + datadb.siglas + '\\' + datadb.codigo + '\\'
     // seleccionamos una imagen del activo la primera 
     datadb.url_img = datadb.url_img.split(',')[0]
 
-    // creamos el path de la ruta donde se encuentran los archivos del activo
-    const path = pathBase + datadb.siglas + '\\' + datadb.codigo + '\\'
+    if (datadb.url_img != null && datadb.url_img != '') {
+        // seleccionamos una imagen del activo la primera 
+        datadb.url_img = datadb.url_img.split(',')[0]
 
-    // leemos la imagen del activo de la ruta donde se encuentran los archivos y creamos un buffer de la imagen gurnadola en data.urL_imagens
-    const imageData = fs.readFileSync(path + datadb.url_img);
-    datadb.url_img = `data:${mime.lookup(datadb.url_img)};base64,${Buffer.from(imageData).toString('base64')}`
+        // leemos la imagen del activo de la ruta donde se encuentran los archivos y creamos un buffer de la imagen gurnadola en data.urL_imagens
+        const imageData = fs.readFileSync(path + datadb.url_img);
+        datadb.url_img = `data:${mime.lookup(datadb.url_img)};base64,${Buffer.from(imageData).toString('base64')}`
+
+    } else {
+        datadb.url_img = await bufferNoImage()
+    }
 
     if (datadb.componentes) {
         const arrayComponentes = datadb.componentes.map(element => {
@@ -252,6 +306,8 @@ const activoData = async id => {
         ]
 
     }
+    datadb.logo = await bufferLogo()
+
     return datadb
 
 }
@@ -261,8 +317,8 @@ const listadoReporteData = async id => {
     // consultamos los datos del reporte,
     const datos = await dataListaReporte(id)
     if (datos < 1) return { msg: 'No se encontraron reportes' }
-    
-    const datadb ={
+
+    const datadb = {
         codigo: datos[0].codigo,
         nombre: datos[0].nombre
 
@@ -270,9 +326,9 @@ const listadoReporteData = async id => {
 
     datadb.body = datos.map((element, index) => {
         element.fechaReporte = new Date(element.fechaReporte).toLocaleDateString()
-        element.fechaProximo=  new Date(element.fechaProximo).toLocaleDateString()
+        element.fechaProximo = new Date(element.fechaProximo).toLocaleDateString()
         return [
-            { text: index+1 },
+            { text: index + 1 },
             { text: element.id },
             { text: element.fechaReporte },
             { text: element.hallazgos },
@@ -302,9 +358,14 @@ const listadoReporteData = async id => {
 }
 
 // generamos el logo
-const bufferLogo = () => {
-    const imageData = fs.readFileSync(path + datadb.url_img);
-    datadb.url_img = `data:${mime.lookup(datadb.url_img)};base64,${Buffer.from(imageData).toString('base64')}`
+const bufferLogo = async () => {
+    const imageData = fs.readFileSync(__dirname + 'docDefinitionPdfMake/image/logo.png');
+    return `data:image/png;base64,${Buffer.from(imageData).toString('base64')}`
 }
 
-export { crearPdfMake }
+const bufferNoImage = async () => {
+    const imageData = fs.readFileSync(__dirname + 'docDefinitionPdfMake/image/noimage.png');
+    return `data:image/png;base64,${Buffer.from(imageData).toString('base64')}`
+}
+
+export { crearPdfMake, bufferNoImage }

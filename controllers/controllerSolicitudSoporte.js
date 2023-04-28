@@ -1,8 +1,8 @@
 import formidable from "formidable"
-
 import { validarDatoSolicitud } from "../helpers/validarDatosSolicitud.js"
 import { validarFiles } from "../helpers/validarFiles.js"
 import { consultarCodigoInterno } from "../db/sqlActivos.js"
+import { crearPdfMake } from "../helpers/crearPdfMake.js"
 import {
     guardarImagenesNuevoActivo,
     bufferimagenes,
@@ -33,15 +33,17 @@ const consultarSolicitud = async (req, res) => {
     if (solicitud.msg) {
         return res.json(solicitud)
     }
-    
-    solicitud.img_solicitud = solicitud.img_solicitud.split(',')
-    const Imagenes = bufferimagenes(solicitud.img_solicitud, solicitud, 1)
+
+    if (solicitud.img_solicitud != '' && solicitud.img_solicitud != null) {
+        solicitud.img_solicitud = solicitud.img_solicitud.split(',')
+        solicitud.magenes = bufferimagenes(solicitud.img_solicitud, solicitud, 1)
+    }
+    solicitud.pdfsolicitud = await crearPdfMake(id, 'Solicitud')
 
     res.json({
-        solicitud,
-        Imagenes
+        solicitud
     })
-    
+
 
 }
 
@@ -68,7 +70,7 @@ const crearSolicitud = async (req, res) => {
             return res.json({ msg: 'El Id del activo no corresponde al codigo interno debe selecionar un activo valido' })
         }
 
-        
+
         // validar datos y files
         const validarDatos = validarDatoSolicitud(data)
 
@@ -214,7 +216,7 @@ const eliminarSolicitud = async (req, res) => {
 
     // VALIDAR QUE EL CODIGO PERTENESCA AL ACTIVO
     const dataBd = await consultarSolicitud(id.id)
-  
+
     if (dataBd.id_estado !== 1) {
         return res.json({ msg: 'La solictud ya ha sido gestionada su estado es diferente de Abierto no se puede eliminarla solicitud' })
     }
@@ -232,13 +234,13 @@ const eliminarSolicitud = async (req, res) => {
     if (eliminado.msg) {
         return res.json(eliminado.msg)
     }
-    
+
     const img_solicitud = dataBd.img_solicitud.split(',')
     const carpetaEliminada = elimnarImagenesSoliRepor(img_solicitud, dataBd, 1)
     if (carpetaEliminada.msg) {
         return res.json(carpetaEliminada)
     }
-    
+
 
     res.json({
         msg: 'Eliminado Correctamete',

@@ -1,5 +1,4 @@
 import formidable from "formidable"
-
 import { validarDatoReporte } from "../helpers/validarDatosReporte.js"
 import { validarFiles } from "../helpers/validarFiles.js"
 import { consultarCodigoInterno } from "../db/sqlActivos.js"
@@ -21,6 +20,7 @@ import {
 
 
 
+
 const consultarReportesTodos = async (req, res) => {
     const listadoReportes = await consultarReportes()
     res.json(listadoReportes)
@@ -32,13 +32,26 @@ const consultarReporte = async (req, res) => {
     if (reporte.msg) {
         return res.json(reporte)
     }
+
+    
+    reporte.fechareporte = new Date(reporte.fechareporte).toLocaleDateString()
+    reporte.fechaCreacion = new Date(reporte.fechaCreacion).toLocaleDateString()
+    reporte.fechaCierre = new Date(reporte.fechaCierre).toLocaleDateString()
+    if(reporte.proximoMtto !== null ) {
+        reporte.proximoMtto = new Date(reporte.proximoMtto).toLocaleDateString()
+    }
     // rcuerda crear el buffer de imagenes 
-    //reporte.img_solicitud = reporte.img_solicitud.split(',')
-    //const Imagenes = bufferimagenes(reporte.img_solicitud, reporte, 2)
+    if(reporte.img_reporte !== null && reporte.img_reporte !== '') {
+        reporte.img_reporte = reporte.img_reporte.split(',')
+        reporte.img_reporte = bufferimagenes(reporte.img_reporte, reporte, 2)
+    }else{
+        reporte.img_reporte=''
+    }
+
+    reporte.pdfReporte = await crearPdfMake(id, 'Reporte')
 
     res.json({
-        reporte,
-        // Imagenes
+        reporte
     })
 
 
@@ -149,14 +162,14 @@ const crearReporte = async (req, res) => {
         }
 
         data.id = guardado
-        let Imagenes
+   
         if (data.img_reporte) {
-            Imagenes = await bufferimagenes(data.img_reporte, dataBd, 2) //
+            data.Imagenes = await bufferimagenes(data.img_reporte, dataBd, 2) //
         }
+        data.pdfReporte = await crearPdfMake(id, 'Reporte')
 
         res.json({
-            data,
-            Imagenes
+            data
         })
 
 
@@ -276,15 +289,14 @@ const modificarReporte = async (req, res) => {
             console.log('crear pdf')
         }
 
-        const Imagenes = bufferimagenes(data.img_reporte, dataActivo, 2)
+        data.Imagenes = bufferimagenes(data.img_reporte, dataActivo, 2)
         delete data.fechaCierre
-
+        data.pdfReporte = await crearPdfMake(data.id, 'Reporte')
 
         // enviar respuesta con los datos del activo e imagenes
         res.json({
             msg: 'El reporte se a actualizado correctamente',
-            data,
-            Imagenes
+            data
         })
     });
 }

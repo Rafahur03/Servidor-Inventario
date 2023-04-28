@@ -1,10 +1,6 @@
 // playground requires you to assign document definition to a variable called dd
-import fs from 'fs'
 import pdfMake from 'pdfmake/build/pdfmake.js'
 import vfsFonts from 'pdfmake/build/vfs_fonts.js'
-const imageData = fs.readFileSync('C:\\Users\\USER\\Pictures\\COS.png');
-const imageDataURLprueba = `data:image/png;base64,${Buffer.from(imageData).toString('base64')}`;
-
 
 const ddReporte = async (data) => {
     pdfMake.vfs = vfsFonts.pdfMake.vfs;
@@ -252,17 +248,7 @@ const ddReporte = async (data) => {
                 table: {
                     widths: ['*', '*'],
                     body: [
-                        [
-                            {
-                                image: data.firmaReporte,
-                                fit: [50, 50]
-                            },
-                            {
-                                image: data.frimaAprobado,
-                                fit: [50, 50]
-
-                            },
-                        ],
+                        data.firma,
                         [
                             {
                                 text: data.usuarioReporte,

@@ -1,6 +1,7 @@
 import { promises as fspromises } from 'fs'; // Importa el módulo fs con promesas
 import fs from 'fs'
 import mime from 'mime-types'
+import { bufferNoImage } from './crearPdfMake.js';
 
 
 const path = process.env.PATH_FILES
@@ -126,6 +127,9 @@ const guardarImagenesNuevoActivo = async (files, data, destino) => {
 }
 
 const bufferimagenes = (url_img, data, destino) => {
+	if(url_img == null || url_img == ''){
+		return bufferNoImage()
+	}
 	let pathActivo
 	switch (destino) {
 		case 1:

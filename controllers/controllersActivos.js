@@ -1,8 +1,7 @@
 import formidable from "formidable"
-
-
 import { validarDatosActivo } from "../helpers/validarDatosActivo.js"
 import { validarFiles } from "../helpers/validarFiles.js"
+import { crearPdfMake } from "../helpers/crearPdfMake.js"
 import {
     copiarYCambiarNombre,
     guardarImagenesNuevoActivo,
@@ -45,12 +44,13 @@ const consultarActivo = async (req, res) => {
     const url_img = activo.url_img.split(',')
     const Imagenes = bufferimagenes(url_img, activo)
     activo.soportes = JSON.parse(activo.soportes)
-    const bufferSoportes = bufferSoportespdf(activo.soportes, activo)
-
+    const soportes = bufferSoportespdf(activo.soportes, activo)
+    const hojadevida = await crearPdfMake(id, 'Activo')
     res.json({
         activo,
         Imagenes,
-        bufferSoportes
+        soportes,
+        hojadevida
     })
 }
 
@@ -206,12 +206,14 @@ const crearActivo = async (req, res) => {
         const Imagenes = bufferimagenes(url_img, dataActivo)
         const bufferSoportes = bufferSoportespdf(soportes, dataActivo)
         data.soportes = JSON.parse(soportestring)
+        const hojadevida = await crearPdfMake(data.id, 'Activo')
         // enviar respuesta con los datos del activo 
         res.json({
             msg: 'Activo creado correctamente',
             data,
             Imagenes,
-            bufferSoportes
+            bufferSoportes,
+            hojadevida
         })
 
     });
@@ -261,11 +263,11 @@ const actualizarActivo = async (req, res) => {
             return res.json(validacion)
         }
         // validar si hubo cambio en los componentes
-        let error = {}
+        let errores = {}
         let modificoComponentes = true
         const componentesDb = await consultarComponentes(data.id)
         if (componentesDb.msg) {
-            error.componentes = componentesDb.msg
+            errores.componentes = componentesDb.msg
         } else {
             modificoComponentes = JSON.stringify(componentesDb) === JSON.stringify(data.componentes)
         }
@@ -289,7 +291,7 @@ const actualizarActivo = async (req, res) => {
         if (files.Image) {
             const nuevaUrl_imag = await guardarImagenesNuevoActivo(files, dataBd)
             if (nuevaUrl_imag.msg) {
-                error.url_img = nuevaUrl_imag.msg
+                errores.url_img = nuevaUrl_imag.msg
             } else {
                 const nuevasImages = nuevaUrl_imag.concat(data.url_img)
                 data.url_img = nuevasImages
@@ -314,7 +316,7 @@ const actualizarActivo = async (req, res) => {
             if (files.Factura) {
                 const factura = await guardarPDF(files.Factura, dataBd, 'Factura')
                 if (factura.msg) {
-                    error.factura = factura.msg
+                    errores.factura = factura.msg
                 } else {
                     nuevosSoportes.factura = factura
                 }
@@ -328,7 +330,7 @@ const actualizarActivo = async (req, res) => {
             if (files.Importacion) {
                 const importacion = await guardarPDF(files.Importacion, dataBd, 'Importacion')
                 if (importacion.msg) {
-                    error.importacion = importacion.msg
+                    errores.importacion = importacion.msg
                 } else {
                     nuevosSoportes.importacion = importacion
                 }
@@ -343,7 +345,7 @@ const actualizarActivo = async (req, res) => {
             if (files.Invima) {
                 const invima = await guardarPDF(files.Invima, dataBd, 'Invima')
                 if (invima.msg) {
-                    error.invima = invima.msg
+                    errores.invima = invima.msg
                 } else {
                     nuevosSoportes.invima = invima
                 }
@@ -358,7 +360,7 @@ const actualizarActivo = async (req, res) => {
             if (files.ActaEntrega) {
                 const actaEntrega = await guardarPDF(files.ActaEntrega, dataBd, 'ActaEntrega')
                 if (actaEntrega.msg) {
-                    error.actaEntrega = actaEntrega.msg
+                    errores.actaEntrega = actaEntrega.msg
                 } else {
                     nuevosSoportes.actaEntrega = actaEntrega
                 }
@@ -373,7 +375,7 @@ const actualizarActivo = async (req, res) => {
             if (files.Garantia) {
                 const garantia = await guardarPDF(files.Garantia, dataBd, 'Garantia')
                 if (garantia.msg) {
-                    error.garantia = garantia.msg
+                    errores.garantia = garantia.msg
                 } else {
                     nuevosSoportes.garantia = garantia
                 }
@@ -387,7 +389,7 @@ const actualizarActivo = async (req, res) => {
             if (files.Manual) {
                 const manual = await guardarPDF(files.Manual, dataBd, 'Manual')
                 if (manual.msg) {
-                    error.manual = manual.msg
+                    errores.manual = manual.msg
                 } else {
                     nuevosSoportes.manual = manual
                 }
@@ -401,7 +403,7 @@ const actualizarActivo = async (req, res) => {
             if (files.Otro) {
                 const otro = await guardarPDF(files.Otro, dataBd, 'Otro')
                 if (otro.msg) {
-                    error.otro = otro.msg
+                    errores.otro = otro.msg
                 } else {
                     nuevosSoportes.otro = otro
                 }
@@ -420,7 +422,7 @@ const actualizarActivo = async (req, res) => {
         if (!modificoComponentes) {
             const componentesActualizado = await actualizarComponentes(data.componentes, data.id)
             if (componentesActualizado.msg) {
-                error.componentes = componentesActualizado.msg
+                errores.componentes = componentesActualizado.msg
             } else {
                 data.componentes = componentesActualizado
             }
@@ -443,6 +445,7 @@ const actualizarActivo = async (req, res) => {
 
         const Imagenes = bufferimagenes(data.url_img, dataBd)
         const bufferSoportes = bufferSoportespdf(data.soportes, dataBd)
+        const hojadevida = await crearPdfMake(data.id, 'Activo')
 
         // enviar respuesta con los datos del activo e imagenes
         res.json({
@@ -450,7 +453,8 @@ const actualizarActivo = async (req, res) => {
             data,
             Imagenes,
             bufferSoportes,
-            error
+            hojadevida,
+            errores   
         })
 
     })
@@ -568,8 +572,6 @@ const eliminarActivo = async (req, res) => {
     })
 }
 
-
-
 export {
     consultarActivosTodos,
     crearActivo,
@@ -577,121 +579,4 @@ export {
     cambiarClasificacion,
     eliminarActivo,
     consultarActivo
-}
-
-const d = {
-    "msg": "Activo creado correctamente",
-    "data": {
-        "clasificacion_id": 9,
-        "nombre": "prueba creacion con archivos soportes y componentes",
-        "marca_id": 8,
-        "modelo": "prueba",
-        "serie": "pureba123",
-        "proceso_id": 1,
-        "area_id": 5,
-        "ubicacion": "patio trasero prueba",
-        "usuario_id": 48,
-        "estado_id": 1,
-        "proveedor_id": 18,
-        "numero_factura": "1lkkl",
-        "valor": "899966",
-        "fecha_compra": "12/05/2023",
-        "vencimiento_garantia": "11/05/2023",
-        "frecuencia_id": 1,
-        "descripcion": "prueba de si de verdad guarda el activo en la base de datos",
-        "recomendaciones_Mtto": " puedes describir mejor los recomendaciones de mtto",
-        "obervacion": " vas bien te lo aseguro",
-        "tipo_activo_id": 2,
-        "componentes": [
-            [
-                {
-                    "id": 9,
-                    "componenteId": 8,
-                    "nombre": "Mouse",
-                    "marca": 3,
-                    "modelo": "jllodkkkskss",
-                    "serie": "jsjjs5555552",
-                    "capacidad": ""
-                },
-                {
-                    "id": 10,
-                    "componenteId": 1,
-                    "nombre": "Disco Duro",
-                    "marca": 20,
-                    "modelo": "jlffloffkkskss",
-                    "serie": "fsvdvdsds",
-                    "capacidad": "256 Gb"
-                },
-                {
-                    "id": 11,
-                    "componenteId": 6,
-                    "nombre": "Teclado",
-                    "marca": 4,
-                    "modelo": "jllodkkkskss",
-                    "serie": "jsjjs5555552",
-                    "capacidad": ""
-                },
-                {
-                    "id": 12,
-                    "componenteId": 9,
-                    "nombre": "Microfono",
-                    "marca": 10,
-                    "modelo": "jllodkkkskss",
-                    "serie": "jsjjs5555552",
-                    "capacidad": ""
-                }
-            ]
-        ],
-        "codigo": "IN0018",
-        "id": 574,
-        "url_img": [
-            "IN0018-168201013513218.jpeg",
-            "IN0018-168201013513278.jpeg"
-        ],
-        "soportes": {
-            "factura": "IN0018-Factura.pdf",
-            "importacion": "IN0018-Importacion.pdf",
-            "invima": "IN0018-Invima.pdf",
-            "actaEntrega": "IN0018-ActaEntrega.pdf",
-            "garantia": "IN0018-Garantia.pdf",
-            "manual": "IN0018-Manual.pdf",
-            "otro": "IN0018-Otro.pdf"
-        }
-    }
-}
-
-const c = {
-    "nombre": "prueba creacion con archivos soportes",
-    "marca_id": 8,
-    "modelo": "prueba",
-    "serie": "pureba123",
-    "proceso_id": 1,
-    "area_id": 5,
-    "ubicacion": "patio trasero prueba",
-    "usuario_id": 48,
-    "estado_id": 1,
-    "proveedor_id": 18,
-    "numero_factura": "1lkkl",
-    "valor": "899966",
-    "fecha_compra": "12/05/2023",
-    "vencimiento_garantia": "11/05/2023",
-    "frecuencia_id": 1,
-    "descripcion": "prueba de si de verdad guarda el activo en la base de datos",
-    "recomendaciones_Mtto": " puedes describir mejor los recomendaciones de mtto",
-    "obervacion": " vas bien te lo aseguro",
-    "tipo_activo_id": 2,
-    "codigo": "IN0012",
-    "id": 568,
-    "url_img": [
-        "IN0012-168141366678554.jpeg",
-        "IN0012-168141366678692.jpeg"
-    ],
-    "soportes": {
-        "importacion": "IN0012-Importacion.pdf",
-        "invima": "IN0012-Invima.pdf",
-        "actaEntrega": "IN0012-ActaEntrega.pdf",
-        "garantia": "IN0012-Garantia.pdf",
-        "manual": "IN0012-Manual.pdf",
-        "otro": "IN0012-Otro.pdf"
-    }
 }
