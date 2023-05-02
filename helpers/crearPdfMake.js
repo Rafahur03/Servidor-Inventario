@@ -26,7 +26,7 @@ async function crearPdfMake(id, tipo) {
         dd = await ddSolicitud(data)
     }
 
-    if (tipo === 'Activo') {
+    if (tipo === 'Activo') {    
         data = await activoData(id)
         dd = await ddHojaDeVida(data)
     }
@@ -86,7 +86,6 @@ const solicitudData = async id => {
         datadb.url_img = await bufferNoImage()
     }
 
-    console.log(datadb.imgSolicitud)
     if (datadb.imgSolicitud != null && datadb.imgSolicitud != '') {
         // selecciona mos solo 4 imagenes de las cargadas en en el durante la creaccion del reporte 
         datadb.imgSolicitud = datadb.imgSolicitud.split(',')
@@ -103,6 +102,9 @@ const solicitudData = async id => {
             }
         })
         datadb.imgSolicitud = bodyImagenes
+    }else{
+        datadb.imgSolicitud=[]
+
     }
 
     datadb.logo = await bufferLogo()

@@ -278,6 +278,24 @@ const bufferSoportespdf = (soportes, data) => {
 	return bufferpdf
 }
 
+const guadarReporteFinal =async (bufferPdf, data, id) =>{
+	const pathReporte = path + data.siglas + '\\' + data.codigo +'\\' + id +'.pdf'
+	try {
+		await fspromises.writeFile(pathReporte, bufferPdf)
+		return 1
+	} catch (error) {
+		comsole.log(error)
+		return 0
+	}
+
+}
+
+const bufferReporte = (data, id) => {
+	const pathSoporte = `${path}${data.siglas}\\${data.codigo}\\${id}.pdf`
+		const buffer = fs.readFileSync(pathSoporte);
+		return`data:application/pdf;base64,${buffer.toString('base64')}`
+}
+
 
 
 export {
@@ -289,8 +307,7 @@ export {
 	elimnarImagenesSoliRepor,
 	guardarPDF,
 	bufferSoportespdf,
-	elimnarSoportePdf
-	
-
-
+	elimnarSoportePdf,
+	guadarReporteFinal,
+	bufferReporte
 }

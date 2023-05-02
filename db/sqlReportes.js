@@ -69,10 +69,8 @@ const actualizarReporte = async (data) => {
     try {
 
         const pool = await conectardb()
-        console.log(data)
         let resultado
         if(data.id_estado === 3){
-            console.log('aquit')
             resultado = await pool.query(`
             UPDATE repotesMtto
                 SET tipoMtoo_id = '${data.tipoMtoo_id}' , fechareporte = '${data.fechareporte}', costo_mo = '${data.costo_mo}', costo_mp = '${data.costo_mp}', proveedor_id = '${data.proveedor_id}', usuario_idaprovado = '${data.usuario_idaprovado}', hallazgos = '${data.hallazgos}', reporte = '${data.reporte}', recomendaciones = '${data.recomendaciones}', img_reporte = '${data.img_reporte}', fechaCierre = '${data.fechaCierre}'

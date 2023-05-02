@@ -38,9 +38,14 @@ const validarDatoReporte =   (data) => {
     if(isNaN(fecha)){
         return {msg:'debe escoger una fecha valida'}  
     }
-    const hoy = new Date().toLocaleDateString()
+    
+    const hoy = new Date()
     const fechastring = fecha.toLocaleDateString()
-
+    console.log(hoy)
+    console.log(new Date(fechastring).getMonth())
+    console.log(new Date(hoy).getMonth())
+    console.log(fecha)
+    console.log(fechastring)
     if(new Date(fechastring).getTime() > new Date(hoy).getTime()){
         return {msg:'La fecha del realizacion del mantenimiento no puede ser mayor al dia de hoy'}
     }

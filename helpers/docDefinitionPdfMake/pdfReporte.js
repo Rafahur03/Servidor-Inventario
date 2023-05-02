@@ -284,7 +284,7 @@ const ddReporte = async (data) => {
                         widths: [70, '*', 50, 50],
                         body: [
                             [
-                                { rowSpan: 3, image: imageDataURLprueba, fit: [60, 30], margin: [3, 7, 0, 0], borderColor: ['#8DC049', '#8DC049', '#8DC049', '#8DC049'] },
+                                { rowSpan: 3, image: data.logo, fit: [60, 30], margin: [3, 7, 0, 0], borderColor: ['#8DC049', '#8DC049', '#8DC049', '#8DC049'] },
                                 { text: 'SISTEMA DE GESTION INTEGRAL', borderColor: ['#8DC049', '#8DC049', '#8DC049', '#8DC049'] },
                                 { text: 'CODIGO', borderColor: ['#8DC049', '#8DC049', '#8DC049', '#8DC049'] },
                                 { text: 'F-IN-01', borderColor: ['#8DC049', '#8DC049', '#8DC049', '#8DC049'] }

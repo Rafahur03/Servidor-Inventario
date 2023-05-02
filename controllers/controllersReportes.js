@@ -8,7 +8,9 @@ import {
     guardarImagenesNuevoActivo,
     bufferimagenes,
     elimnarImagenes,
-    guardarPDF
+    guardarPDF,
+    guadarReporteFinal,
+    bufferReporte
 } from "../helpers/copiarCarpetasArchivos.js"
 
 import {
@@ -132,12 +134,12 @@ const crearReporte = async (req, res) => {
         const dataBd = await consultarCodigoInterno(data.id_activo)
 
         // guardar las imagenes del reporte 
-        let error = {}
+        let errores = {}
         if (files.Image) {
             //  sin nada para activos, 1 para solicitudes, 2 reportes
             const img_reporte = await guardarImagenesNuevoActivo(files, dataBd, 2)
             if (img_reporte.msg) {
-                error.img_reporte = img_solicitud.msg
+                errores.img_reporte = img_solicitud.msg
             } else {
                 data.img_reporte = img_reporte
             }
@@ -152,13 +154,23 @@ const crearReporte = async (req, res) => {
 
         if (data.id_estado === 3) {
             if (files.ReporteExterno) {
+                // guarda el sreporte externo
                 const reporte = await guardarPDF(files.ReporteExterno, dataBd, guardado)
                 if (reporte.msg) {
-                    error.reportes = reporte.msg
+                    errores.reportes = reporte.msg
+                }else{
+                //crea un buffer del reporte externo y lo envia al usuario
+                data.pdfReporte = bufferReporte(dataBd, guardado)
                 }
+            }else{
+                //crear un buffer de los datos del soporte guardarlo en la carpeta del a activo y devolverlos al usuario
+                data.pdfReporte = await crearPdfMake(guardado, 'Reporte')
+                const guardarReporte = await guadarReporteFinal(data.pdfReporte, dataBd, guardado)
+                if(guardarReporte === 0) errores.guardarpdf ='no fue posible crear el pdf del reporte'
+            
             }
         }else{
-            console.log('crear pdf')
+            data.pdfReporte = await crearPdfMake(guardado, 'Reporte')
         }
 
         data.id = guardado
@@ -166,14 +178,11 @@ const crearReporte = async (req, res) => {
         if (data.img_reporte) {
             data.Imagenes = await bufferimagenes(data.img_reporte, dataBd, 2) //
         }
-        data.pdfReporte = await crearPdfMake(id, 'Reporte')
-
+        
         res.json({
-            data
+            data,
+            errores
         })
-
-
-
     });
 
 }
@@ -226,7 +235,6 @@ const modificarReporte = async (req, res) => {
         // convierte las fechas en aptas para enviarla a la base de datos 
         const fechaSolicitud = new Date(dataSolicitud.fecha_solicitud).toLocaleDateString()
         const fechaReporte = new Date(data.fechareporte).toLocaleDateString()
-
         //verifica que la fecha del reporte no sea menor que la fecha de solciitud 
         if (new Date(fechaSolicitud).getTime() > new Date(fechaReporte).getTime()) {
             res.json({ msg: 'La fecha de realizacion del mantenimiento no puede ser inferior a la fecha de solicitud' })
@@ -251,12 +259,12 @@ const modificarReporte = async (req, res) => {
         }
         // conssulta los datos del activo 
         const dataActivo = await consultarCodigoInterno(data.id_activo)
-        let error = {}
+        let errores = {}
         // guarda las nuevas imagenes 
         if (files.Image) {
             const nuevaUrl_imag = await guardarImagenesNuevoActivo(files, dataActivo, 2)
             if (nuevaUrl_imag.msg) {
-                error.url_img = nuevaUrl_imag
+                errores.url_img = nuevaUrl_imag
             }
             const nuevasImages = nuevaUrl_imag.concat(data.img_reporte)
             data.img_reporte = nuevasImages
@@ -282,21 +290,31 @@ const modificarReporte = async (req, res) => {
             if (files.ReporteExterno) {
                 const reporte = await guardarPDF(files.ReporteExterno, dataActivo, data.id)
                 if (reporte.msg) {
-                    error.reportes = reporte.msg
-                }
+                    errores.reportes = reporte.msg
+                }else{
+                    //crea un buffer del reporte externo y lo envia al usuario
+                    data.pdfReporte = bufferReporte(dataActivo, data.id)
+                    }
+            }else{
+                //crear un buffer de los datos del soporte guardarlo en la carpeta del a activo y devolverlos al usuario
+                data.pdfReporte = await crearPdfMake(data.id, 'Reporte')
+                const guardarReporte = await guadarReporteFinal(data.pdfReporte, dataActivo, data.id)
+                if(guardarReporte === 0) errores.guardarpdf ='no fue posible crear el pdf del reporte'
+            
             }
         }else{
-            console.log('crear pdf')
+            // en caso que no sea estado 3 crea un reporte con estado abierto
+            data.pdfReporte = await crearPdfMake(data.id, 'Reporte')
         }
-
+        // crea el buffer de las imagenes que se mostrar al usuario 
         data.Imagenes = bufferimagenes(data.img_reporte, dataActivo, 2)
         delete data.fechaCierre
-        data.pdfReporte = await crearPdfMake(data.id, 'Reporte')
 
         // enviar respuesta con los datos del activo e imagenes
         res.json({
             msg: 'El reporte se a actualizado correctamente',
-            data
+            data,
+            errores
         })
     });
 }
