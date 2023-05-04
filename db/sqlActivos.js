@@ -1,4 +1,4 @@
-import conectardb from "./db.js";
+import { conectardb, cerrarConexion } from "./db.js";
 
 const dataConfActivo = async () => {
 
@@ -18,6 +18,7 @@ const dataConfActivo = async () => {
             SELECT * FROM tipo_mantenimeintos
             SELECT * FROM lista_componentes`
         )
+        cerrarConexion(pool)
         return (resultado.recordsets)
     } catch (error) {
         console.error(error);
@@ -40,6 +41,7 @@ const consultarActivos = async () => {
         INNER JOIN estados es
             on la.estado_id = es.id
 		ORDER BY estado_id ASC, nombreActivo ASC`)
+        cerrarConexion(pool)
         return (resultado.recordset)
     } catch (error) {
         console.error(error);
@@ -57,7 +59,7 @@ const consultarActivoUno = async (id) => {
                 ON ca.id = la.clasificacion_id
             WHERE la.id ='${id}'
         `)
-
+        cerrarConexion(pool)
         return (resultado.recordset[0])
 
     } catch (error) {
@@ -121,7 +123,7 @@ const gudardarNuevoActivo = async (data) => {
                     on la.estado_id = es.id
             WHERE la.id = '${id}'
         `)
-
+        cerrarConexion(pool)
         return (newActivo.recordset[0])
     } catch (error) {
         console.error(error);
@@ -138,6 +140,7 @@ const guardarImagenes = async (imagenes, id) => {
                 SET url_img ='${imagenes}'
             WHERE id = '${id}'
         `)
+        cerrarConexion(pool)
         return (resultado.rowsAffected)
     } catch (error) {
         console.error(error);
@@ -154,6 +157,7 @@ const guardarSoportes = async (soportes, id) => {
                 SET soportes ='${soportes}'
             WHERE id = '${id}'
         `)
+        cerrarConexion(pool)
         return (resultado.rowsAffected)
     } catch (error) {
         console.error(error);
@@ -191,6 +195,7 @@ const actualizarActivoDb = async (data) => {
 
             WHERE id='${data.id}'
         `)
+        cerrarConexion(pool)
         return (resultado.rowsAffected)
     } catch (error) {
         console.error(error);
@@ -208,8 +213,9 @@ const consultarCodigoInterno = async (id) => {
                 FROM listado_activos la
                 INNER JOIN clasificacion_activos ca
                     on la.clasificacion_id =ca.id
-            WHERE la.id = '${id}'`)
-
+            WHERE la.id = '${id}'
+        `)
+        cerrarConexion(pool)
         return (resultado.recordset[0])
     } catch (error) {
         console.error(error);
@@ -238,7 +244,7 @@ const consultarCalsificacionActivoMod = async (idactivo, idclasificacion) => {
                 WHERE clasificacion_id = '${idclasificacion}' 
             ORDER BY consecutivo_interno DESC
         `)
-
+        cerrarConexion(pool)
         return (resultado.recordsets)
     } catch (error) {
         console.error(error);
@@ -256,7 +262,7 @@ const actualizarClasificacion = async (idactivo, idclasificacion, consecutivo_in
                 SET clasificacion_id = '${idclasificacion}', consecutivo_interno = '${consecutivo_interno}'
             WHERE id= '${idactivo}'
         `)
-
+        cerrarConexion(pool)
         return (resultado.recordsets)
     } catch (error) {
         console.error(error);
@@ -274,6 +280,7 @@ const eliminarActivoDb = async (data) => {
                 eliminacion_cambio ='${data.motivo}'
             WHERE id='${data.id}'
         `)
+        cerrarConexion(pool)
         return (resultado.rowsAffected)
     } catch (error) {
         console.error(error);
@@ -304,6 +311,7 @@ const crearComponenteActivo = async (componentes, id) => {
     try {
         const pool = await conectardb()
         const resultado = await pool.query(query)
+        cerrarConexion(pool)
         return (resultado.recordsets)
     } catch (error) {
         console.error(error);
@@ -322,6 +330,7 @@ const consultarComponentes = async (id) => {
                 ON lp.id = ca.componenteId
             WHERE ca.idactivo = '${id}' AND  ca.estado = '1'
         `)
+        cerrarConexion(pool)
         return (resultado.recordsets[0])
     } catch (error) {
         console.error(error);
@@ -335,7 +344,7 @@ const actualizarComponentes = async (componentes, id) => {
 	    SET componenteId ='${componentes[0].componenteId}', marca = '${componentes[0].marcaId}', modelo= '${componentes[0].modelo}', serie = '${componentes[0].serie}', capacidad='${componentes[0].capacidad}', estado= '${componentes[0].estadoId}'
     WHERE id = '${componentes[0].id}'`
 
-    
+
     componentes.forEach((element, index) => {
         if (index !== 0) {
             quereyComponentes += `\n UPDATE componentes_activos
@@ -349,10 +358,11 @@ const actualizarComponentes = async (componentes, id) => {
         INNER JOIN lista_componentes lp
         ON lp.id = ca.componenteId
     WHERE ca.idactivo = '${id}' AND  ca.estado = '1'`
-    
+
     try {
         const pool = await conectardb()
         const resultado = await pool.query(query)
+        cerrarConexion(pool)
         return (resultado.recordsets[0])
     } catch (error) {
         console.error(error);

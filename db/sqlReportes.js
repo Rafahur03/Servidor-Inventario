@@ -1,4 +1,4 @@
-import conectardb from "./db.js";
+import { conectardb, cerrarConexion } from "./db.js";
 
 const consultarReportes = async () => {
 
@@ -8,10 +8,11 @@ const consultarReportes = async () => {
             SELECT * FROM repotesMtto
             ORDER BY id ASC
         `)
+        cerrarConexion(pool)
         return (resultado.recordset)
     } catch (error) {
         console.error(error);
-        return{msg:'Ha ocurido un error al intentar guardar los datos intentalo mas tarde'}
+        return { msg: 'Ha ocurido un error al intentar guardar los datos intentalo mas tarde' }
     }
 }
 
@@ -23,60 +24,61 @@ const consultarReporteUno = async (id) => {
             SELECT * FROM repotesMtto
             WHERE id ='${id}'
         `)
+        cerrarConexion(pool)
         return (resultado.recordset[0])
     } catch (error) {
         console.error(error);
-        return{msg:'Ha ocurido un error al intentar consultar los dato'}
+        return { msg: 'Ha ocurido un error al intentar consultar los dato' }
     }
 }
 
 const guardarReporte = async (data) => {
-    
+
     try {
 
         const pool = await conectardb()
         let resultado
-        if(data.id_estado = 3){
+        if (data.id_estado = 3) {
             resultado = await pool.query(`
                 INSERT INTO repotesMtto (solicitud_id, tipoMtoo_id, fechareporte, costo_mo, costo_mp, proveedor_id, usuario_idReporte, usuario_idaprovado, hallazgos, reporte, recomendaciones, id_activo, img_reporte, reportes, fechaCreacion, fechaCierre)
                     VALUES ('${data.solicitud_id}', '${data.tipoMtoo_id}', '${data.fechareporte}', '${data.costo_mo}', '${data.costo_mp}', '${data.proveedor_id}', '${data.usuario_idReporte}', '${data.usuario_idaprovado}', '${data.hallazgos}', '${data.reporte}', '${data.recomendaciones}', '${data.id_activo}', '${data.img_reporte}', '${data.reportes}', '${data.fechaCreacion}' , '${data.fechaCreacion}')
                 SELECT IDENT_CURRENT('repotesMtto') AS id
             `)
-        }else{
+        } else {
             resultado = await pool.query(`
                 INSERT INTO repotesMtto (solicitud_id, tipoMtoo_id, fechareporte, costo_mo, costo_mp, proveedor_id, usuario_idReporte, usuario_idaprovado, hallazgos, reporte, recomendaciones, id_activo, img_reporte, reportes, fechaCreacion)
                     VALUES ('${data.solicitud_id}', '${data.tipoMtoo_id}', '${data.fechareporte}', '${data.costo_mo}', '${data.costo_mp}', '${data.proveedor_id}', '${data.usuario_idReporte}', '${data.usuario_idaprovado}', '${data.hallazgos}', '${data.reporte}', '${data.recomendaciones}', '${data.id_activo}', '${data.img_reporte}', '${data.reportes}', '${data.fechaCreacion}')
                 SELECT IDENT_CURRENT('repotesMtto') AS id
             `)
         }
-        
+
 
         const actualziarEstadoSolicitud = await pool.query(`
             UPDATE solicitudes_mtto
                 SET id_estado = '${data.id_estado}'
             WHERE id = '${data.solicitud_id}'
         `)
-
-         return (resultado.recordset[0].id)
+        cerrarConexion(pool)
+        return (resultado.recordset[0].id)
     } catch (error) {
         console.error(error);
-        return{msg:'Ha ocurido un error al intentar guardar el reporte, verifique si se guardo en caso contrario intentelo nuevamente'}
+        return { msg: 'Ha ocurido un error al intentar guardar el reporte, verifique si se guardo en caso contrario intentelo nuevamente' }
     }
 }
 
 const actualizarReporte = async (data) => {
-    
+
     try {
 
         const pool = await conectardb()
         let resultado
-        if(data.id_estado === 3){
+        if (data.id_estado === 3) {
             resultado = await pool.query(`
             UPDATE repotesMtto
                 SET tipoMtoo_id = '${data.tipoMtoo_id}' , fechareporte = '${data.fechareporte}', costo_mo = '${data.costo_mo}', costo_mp = '${data.costo_mp}', proveedor_id = '${data.proveedor_id}', usuario_idaprovado = '${data.usuario_idaprovado}', hallazgos = '${data.hallazgos}', reporte = '${data.reporte}', recomendaciones = '${data.recomendaciones}', img_reporte = '${data.img_reporte}', fechaCierre = '${data.fechaCierre}'
              WHERE id =  '${data.id}'            
         `)
-        }else{
+        } else {
             resultado = await pool.query(`
             UPDATE repotesMtto
                 SET tipoMtoo_id = '${data.tipoMtoo_id}' , fechareporte = '${data.fechareporte}', costo_mo = '${data.costo_mo}', costo_mp = '${data.costo_mp}', proveedor_id = '${data.proveedor_id}', usuario_idaprovado = '${data.usuario_idaprovado}', hallazgos = '${data.hallazgos}', reporte = '${data.reporte}', recomendaciones = '${data.recomendaciones}', img_reporte = '${data.img_reporte}'
@@ -84,23 +86,24 @@ const actualizarReporte = async (data) => {
         `)
 
         }
-        
+
 
         await pool.query(`
             UPDATE solicitudes_mtto
                 SET id_estado = '${data.id_estado}'
             WHERE id = '${data.solicitud_id}'
         `)
-
-         return (resultado.rowsAffected)
+        cerrarConexion(pool)
+        return (resultado.rowsAffected)
     } catch (error) {
         console.error(error);
-        return{msg:'Ha ocurido un error al intentar guardar el reporte, verifique si se guardo en caso contrario intentelo nuevamente'}
+        return { msg: 'Ha ocurido un error al intentar guardar el reporte, verifique si se guardo en caso contrario intentelo nuevamente' }
     }
 }
 
 
-export{consultarReportes,
+export {
+    consultarReportes,
     consultarReporteUno,
     guardarReporte,
     actualizarReporte

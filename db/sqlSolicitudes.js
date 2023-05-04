@@ -1,7 +1,7 @@
-import conectardb from "./db.js";
+import { conectardb, cerrarConexion } from "./db.js";
 
 const consultarSolicitudes = async (data) => {
-    
+
     try {
         const pool = await conectardb()
         const resultado = await pool.query(`
@@ -11,15 +11,16 @@ const consultarSolicitudes = async (data) => {
             INNER JOIN clasificacion_activos cl
             ON cl.id = la.clasificacion_id
         `)
-         return (resultado.recordset)
+        cerrarConexion(pool)
+        return (resultado.recordset)
     } catch (error) {
         console.error(error);
-        return{msg:'Ha ocurido un error al intentar eliminar el activo'}
+        return { msg: 'Ha ocurido un error al intentar eliminar el activo' }
     }
 }
 
 const consultarSolicitudUno = async (id) => {
-    
+
     try {
         const pool = await conectardb()
         const resultado = await pool.query(`
@@ -30,15 +31,16 @@ const consultarSolicitudUno = async (id) => {
                 ON cl.id = la.clasificacion_id
             WHERE sm.id = '${id}'
         `)
-         return (resultado.recordset[0])
+        cerrarConexion(pool)
+        return (resultado.recordset[0])
     } catch (error) {
         console.error(error);
-        return{msg:'Ha ocurido un error al intentar eliminar el solicitud'}
+        return { msg: 'Ha ocurido un error al intentar eliminar el solicitud' }
     }
 }
 
 const guardarSolicitud = async (data) => {
-    
+
     try {
 
         const pool = await conectardb()
@@ -47,15 +49,16 @@ const guardarSolicitud = async (data) => {
             VALUES('${data.id_activo}','${data.id_usuario}','${data.id_estado}','${data.fecha_solicitud}','${data.solicitud}','${data.img_solicitud}')
             SELECT IDENT_CURRENT('solicitudes_mtto') AS id
         `)
-         return (resultado.recordset[0].id)
+        cerrarConexion(pool)
+        return (resultado.recordset[0].id)
     } catch (error) {
         console.error(error);
-        return{msg:'Ha ocurido un error al intentar eliminar el activo'}
+        return { msg: 'Ha ocurido un error al intentar eliminar el activo' }
     }
 }
 
 const actualizarSolicitud = async (data) => {
-    
+
     try {
 
         const pool = await conectardb()
@@ -64,10 +67,11 @@ const actualizarSolicitud = async (data) => {
                 SET id_activo='${data.id_activo}', solicitud='${data.solicitud}', img_solicitud='${data.img_solicitud}'
             WHERE id = '${data.id}'
         `)
-         return (resultado.rowsAffected)
+        cerrarConexion(pool)
+        return (resultado.rowsAffected)
     } catch (error) {
         console.error(error);
-        return{msg:'Ha ocurido un error al intentar eliminar el activo'}
+        return { msg: 'Ha ocurido un error al intentar eliminar el activo' }
     }
 }
 
@@ -81,14 +85,15 @@ const eliminarSolicitudDb = async (id) => {
                 SET id_estado='4'
             WHERE id = '${id}'
         `)
-         return (resultado.rowsAffected)
+        cerrarConexion(pool)
+        return (resultado.rowsAffected)
     } catch (error) {
         console.error(error);
-        return{msg:'Ha ocurido un error al intentar eliminar la solicitud intente mas tarde'}
+        return { msg: 'Ha ocurido un error al intentar eliminar la solicitud intente mas tarde' }
     }
 }
 
-export{
+export {
     consultarSolicitudes,
     guardarSolicitud,
     consultarSolicitudUno,

@@ -1,4 +1,4 @@
-import conectardb from "./db.js";
+import { conectardb, cerrarConexion } from "./db.js";
 const dataReporte = async (id) => {
 
     try {
@@ -49,6 +49,7 @@ const dataReporte = async (id) => {
              WHERE  RE.id = '${id}'
 
         `)
+        cerrarConexion(pool)
         return (resultado.recordset[0])
     } catch (error) {
         console.error(error);
@@ -91,6 +92,7 @@ const dataSolicitud = async (id) => {
             WHERE SO.id = '${id}'
 
         `)
+        cerrarConexion(pool)
         return (resultado.recordset[0])
     } catch (error) {
         console.error(error);
@@ -140,6 +142,7 @@ const dataActivo = async (id) => {
             WHERE CO.idactivo = '${id}'
 
         `)
+        cerrarConexion(pool)
         return (resultado.recordsets)
     } catch (error) {
         console.error(error);
@@ -166,7 +169,8 @@ const dataListaReporte = async (id) => {
             ORDER BY RM.fechareporte DESC
 
         `)
-        return (resultado.recordsets[0])   
+        cerrarConexion(pool)
+        return (resultado.recordsets[0])
     } catch (error) {
         console.error(error);
         return { msg: 'Ha ocurido un error al intentar cargar los datos del activo' }

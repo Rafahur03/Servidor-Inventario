@@ -1,6 +1,6 @@
 import express   from "express";
 import dotenv from "dotenv";
-import conectardb from "./db/db.js";
+import {conectardb} from "./db/db.js";
 import router from "./routes/routes.js";
 dotenv.config();
 const app = express();
@@ -8,7 +8,6 @@ const app = express();
 app.use(express.raw({limit: '50mb'}))
 app.use(express.json())
 
-console.log( process.env.USER_DB)
 conectardb();
 //define port
 const PORT = process.env.PORT || 4000;

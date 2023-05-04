@@ -24,6 +24,8 @@ import { consultarconfig,
     actualizarConfig,
     crearConfig } from '../controllers/controlerConfig.js';
 
+import { probarfechas } from '../controllers/probarfechas.js';
+
 const router = express.Router()
 
 // router inicio sesion y administration de usuarios
@@ -77,5 +79,7 @@ router.post('/consultarconfig', checkAuth, consultarconfig)
 router.post('/actualizarConfig', checkAuth, actualizarConfig)
 
 router.post('/crearConfig', checkAuth, crearConfig)
+
+router.post('/probarfechas', probarfechas)
 
 export default  router

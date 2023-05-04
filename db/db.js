@@ -20,7 +20,7 @@ const config = {
 
 const conectardb = async () => {
   try {
-    console.log(config);
+   
     const pool = await sql.connect(config);
     console.log("Conectado a  la base de datos");
     return pool;
@@ -38,4 +38,6 @@ const cerrarConexion = async (pool) => {
   }
 };
 
-export default conectardb;
+export {conectardb,
+        cerrarConexion
+};
