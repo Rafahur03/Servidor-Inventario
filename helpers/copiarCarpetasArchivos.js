@@ -281,7 +281,8 @@ const bufferSoportespdf = (soportes, data) => {
 const guadarReporteFinal =async (bufferPdf, data, id) =>{
 	const pathReporte = path + data.siglas + '\\' + data.codigo +'\\' + id +'.pdf'
 	try {
-		await fspromises.writeFile(pathReporte, bufferPdf)
+		var buf = Buffer.from(bufferPdf, 'base64')
+		await fspromises.writeFile(pathReporte, buf)
 		return 1
 	} catch (error) {
 		comsole.log(error)
