@@ -2,32 +2,9 @@
 import fs from 'fs'
 import pdfMake from 'pdfmake/build/pdfmake.js'
 import vfsFonts from 'pdfmake/build/vfs_fonts.js'
-const imageData = fs.readFileSync('C:\\Users\\USER\\Pictures\\COS.png');
-const imageDataURLprueba = `data:image/png;base64,${Buffer.from(imageData).toString('base64')}`;
-
-pdfMake.vfs = vfsFonts.pdfMake.vfs;
-// const data = {
-// 	nombre: 'Maquina Anestesica',
-// 	codigo: 'EM0001',
-// 	marca: 'Mindray',
-// 	modelo: 'WATO EX-20',
-// 	serie: '12255sss',
-// 	apoyo: '',
-// 	biomedico: 'X',
-// 	ubicacion: 'Quirofano',
-// 	responsable: 'Maira Gisela Dominguez Perez',
-// 	usuarioSolicitud: 'Martha Cecilia Bitar Calle',
-// 	estado: 'Dado de baja',
-// 	frecuencia: 'Anual',
-// 	proceso: 'Gestion Administrativa Y Financiera',
-// 	area: 'Admisiones',
-// 	proveedor: 'Clinica Oftalmologica de Sincelejo Ltda',
-// 	idSolicitud: 546,
-// 	fechaSolicitud: '20/05/2023',
-// 	solicitud: 'SolicitoSolicitoSolicitoSolicitoSolicitoSolicitoSolicito SolicitoSolicitoSolicitoSolicitoSolicito SolicitoSolicitoSolicitoSolicitoSolicitoSolicitoSolicitoSolicito SolicitoSolicitoSolicitoSolicitoSolicitoSolicitoSoliSolicito SolicitoSolicitoSolicitoSolicitoSolicitoSolicitoSolicitoSolicito SolicitoSolicitoSolicitoSolicitoSolicitoSolicitoSolicitoSolicitoSolicito SolicitoSolicitoSolicitoSolicitoSolicitoSolicitoSolicitoSolicito SolicitoSolicitoSolicitoSolicitoSolicitoSolicitoSolicito citoSolicitoSolicito SolicitoSolicitoSolicitoSolicitoSolicitoSolicito SolicitoSolicitoSolicitoSolicitoSolicitoSolicitoSolicitoSolicito SolicitoSolicitoSolicitoSolicitoSolicitoSolicitoSolicitoSolicitoSolicito SolicitoSolicitoSolicitoSolicitoSolicitoSolicitoSolicitoSolicito SolicitoSolicitoSolicitoSolicitoSolicitoSolicitoSolicito Solicito',
-// }
 
 const ddSolicitud = async data => {
+	pdfMake.vfs = vfsFonts.pdfMake.vfs;
 	const dd = {
 		pageSize: 'LETTER',
 		pageMargins: [40, 83, 40, 40],

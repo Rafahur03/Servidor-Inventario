@@ -356,6 +356,7 @@ const listadoReporteData = async id => {
         ]
     )
 
+    datadb.logo = await bufferLogo()
     return datadb
 }
 
