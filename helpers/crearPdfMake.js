@@ -60,7 +60,7 @@ async function crearPdfMake(id, tipo) {
 const solicitudData = async id => {
     const datadb = await dataSolicitud(id)
 
-    datadb.fechaSolicitud = new Date(datadb.fechaSolicitud).toLocaleDateString()
+    datadb.fechaSolicitud = datadb.fechaSolicitud.toLocaleDateString('es-CO')
 
     if (datadb.tipo_activo_id === 1) {
         datadb.apoyo = ''
@@ -119,10 +119,15 @@ const reporteData = async id => {
 
     // normalizamos los datos del reporte para su ingreso a pdf y creamos los buffer de imagenes para ingresarlos al pdf 
     // normalizamos las fechas 
-    datadb.fechaSolicitud = new Date(datadb.fechaSolicitud).toLocaleDateString()
-    datadb.fechaReporte = new Date(datadb.fechaReporte).toLocaleDateString()
-    datadb.fechaCierre = new Date(datadb.fechaCierre).toLocaleDateString()
-    datadb.proximoMtto = new Date(datadb.proximoMtto).toLocaleDateString()
+    datadb.fechaSolicitud = datadb.fechaSolicitud.toLocaleString('es-CO')
+
+    datadb.fechareporte.setMinutes(datadb.fechareporte.getMinutes() + datadb.fechareporte.getTimezoneOffset())
+    datadb.fechaReporte = datadb.fechaReporte.toLocaleDateString('es-CO')
+
+    datadb.fechaCierre = datadb.fechaCierre.toLocaleString('es-CO')
+    
+    datadb.proximoMtto.setMinutes(datadb.proximoMtto.getMinutes() + datadb.proximoMtto.getTimezoneOffset())
+    datadb.proximoMtto = datadb.proximoMtto.toLocaleDateString('es-CO')
 
     // determinamos el tipo de  activo
     if (datadb.tipo_activo_id === 1) {
@@ -230,9 +235,13 @@ const activoData = async id => {
     if (datos[1].length > 0) datadb.componentes = datos[1]
     // normalizamos los datos del reporte para su ingreso a pdf y creamos los buffer de imagenes para ingresarlos al pdf 
     // normalizamos las fechas 
-    datadb.fechaCompra = new Date(datadb.fechaCompra).toLocaleDateString()
-    datadb.garantia = new Date(datadb.garantia).toLocaleDateString()
-    datadb.ingreso = new Date(datadb.ingreso).toLocaleDateString()
+    datadb.fechaCompra.setMinutes(datadb.fechaCompra.getMinutes() + datadb.fechaCompra.getTimezoneOffset())
+    datadb.fechaCompra = datadb.fechaCompra.toLocaleDateString('es-CO')
+
+    datadb.garantia.setMinutes(datadb.garantia.getMinutes() + datadb.garantia.getTimezoneOffset())
+    datadb.garantia = datadb.garantia.toLocaleDateString('es-CO')
+    datadb.ingreso = new Date(datadb.ingreso).toLocaleString('es-CO')
+
     // determinamos el tipo de  activo
     if (datadb.tipo_activo_id === 1) {
         datadb.apoyo = ''
@@ -327,8 +336,10 @@ const listadoReporteData = async id => {
     }
 
     datadb.body = datos.map((element, index) => {
-        element.fechaReporte = new Date(element.fechaReporte).toLocaleDateString()
-        element.fechaProximo = new Date(element.fechaProximo).toLocaleDateString()
+        element.fechaReporte.setMinutes(element.fechaReporte.getMinutes() + element.fechaReporte.getTimezoneOffset())
+        element.fechaReporte = element.fechaReporte.toLocaleDateString('es-CO')
+        element.fechaProximo.setMinutes(element.fechaProximo.getMinutes() + element.fechaProximo.getTimezoneOffset())
+        element.fechaProximo = element.fechaProximo.toLocaleDateString('es-CO')
         return [
             { text: index + 1 },
             { text: element.id },

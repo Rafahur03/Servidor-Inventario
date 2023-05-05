@@ -21,8 +21,6 @@ import {
 } from "../db/sqlReportes.js"
 
 
-
-
 const consultarReportesTodos = async (req, res) => {
     const listadoReportes = await consultarReportes()
     res.json(listadoReportes)
@@ -35,19 +33,23 @@ const consultarReporte = async (req, res) => {
         return res.json(reporte)
     }
 
-    
-    reporte.fechareporte = new Date(reporte.fechareporte).toLocaleDateString()
-    reporte.fechaCreacion = new Date(reporte.fechaCreacion).toLocaleDateString()
-    reporte.fechaCierre = new Date(reporte.fechaCierre).toLocaleDateString()
-    if(reporte.proximoMtto !== null ) {
-        reporte.proximoMtto = new Date(reporte.proximoMtto).toLocaleDateString()
+    // normalizamos las fecha a la  hora local del pc
+    reporte.fechareporte.setMinutes(reporte.fechareporte.getMinutes() + reporte.fechareporte.getTimezoneOffset())
+    reporte.fechareporte = reporte.fechareporte.toLocaleDateString('es-CO')
+    reporte.fechaCreacion = reporte.fechaCreacion.toLocaleString('es-CO')
+    reporte.fechaCierre = reporte.fechaCierre.toLocaleString('es-CO')
+
+    if (reporte.proximoMtto !== null) {
+        reporte.proximoMtto.setMinutes(reporte.proximoMtto.getMinutes() + reporte.proximoMtto.getTimezoneOffset())
+        reporte.proximoMtto = reporte.proximoMtto.toLocaleDateString('es-CO')
     }
+
     // rcuerda crear el buffer de imagenes 
-    if(reporte.img_reporte !== null && reporte.img_reporte !== '') {
+    if (reporte.img_reporte !== null && reporte.img_reporte !== '') {
         reporte.img_reporte = reporte.img_reporte.split(',')
         reporte.img_reporte = bufferimagenes(reporte.img_reporte, reporte, 2)
-    }else{
-        reporte.img_reporte=''
+    } else {
+        reporte.img_reporte = ''
     }
 
     reporte.pdfReporte = await crearPdfMake(id, 'Reporte')
@@ -67,7 +69,7 @@ const crearReporte = async (req, res) => {
     const arrPermisos = JSON.parse(permisos)
 
     const proveedores = JSON.parse(Id_proveedores)
-    
+
     if (arrPermisos.indexOf(5) === -1) {
         res.json({ msg: 'Usted no tiene permisos para crear crear reportes de mantenimiento' })
         return
@@ -108,17 +110,17 @@ const crearReporte = async (req, res) => {
             return res.json({ msg: 'Usted no esta asociado al proveedor de mantenimientos seleccionado, favor seleccione uno al cual este asociado.' })
         }
 
-        const fechaSolicitud = new Date(dataSolicitud.fecha_solicitud)
-        const fechaReporte = new Date(data.fechareporte)
-
-        if (fechaSolicitud > fechaReporte) {
+        const validarDatos = validarDatoReporte(data)
+        // normalizamos las fechas para poder compararlas 
+        const fechaSolicitud = dataSolicitud.fecha_solicitud.toLocalDateString('es-CO')
+       
+        if (fechaSolicitud > data.fechareporte) {
             res.json({ msg: 'La fecha de realizacion del mantenimiento no puede ser inferior a la fecha de solicitud' })
             return
         }
 
         // validar datos y files
-        const validarDatos = validarDatoReporte(data)
-
+        
         if (validarDatos.msg) {
             return res.json(validarDatos)
         }
@@ -129,6 +131,7 @@ const crearReporte = async (req, res) => {
         }
 
         data.usuario_idReporte = sessionid
+
         data.fechaCreacion = new Date(Date.now()).toISOString().substring(0, 19).replace('T', ' ')
         // consulta los datos del activo
         const dataBd = await consultarCodigoInterno(data.id_activo)
@@ -158,27 +161,27 @@ const crearReporte = async (req, res) => {
                 const reporte = await guardarPDF(files.ReporteExterno, dataBd, guardado)
                 if (reporte.msg) {
                     errores.reportes = reporte.msg
-                }else{
-                //crea un buffer del reporte externo y lo envia al usuario
-                data.pdfReporte = bufferReporte(dataBd, guardado)
+                } else {
+                    //crea un buffer del reporte externo y lo envia al usuario
+                    data.pdfReporte = bufferReporte(dataBd, guardado)
                 }
-            }else{
+            } else {
                 //crear un buffer de los datos del soporte guardarlo en la carpeta del a activo y devolverlos al usuario
                 data.pdfReporte = await crearPdfMake(guardado, 'Reporte')
                 const guardarReporte = await guadarReporteFinal(data.pdfReporte, dataBd, guardado)
-                if(guardarReporte === 0) errores.guardarpdf ='no fue posible crear el pdf del reporte'
-            
+                if (guardarReporte === 0) errores.guardarpdf = 'no fue posible crear el pdf del reporte'
+
             }
-        }else{
+        } else {
             data.pdfReporte = await crearPdfMake(guardado, 'Reporte')
         }
 
         data.id = guardado
-   
+
         if (data.img_reporte) {
             data.Imagenes = await bufferimagenes(data.img_reporte, dataBd, 2) //
         }
-        
+
         res.json({
             data,
             errores
@@ -194,7 +197,7 @@ const modificarReporte = async (req, res) => {
 
     // usa  formidable para recibir el req de imagenes y datos
     const form = formidable({ multiples: true });
-    
+
 
     form.parse(req, async function (err, fields, files) {
 
@@ -232,11 +235,10 @@ const modificarReporte = async (req, res) => {
             return res.json({ msg: 'El activo no corresponde al ID del reporte que intenta modificar' })
         }
 
-        // convierte las fechas en aptas para enviarla a la base de datos 
-        const fechaSolicitud = new Date(dataSolicitud.fecha_solicitud).toLocaleDateString()
-        const fechaReporte = new Date(data.fechareporte).toLocaleDateString()
+        // normalizar las fechas compararlas y normalizar para enviar a la bd
+        const fechaSolicitud = dataSolicitud.fecha_solicitud.toLocaleDateString('es-CO')
         //verifica que la fecha del reporte no sea menor que la fecha de solciitud 
-        if (new Date(fechaSolicitud).getTime() > new Date(fechaReporte).getTime()) {
+        if (fechaSolicitud >  data.fechareporte) {
             res.json({ msg: 'La fecha de realizacion del mantenimiento no puede ser inferior a la fecha de solicitud' })
             return
         }
@@ -291,18 +293,18 @@ const modificarReporte = async (req, res) => {
                 const reporte = await guardarPDF(files.ReporteExterno, dataActivo, data.id)
                 if (reporte.msg) {
                     errores.reportes = reporte.msg
-                }else{
+                } else {
                     //crea un buffer del reporte externo y lo envia al usuario
                     data.pdfReporte = bufferReporte(dataActivo, data.id)
-                    }
-            }else{
+                }
+            } else {
                 //crear un buffer de los datos del soporte guardarlo en la carpeta del a activo y devolverlos al usuario
                 data.pdfReporte = await crearPdfMake(data.id, 'Reporte')
                 const guardarReporte = await guadarReporteFinal(data.pdfReporte, dataActivo, data.id)
-                if(guardarReporte === 0) errores.guardarpdf ='no fue posible crear el pdf del reporte'
-            
+                if (guardarReporte === 0) errores.guardarpdf = 'no fue posible crear el pdf del reporte'
+
             }
-        }else{
+        } else {
             // en caso que no sea estado 3 crea un reporte con estado abierto
             data.pdfReporte = await crearPdfMake(data.id, 'Reporte')
         }
