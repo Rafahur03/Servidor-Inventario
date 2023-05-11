@@ -74,12 +74,12 @@ const crearSolicitud = async (req, res) => {
         // validar datos y files
         const validarDatos = validarDatoSolicitud(data)
 
-        if (!validarDatos.msg) {
+        if (validarDatos.msg) {
             return res.json(validarDatos)
         }
 
         const validarFile = validarFiles(files)
-        if (!validarFile.msg) {
+        if (validarFile.msg) {
             return res.json(validarFile)
         }
 
