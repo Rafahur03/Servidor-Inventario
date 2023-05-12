@@ -88,7 +88,7 @@ const guardarToken = async (token, id) => {
                 SET token='${token}'
             WHERE id='${id}'
 
-            SELECT id, CONCAT(  nombre, SPACE(1), nombre_1, SPACE(1), apellido,  SPACE(1), apellido_1) as nombreUsuario, Id_proveedores, permisos, estado  
+            SELECT id, CONCAT(  nombre, SPACE(1), nombre_1, SPACE(1), apellido,  SPACE(1), apellido_1) as nombreUsuario, TRIM(Id_proveedores) AS proveedores, TRIM( permisos) AS permisos, estado  
                 FROM usuarios
             WHERE id='${id}'    
         `)

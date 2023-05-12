@@ -45,14 +45,12 @@ const iniciaSesion = async (req, res) => {
         res.json(tokenGuardado)
         return
     }
-
-    console.log(tokenGuardado)
     res.json({
         token,
         data:{
             nombre: tokenGuardado.nombreUsuario,
-            permiso: tokenGuardado.permisos,
-            proveedores: tokenGuardado.Id_proveedores,
+            permisos: tokenGuardado.permisos,
+            proveedores: tokenGuardado.proveedores,
             estado: tokenGuardado.estado,
             id: tokenGuardado.id
         }
