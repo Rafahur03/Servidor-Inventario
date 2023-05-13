@@ -4,12 +4,6 @@ import { validarDatosConfigActualizar, validarDatosConfigNuevo } from "../helper
 
 
 const consultarconfig = async (req, res) => {
-    const { permisos } = req
-    const arrPermisos = JSON.parse(permisos)
-    if (arrPermisos.indexOf(7) === -1) {
-        return res.json({ msg: 'Usted no tiene permisos para consultar esta información' })
-    }
-
     const tablasConfig = {
         '1': 'areas',
         '2': 'marca_activos',
@@ -33,7 +27,7 @@ const crearConfig = async (req, res) => {
     const { permisos } = req
 
     const arrPermisos = JSON.parse(permisos)
-    if (arrPermisos.indexOf(7) === -1) {
+    if (arrPermisos.indexOf(8) === -1) {
         return res.json({ msg: 'Usted no tiene permisos para crear configuraciones' })
     }
 
@@ -107,7 +101,7 @@ const actualizarConfig = async (req, res) => {
     const { permisos } = req
 
     const arrPermisos = JSON.parse(permisos)
-    if (arrPermisos.indexOf(7) === -1) {
+    if (arrPermisos.indexOf(9) === -1) {
         return res.json({ msg: 'Usted no tiene permisos para consultar esta información' })
     }
 

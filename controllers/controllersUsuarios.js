@@ -64,7 +64,7 @@ const crearUsuario = async(req, res) => {
     // validar si tiene o no permisos para crear usuario
     const permisos = req.permisos
     const arrPermisos = JSON.parse(permisos)
-
+    // 1 permiso para crear usuario
     if (arrPermisos.indexOf(1) === -1) {
         res.json({msg: 'Usted no tiene permisos para crear usuarios'})
         return

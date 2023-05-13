@@ -70,7 +70,7 @@ const crearReporte = async (req, res) => {
 
     const proveedores = JSON.parse(Id_proveedores)
 
-    if (arrPermisos.indexOf(5) === -1) {
+    if (arrPermisos.indexOf(6) === -1) {
         res.json({ msg: 'Usted no tiene permisos para crear crear reportes de mantenimiento' })
         return
     }
@@ -223,7 +223,7 @@ const modificarReporte = async (req, res) => {
         // verifica los permisos para modificar un reporte
         if (dataReporte.usuario_idReporte !== sessionid) {
             const arrPermisos = JSON.parse(permisos)
-            if (arrPermisos.indexOf(6) === -1) {
+            if (arrPermisos.indexOf(7) === -1) {
                 return res.json({ msg: 'Usted no tiene permisos para modificar solicitudes' })
             } else {
                 return res.json({ msg: 'Esta solicitud Fue radicada por otro usuario.' })
