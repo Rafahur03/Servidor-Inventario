@@ -1,53 +1,69 @@
+import fs from 'fs'
+import path from 'path'
 import { validarDatosUsuarios, validarUsuarioCreado } from "../helpers/validarDatosUsuario.js"
 import { encryptPassword, validarPassword } from "../helpers/hashpasswords.js"
-import { encriptarJson} from "../helpers/encriptarData.js"
+import { encriptarJson } from "../helpers/encriptarData.js"
 import { consultarDataUsuario, guardarUsuario, actualizarUsuario, guardarToken } from "../db/sqlUsuarios.js"
-import { json } from "express"
+const __dirname = new URL('.', import.meta.url).pathname.substring(1)
 
 // iniciar sesion 
 
 const iniciaSesion = async (req, res) => {
 
-    const {usuario, password} = req.body
+    const { usuario, password } = req.body
 
     //validar usuario  existe
-    const idUsuario =  await validarUsuarioCreado(usuario)
-    if(idUsuario.msg){
+    const idUsuario = await validarUsuarioCreado(usuario)
+    if (idUsuario.msg) {
         res.json(idUsuario)
-        return  
+        return
     }
 
     //check password
-    const validacionPassword  = await validarPassword(password, idUsuario.id)
-    
-    if(validacionPassword.msg){
+    const validacionPassword = await validarPassword(password, idUsuario.id)
+
+    if (validacionPassword.msg) {
         res.json(validacionPassword)
-        return  
+        return
     }
 
-    if(!validacionPassword){
-        res.json({msg: 'Password incorrecto'})
+    if (!validacionPassword) {
+        res.json({ msg: 'Password incorrecto' })
         return
     }
 
     // consultar datos del usuario
     const hoy = new Date(Date.now())
     const fecha = hoy.toLocaleDateString
-    const dataToken ={
-        id:idUsuario.id,
+    const dataToken = {
+        id: idUsuario.id,
         fechaexpiracion: fecha,
-        
-    } 
-     // devolver datos de inicio de sesion
+
+    }
+    // devolver datos de inicio de sesion
     const token = encriptarJson(dataToken)
     const tokenGuardado = await guardarToken(token, idUsuario.id)
-    if(tokenGuardado.msg) {
+    if (tokenGuardado.msg) {
         res.json(tokenGuardado)
         return
     }
+
+    const rutaArchivo = path.join(__dirname, '..', 'quotes.json');
+    const contenidoArchivo = fs.readFileSync(rutaArchivo, 'utf-8');
+    const contenidoSinBOM = contenidoArchivo.toString().replace(/^\uFEFF/, '');
+    const frases = JSON.parse(contenidoSinBOM)
+    const index = Math.floor(Math.random() * frases.length)
+    
+   
+
     res.json({
         token,
-        data:{
+        frase:{
+            nombre: tokenGuardado.nombreUsuario.split(' ')[0],
+            frase:frases[index].text,
+            author: frases[index].author
+        },
+        data: {
             nombre: tokenGuardado.nombreUsuario,
             permisos: tokenGuardado.permisos,
             proveedores: tokenGuardado.proveedores,
@@ -59,30 +75,30 @@ const iniciaSesion = async (req, res) => {
 
 
 // create new user
-const crearUsuario = async(req, res) => {
+const crearUsuario = async (req, res) => {
 
     // validar si tiene o no permisos para crear usuario
     const permisos = req.permisos
     const arrPermisos = JSON.parse(permisos)
     // 1 permiso para crear usuario
     if (arrPermisos.indexOf(1) === -1) {
-        res.json({msg: 'Usted no tiene permisos para crear usuarios'})
+        res.json({ msg: 'Usted no tiene permisos para crear usuarios' })
         return
     }
 
     if (req.sessionid !== req.body.createby) {
-        res.json({msg: 'Error en el id de usuario de creacion'})
+        res.json({ msg: 'Error en el id de usuario de creacion' })
         return
     }
 
     // validation user exists
-    const validacion =  await validarDatosUsuarios(req.body)
-    if(validacion.msg !== 'validado'){
+    const validacion = await validarDatosUsuarios(req.body)
+    if (validacion.msg !== 'validado') {
         res.json(validacion)
-        return  
+        return
     }
 
-     //encriptar password
+    //encriptar password
     const hash = await encryptPassword(req.body.password)
     req.body.password = hash
 
@@ -93,66 +109,66 @@ const crearUsuario = async(req, res) => {
     delete req.body.confirmarPassword
 
     res.json(req.body)
-  
+
     /// agregar crear usuario con req. body para enviar los datos del usuario a la base de datos
-   const usuarioCreado = guardarUsuario(req.body)
-    if(usuarioCreado.msg){
+    const usuarioCreado = guardarUsuario(req.body)
+    if (usuarioCreado.msg) {
         res.json(usuarioCreado)
     }
-    res.json({msg:'Usuario creado satisfactoriamente'})
+    res.json({ msg: 'Usuario creado satisfactoriamente' })
 }
 
 // actualiza datos de usuario.
-const actualizaUsuario = async(req, res) => {
-    const {sessionid, permisos} = req
+const actualizaUsuario = async (req, res) => {
+    const { sessionid, permisos } = req
     const dataUsuarioActualizar = req.body
     const arrPermisos = JSON.parse(permisos)
 
-    if(sessionid !== dataUsuarioActualizar.id) {
+    if (sessionid !== dataUsuarioActualizar.id) {
         if (arrPermisos.indexOf(2) === -1) {
-            return res.json({msg: 'Usted no tiene permisos para Actualizar usuarios'})
+            return res.json({ msg: 'Usted no tiene permisos para Actualizar usuarios' })
         }
-    }else{
+    } else {
         // verificar que no se este modificando el documento o el correo
         const dataUsuarioDb = await consultarDataUsuario(dataUsuarioActualizar.id)
-        if(dataUsuarioDb.numero_id !== dataUsuarioActualizar.numero_id || dataUsuarioDb.email !== dataUsuarioActualizar.email.toLowerCase()){
+        if (dataUsuarioDb.numero_id !== dataUsuarioActualizar.numero_id || dataUsuarioDb.email !== dataUsuarioActualizar.email.toLowerCase()) {
 
             if (arrPermisos.indexOf(2) === -1) {
-                return res.json({msg: 'Usted no tiene permisos para el numero de documento y correo de usuarios'})
+                return res.json({ msg: 'Usted no tiene permisos para el numero de documento y correo de usuarios' })
             }
-        }      
+        }
     }
-    
+
     // comporar por medio de contaseña que es en realidad el usuario quien desea actualizar los datos 
-    const validacionPassword  = await validarPassword(dataUsuarioActualizar.passWordUsuarioSesion, sessionid)
+    const validacionPassword = await validarPassword(dataUsuarioActualizar.passWordUsuarioSesion, sessionid)
 
-    if(validacionPassword.msg){
+    if (validacionPassword.msg) {
         res.json(validacionPassword)
-        return  
+        return
     }
 
-    if(!validacionPassword){
-        res.json({msg: 'Password incorrecto'})
+    if (!validacionPassword) {
+        res.json({ msg: 'Password incorrecto' })
         return
     }
 
     delete dataUsuarioActualizar.passWordUsuarioSesion
     // validar si se va  actulizar la contraseña.
     let validarNuevopassword = true
-    if(!dataUsuarioActualizar.password){
-         validarNuevopassword = false
+    if (!dataUsuarioActualizar.password) {
+        validarNuevopassword = false
     }
 
     // validar que los datos esten correctos
-    const validacionDatosActualizar= await validarDatosUsuarios(dataUsuarioActualizar, validarNuevopassword )
-    
-    if(validacionDatosActualizar.msg !== 'validado'){
-       res.json(validacionDatosActualizar)
-        return  
+    const validacionDatosActualizar = await validarDatosUsuarios(dataUsuarioActualizar, validarNuevopassword)
+
+    if (validacionDatosActualizar.msg !== 'validado') {
+        res.json(validacionDatosActualizar)
+        return
     }
-    
+
     //hahsear la nueva contraseña
-    if(validarNuevopassword){
+    if (validarNuevopassword) {
         const hash = await encryptPassword(dataUsuarioActualizar.password)
         dataUsuarioActualizar.password = hash
         delete dataUsuarioActualizar.confirmarPassword
@@ -169,18 +185,18 @@ const actualizaUsuario = async(req, res) => {
 
     dataUsuarioActualizar.apellido = dataUsuarioActualizar.apellido.toLowerCase().charAt(0).toUpperCase() + dataUsuarioActualizar.apellido.toLowerCase().slice(1)
 
-    dataUsuarioActualizar.apellido_1 = dataUsuarioActualizar.apellido_1.toLowerCase().charAt(0).toUpperCase() + dataUsuarioActualizar.apellido_1. toLowerCase().slice(1)
+    dataUsuarioActualizar.apellido_1 = dataUsuarioActualizar.apellido_1.toLowerCase().charAt(0).toUpperCase() + dataUsuarioActualizar.apellido_1.toLowerCase().slice(1)
 
 
     const usuarioActualizado = await actualizarUsuario(dataUsuarioActualizar)
-    if(usuarioActualizado.msg){
+    if (usuarioActualizado.msg) {
         res.json(usuarioActualizado)
     }
-    
+
     res.json(dataUsuarioActualizar)
 }
 
-export{ 
+export {
     iniciaSesion,
     crearUsuario,
     actualizaUsuario
