@@ -23,6 +23,12 @@ import {
 
 const consultarReportesTodos = async (req, res) => {
     const listadoReportes = await consultarReportes()
+    if (listadoReportes.msg) {
+        return res.json(solicitudes[0])
+    }
+    listadoReportes.forEach(element => {
+        element.fechareporte =  element.fechareporte.toLocaleDateString('es-CO')
+    })
     res.json(listadoReportes)
 }
 

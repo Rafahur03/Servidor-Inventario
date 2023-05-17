@@ -5,11 +5,18 @@ const consultarSolicitudes = async (data) => {
     try {
         const pool = await conectardb()
         const resultado = await pool.query(`
-            SELECT sm.id,sm.id_activo,CONCAT(TRIM(cl.siglas), la.consecutivo_interno) as codigo, la.nombre, sm.id_usuario, sm.fecha_solicitud, sm.solicitud, sm.id_estado  FROM solicitudes_mtto sm
-            INNER JOIN listado_activos la
-            ON sm.id_activo = la.id
-            INNER JOIN clasificacion_activos cl
-            ON cl.id = la.clasificacion_id
+            SELECT sm.id, CONCAT(TRIM(cl.siglas), la.consecutivo_interno) as codigoInterno,TRIM(la.nombre) AS nombreActivo, TRIM(la.modelo) AS modelo,
+            TRIM(ma.marca) AS marca, sm.fecha_solicitud, TRIM(sm.solicitud) AS solicitud, TRIM(es.estado) AS estado FROM solicitudes_mtto sm
+                INNER JOIN listado_activos la
+                ON sm.id_activo = la.id
+                INNER JOIN clasificacion_activos cl
+                ON cl.id = la.clasificacion_id
+                INNER JOIN marca_activos ma
+                ON ma.id = la.marca_id
+                INNER JOIN estado_solicitudes es
+                ON es.id = sm.id_estado
+            WHERE sm.id_estado <> '4'
+            ORDER BY sm.id_estado ASC, fecha_solicitud
         `)
         cerrarConexion(pool)
         return (resultado.recordset)

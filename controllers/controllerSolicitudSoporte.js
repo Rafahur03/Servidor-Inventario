@@ -20,9 +20,11 @@ import {
 const consultarSolicitudTodos = async (req, res) => {
     const solicitudes = await consultarSolicitudes()
     if (solicitudes.msg) {
-        return resizeBy.json(solicitudes[0])
+        return res.json(solicitudes[0])
     }
-
+    solicitudes.forEach(element => {
+        element.fecha_solicitud =  element.fecha_solicitud.toLocaleDateString('es-CO')
+    });
     res.json(solicitudes)
 
 }

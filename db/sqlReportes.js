@@ -5,8 +5,26 @@ const consultarReportes = async () => {
     try {
         const pool = await conectardb()
         const resultado = await pool.query(`
-            SELECT * FROM repotesMtto
-            ORDER BY id ASC
+            SELECT rm.id AS idReporte, rm.solicitud_id AS idSolicitud, CONCAT(TRIM(ca.siglas), la.consecutivo_interno) AS codigoInterno,
+            TRIM(la.nombre) AS nombreACtivo, TRIM(ma.marca) AS marca, TRIM(la.modelo) AS modelo, TRIM(la.ubicacion) AS ubicacion, 
+            CONCAT(TRIM(us.nombre), SPACE(1), TRIM(us.nombre_1), SPACE(1) , TRIM(us.apellido), SPACE(1), TRIM(us.apellido_1)) AS solicitante,
+            TRIM(es.estado) AS estado, rm.fechareporte
+                FROM repotesMtto rm
+                INNER JOIN listado_activos la
+                ON la.id = rm.id_activo
+                INNER JOIN clasificacion_activos ca
+                ON ca.id = la.clasificacion_id
+                INNER JOIN marca_activos ma
+                ON ma.id = la.marca_id
+                INNER JOIN solicitudes_mtto sm
+                ON sm.id = rm.solicitud_id
+                INNER JOIN usuarios us
+                ON us.id = sm.id_usuario
+                INNER JOIN estado_solicitudes es
+                ON es.id = sm.id_estado
+                WHERE sm.id_estado <> '4'
+            
+            ORDER BY sm.id_estado ASC, idReporte DESC
         `)
         cerrarConexion(pool)
         return (resultado.recordset)
