@@ -55,9 +55,35 @@ const consultarActivoUno = async (id) => {
     try {
         const pool = await conectardb()
         const resultado = await pool.query(`
-            SELECT  la.id, CONCAT(TRIM(ca.siglas),la.consecutivo_interno) AS codigo, TRIM(ca.siglas) AS siglas, la.nombre, la.marca_id, la.modelo, la.serie, la.proceso_id, la.area_id, la.ubicacion, la.usuario_id, la.estado_id, la.proveedor_id, la.numero_factura, la.valor, la.fecha_compra, la.vencimiento_garantia, la.frecuencia_id, la.descripcion, la.recomendaciones_Mtto, la.obervacion, la.url_img, la.create_by, la.fecha_creacion, la.tipo_activo_id, la.fecha_proximo_mtto, la.soportes FROM listado_activos la
+            SELECT  la.id, CONCAT(TRIM(ca.siglas),la.consecutivo_interno) AS codigo, TRIM(ca.siglas) AS siglas, TRIM(la.nombre) AS nombre,
+                la.marca_id, TRIM(ma.marca) AS marca, TRIM(la.modelo) AS modelo, TRIM(la.serie) AS serie, la.proceso_id,
+                TRIM(pr.proceso) AS proceso,la.area_id, TRIM(ar.area) AS area, TRIM(la.ubicacion) AS ubicacion,
+                la.usuario_id AS responsableId, CONCAT(TRIM(us.nombre), SPACE(1), TRIM(us.nombre_1),SPACE(1), TRIM(us.apellido),SPACE(1),
+                TRIM(us.apellido_1)) AS responsable, la.estado_id,TRIM(es.estado) AS estado, la.proveedor_id,
+                TRIM(pro.nombre_comercial) AS provedor, TRIM(pro.nit) AS nit, TRIM(la.numero_factura) AS numero_factura,
+                TRIM(la.valor) valor, la.fecha_compra, la.vencimiento_garantia, la.frecuencia_id, TRIM(fre.frecuencia) AS frecuencia,
+                TRIM(la.descripcion) AS descripcion, TRIM(la.recomendaciones_Mtto) AS recomendaciones_Mtto,
+                TRIM(la.obervacion) AS obervacion, TRIM(la.url_img) AS url_img, la.fecha_creacion, la.tipo_activo_id,
+                TRIM(ta.tipo_activo) AS  tipoActivo, la.fecha_proximo_mtto, TRIM(la.soportes) AS soportes
+                FROM listado_activos la
                 INNER JOIN clasificacion_activos ca
                 ON ca.id = la.clasificacion_id
+                INNER JOIN marca_activos ma
+                ON ma.id = la.marca_id
+                INNER JOIN procesos pr
+                ON pr.id = la.proceso_id
+                INNER JOIN areas ar
+                ON ar.id = la.area_id
+                INNER JOIN estados es
+                ON es.id = la.estado_id
+                INNER JOIN usuarios us
+                ON us.id = la.usuario_id
+                INNER JOIN proveedores pro
+                ON pro.id = la.proveedor_id
+                INNER JOIN frecuencia_Mtto fre
+                ON fre.id = la.frecuencia_id
+                INNER JOIN tipo_activo ta
+                ON ta.id = la.tipo_activo_id
             WHERE la.id ='${id}'
         `)
         cerrarConexion(pool)
@@ -325,10 +351,13 @@ const consultarComponentes = async (id) => {
     try {
         const pool = await conectardb()
         const resultado = await pool.query(`
-            SELECT ca.id, ca.componenteId, TRIM(lp.componente) AS nombre, ca.marca AS marcaId, TRIM(ca.modelo) AS modelo, TRIM(ca.serie) AS serie,TRIM(ca.capacidad) AS capacidad, ca.estado as estadoId
+            SELECT ca.id, ca.componenteId, TRIM(lp.componente) AS nombre, ca.marca AS marcaId,
+                TRIM(ma.marca) AS marca,TRIM(ca.modelo) AS modelo, TRIM(ca.serie) AS serie,TRIM(ca.capacidad) AS capacidad, ca.estado as estadoId
                 FROM componentes_activos ca
                 INNER JOIN lista_componentes lp
                 ON lp.id = ca.componenteId
+                INNER JOIN marca_activos ma
+	            ON ma.id = ca.marca
             WHERE ca.idactivo = '${id}' AND  ca.estado = '1'
         `)
         cerrarConexion(pool)
@@ -370,6 +399,7 @@ const actualizarComponentes = async (componentes, id) => {
         return { msg: 'Ha ocurido un error al intentar crear los componentes' }
     }
 }
+
 
 
 

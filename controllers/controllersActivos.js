@@ -2,6 +2,7 @@ import formidable from "formidable"
 import { validarDatosActivo } from "../helpers/validarDatosActivo.js"
 import { validarFiles } from "../helpers/validarFiles.js"
 import { crearPdfMake } from "../helpers/crearPdfMake.js"
+import { consultarReportesActivo } from "../db/sqlReportes.js"
 import {
     copiarYCambiarNombre,
     guardarImagenesNuevoActivo,
@@ -40,18 +41,38 @@ const consultarActivo = async (req, res) => {
     const id = req.body.id
 
     const activo = await consultarActivoUno(id)
-    console.log(activo.url_img)
+    let componentes = await consultarComponentes(id)
+    if (componentes.msg) {
+    } else {
+        if (componentes.length == 0) componentes = ""            
+    }
+
+    const reportes = await consultarReportesActivo(id)
+    if (reportes.msg) {
+    } else {
+        if (reportes.length == 0) reportes = ""            
+    }
+
+    activo.fecha_compra = activo.fecha_compra.toISOString().substring(0, 10)
+    activo.vencimiento_garantia = activo.vencimiento_garantia.toISOString().substring(0, 10)
+    activo.fecha_creacion = activo.fecha_creacion.toISOString().substring(0, 10)
     const url_img = activo.url_img.split(',')
     const Imagenes = bufferimagenes(url_img, activo)
-    activo.soportes = JSON.parse(activo.soportes)
+    if(activo.soporte === '') {
+        activo.soportes = JSON.parse(activo.soportes)
+    }   
     const soportes = bufferSoportespdf(activo.soportes, activo)
     const hojadevida = await crearPdfMake(id, 'Activo')
-    res.json({
-        activo,
-        Imagenes,
-        soportes,
-        hojadevida
-    })
+    activo.BufferImagenes = Imagenes
+    activo.Buffersoportes = soportes
+    activo.hojadevida = hojadevida
+    res.json(
+        {
+            activo,
+            componentes,
+            reportes
+        }
+    )
 }
 
 const crearActivo = async (req, res) => {
@@ -454,7 +475,7 @@ const actualizarActivo = async (req, res) => {
             Imagenes,
             bufferSoportes,
             hojadevida,
-            errores   
+            errores
         })
 
     })

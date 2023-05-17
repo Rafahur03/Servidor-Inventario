@@ -118,11 +118,37 @@ const actualizarReporte = async (data) => {
         return { msg: 'Ha ocurido un error al intentar guardar el reporte, verifique si se guardo en caso contrario intentelo nuevamente' }
     }
 }
+const consultarReportesActivo = async (id) => {
 
+    try {
+        const pool = await conectardb()
+        const resultado = await pool.query(`
+            SELECT rm.id, rm.fechareporte, TRIM(rm.hallazgos) AS hallazgos, TRIM(rm.reporte) AS reporte,
+                TRIM(rm.recomendaciones) AS recomendaciones, TRIM(pro.nombre_comercial) AS proveedor, rm.proximoMtto,
+                TRIM(tm.tipoMtto) as tipoMantenimeinto
+                FROM repotesMtto rm
+                INNER JOIN proveedores PRO
+                ON pro.id = rm.proveedor_id 
+                INNER JOIN tipo_mantenimeintos tm
+                ON tm.id = rm.tipoMtoo_id
+                INNER JOIN solicitudes_mtto sm
+	            ON sm.id = rm.solicitud_id
+            WHERE rm.id_activo = ${id} AND sm.id_estado <> 4
+            ORDER BY fechareporte DESC
+            
+        `)
+        cerrarConexion(pool)
+        return (resultado.recordset)
+    } catch (error) {
+        console.error(error);
+        return { msg: 'Ha ocurido un error al intentar guardar los datos intentalo mas tarde' }
+    }
+}
 
 export {
     consultarReportes,
     consultarReporteUno,
     guardarReporte,
-    actualizarReporte
+    actualizarReporte,
+    consultarReportesActivo
 }
