@@ -126,10 +126,13 @@ const guardarImagenesNuevoActivo = async (files, data, destino) => {
 	}
 }
 
-const bufferimagenes = (url_img, data, destino) => {
-	if(url_img == null || url_img == ''){
-		return bufferNoImage()
+const bufferimagenes = async (url_img, data, destino) => {
+	
+	if(url_img == null || url_img == '' || url_img == 'undefined'){
+				
+		return [await bufferNoImage()]
 	}
+
 	let pathActivo
 	switch (destino) {
 		case 1:
@@ -147,7 +150,7 @@ const bufferimagenes = (url_img, data, destino) => {
 
 	const imageBuffers = url_img.map(imageName => {
 		const imagePath = pathActivo + imageName
-		const buffer = fs.readFileSync(imagePath);
+		const buffer =  fs.readFileSync(imagePath);
 		const bufferCompleto = `data:${mime.lookup(imageName)};base64,${buffer.toString('base64')}`
 		return bufferCompleto
 	});

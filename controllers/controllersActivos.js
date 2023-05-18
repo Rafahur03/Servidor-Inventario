@@ -41,27 +41,29 @@ const consultarActivo = async (req, res) => {
     const id = req.body.id
 
     const activo = await consultarActivoUno(id)
-    let componentes = await consultarComponentes(id)
-    if (componentes.msg) {
-    } else {
-        if (componentes.length == 0) componentes = ""            
-    }
-
+    const componentes = await consultarComponentes(id)
     const reportes = await consultarReportesActivo(id)
-    if (reportes.msg) {
-    } else {
-        if (reportes.length == 0) reportes = ""            
-    }
+
+    reportes.forEach(element => {
+        element.fechareporte = element.fechareporte.toLocaleDateString('es-CO')
+        element.proximoMtto = element.proximoMtto.toLocaleDateString('es-CO')
+    })
+
 
     activo.fecha_compra = activo.fecha_compra.toISOString().substring(0, 10)
     activo.vencimiento_garantia = activo.vencimiento_garantia.toISOString().substring(0, 10)
     activo.fecha_creacion = activo.fecha_creacion.toISOString().substring(0, 10)
-    const url_img = activo.url_img.split(',')
-    const Imagenes = bufferimagenes(url_img, activo)
-    if(activo.soporte === '') {
+   
+
+    if (activo.url_img !== null && activo.url_img !== '') {
+        activo.url_img = activo.url_img.split(',')
+    }
+    const Imagenes = await bufferimagenes(activo.url_img, activo)
+ 
+    if (activo.soporte === '') {
         activo.soportes = JSON.parse(activo.soportes)
-    }   
-    const soportes = bufferSoportespdf(activo.soportes, activo)
+    }
+    const soportes = bufferSoportespdf(activo.soportes, activo) 
     const hojadevida = await crearPdfMake(id, 'Activo')
     activo.BufferImagenes = Imagenes
     activo.Buffersoportes = soportes
