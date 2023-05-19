@@ -45,8 +45,10 @@ const consultarActivo = async (req, res) => {
     const reportes = await consultarReportesActivo(id)
 
     reportes.forEach(element => {
+        if(element.proximoMtto != null){
+            element.proximoMtto = element.proximoMtto.toLocaleDateString('es-CO')
+        }        
         element.fechareporte = element.fechareporte.toLocaleDateString('es-CO')
-        element.proximoMtto = element.proximoMtto.toLocaleDateString('es-CO')
     })
 
 
