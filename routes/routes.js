@@ -24,6 +24,8 @@ import { consultarconfig,
     actualizarConfig,
     crearConfig } from '../controllers/controlerConfig.js';
 
+import { eliminarComponente } from '../controllers/controllerComponentes.js';
+
 import { probarfechas } from '../controllers/probarfechas.js';
 
 const router = express.Router()
@@ -73,7 +75,7 @@ router.post('/crearReporte', checkAuth, crearReporte)
 
 router.post('/modificarReporte', checkAuth, modificarReporte)
 
-// router areas
+// router configuraciones
 router.post('/consultarconfig', checkAuth, consultarconfig)
 
 router.post('/actualizarConfig', checkAuth, actualizarConfig)
@@ -81,5 +83,10 @@ router.post('/actualizarConfig', checkAuth, actualizarConfig)
 router.post('/crearConfig', checkAuth, crearConfig)
 
 router.post('/probarfechas', probarfechas)
+
+
+// ruta componente 
+
+router.delete('/eliminarComponente', checkAuth, eliminarComponente)
 
 export default  router

@@ -26,9 +26,10 @@ import {
     eliminarActivoDb,
     guardarSoportes,
     crearComponenteActivo,
-    consultarComponentes,
     actualizarComponentes
 } from "../db/sqlActivos.js"
+
+import { consultarComponentes } from "../db/sqlComponentes.js"
 
 
 
