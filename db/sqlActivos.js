@@ -30,18 +30,24 @@ const consultarActivos = async () => {
 
     try {
         const pool = await conectardb()
-        const resultado = await pool.query(`SELECT la.id,CONCAT(RTRIM(ca.siglas), la.consecutivo_interno) AS codigoInterno, TRIM(la.nombre) AS nombreActivo, TRIM(ma.marca) AS marca, TRIM(la.modelo) AS modelo, TRIM(la.serie) AS serie, TRIM(la.ubicacion) AS ubicacion, CONCAT(us.nombre, SPACE(1), us.nombre_1, SPACE(1), us.apellido, SPACE(1), us.apellido_1) AS nombreResponsable , TRIM(es.estado) as estado
-            FROM listado_activos la
-        INNER JOIN clasificacion_activos ca
-            on la.clasificacion_id =ca.id
-        INNER JOIN marca_activos ma
-            on la.marca_id = ma.id
-        INNER JOIN usuarios us
-            on la.usuario_id = us.id
-        INNER JOIN estados es
-            on la.estado_id = es.id
-        WHERE la.estado_id <> '3'
-		ORDER BY estado_id ASC, nombreActivo ASC`)
+        const resultado = await pool.query(`
+            SELECT la.id,CONCAT(RTRIM(ca.siglas), la.consecutivo_interno) AS codigoInterno,
+                TRIM(la.nombre) AS nombreActivo, TRIM(ma.marca) AS marca, TRIM(la.modelo) AS modelo,
+                TRIM(la.serie) AS serie, TRIM(la.ubicacion) AS ubicacion, CONCAT(us.nombre, SPACE(1),
+                us.nombre_1, SPACE(1), us.apellido, SPACE(1), us.apellido_1) AS nombreResponsable,
+                TRIM(es.estado) as estado
+                    FROM listado_activos la
+                INNER JOIN clasificacion_activos ca
+                    on la.clasificacion_id =ca.id
+                INNER JOIN marca_activos ma
+                    on la.marca_id = ma.id
+                INNER JOIN usuarios us
+                    on la.usuario_id = us.id
+                INNER JOIN estados es
+                    on la.estado_id = es.id
+                WHERE la.estado_id <> '3'
+            ORDER BY estado_id ASC, nombreActivo ASC
+        `)
         cerrarConexion(pool)
         return (resultado.recordset)
     } catch (error) {
@@ -317,7 +323,11 @@ const eliminarActivoDb = async (data) => {
 
 const crearComponenteActivo = async (componentes, id) => {
 
-    let quereyComponentes = `('${id}', '${componentes[0].componenteId}', '${componentes[0].marcaId}',  '${componentes[0].modelo}', '${componentes[0].serie}', '${componentes[0].capacidad}', '${componentes[0].estadoId}')`
+    let quereyComponentes = `
+       ('${id}', '${componentes[0].componenteId}', '${componentes[0].marcaId}',
+       '${componentes[0].modelo}', '${componentes[0].serie}', '${componentes[0].capacidad}',
+       '${componentes[0].estadoId}')
+    `
 
     if (componentes.length > 1) {
         componentes.forEach((element, index) => {
@@ -326,8 +336,9 @@ const crearComponenteActivo = async (componentes, id) => {
             }
         });
     }
-    const query = `INSERT INTO componentes_activos( idactivo, componenteId, marca , modelo, serie, capacidad, estado)
-    VALUES ${quereyComponentes}
+    const query = `
+        INSERT INTO componentes_activos( idactivo, componenteId, marca , modelo, serie, capacidad, estado)
+        VALUES ${quereyComponentes}
 
     SELECT ca.id, ca.componenteId, TRIM(lp.componente) AS nombre, ca.marca AS marcaId, TRIM(ca.modelo) AS modelo, TRIM(ca.serie) AS serie,TRIM(ca.capacidad) AS capacidad, ca.estado as estadoId
         FROM componentes_activos ca
