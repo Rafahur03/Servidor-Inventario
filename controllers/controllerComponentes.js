@@ -28,7 +28,11 @@ const eliminarComponente = async (req, res) => {
         }
         const eliminar = await eliminarComponenteDb(data.idComponente)
 
-        res.json(eliminar)
+        if(eliminar.msg){
+            res.json(eliminar)
+        }
+
+        res.json('Componente Eliminado corectamnete')
 
     } catch (error) {
         console.error(error)
