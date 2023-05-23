@@ -25,7 +25,6 @@ import {
     actualizarClasificacion,
     eliminarActivoDb,
     guardarSoportes,
-    crearComponenteActivo,
     actualizarComponentes
 } from "../db/sqlActivos.js"
 
@@ -122,19 +121,9 @@ const crearActivo = async (req, res) => {
             return res.json(dataActivo)
         }
 
-        // cargamos en la base de datos loc componentes asociados al activo
-        //almacena los errores  que se presenten
+       //almacena los errores  que se presenten
         let error = {}
 
-        if (data.componentes) {
-            const guardarComponentes = await crearComponenteActivo(data.componentes, dataActivo.id)
-            if (guardarComponentes.msg) {
-                error.guardarComponentes = guardarComponentes
-            } else {
-                data.componentes = guardarComponentes[0]
-            }
-        }
-        // quitar espacios en blanco y devolver el id del componente 
         //anexamos los datos de codigo
         data.codigo = dataActivo.codigo
         data.id = dataActivo.id

@@ -24,7 +24,7 @@ import { consultarconfig,
     actualizarConfig,
     crearConfig } from '../controllers/controlerConfig.js';
 
-import { eliminarComponente } from '../controllers/controllerComponentes.js';
+import { eliminarComponente, guardarComponente  } from '../controllers/controllerComponentes.js';
 
 import { probarfechas } from '../controllers/probarfechas.js';
 
@@ -88,5 +88,7 @@ router.post('/probarfechas', probarfechas)
 // ruta componente 
 
 router.delete('/eliminarComponente', checkAuth, eliminarComponente)
+
+router.post('/guardarComponente', checkAuth, guardarComponente)
 
 export default  router

@@ -6,6 +6,7 @@ const consultaconfi = async (conf) => {
         const pool = await conectardb()
         const resultado = await pool.query(`
             SELECT * FROM ${conf}
+            WHERE estado = 1
         `)
         cerrarConexion(pool)
         return (resultado.recordsets[0])

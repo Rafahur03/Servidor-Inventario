@@ -321,43 +321,6 @@ const eliminarActivoDb = async (data) => {
     }
 }
 
-const crearComponenteActivo = async (componentes, id) => {
-
-    let quereyComponentes = `
-       ('${id}', '${componentes[0].componenteId}', '${componentes[0].marcaId}',
-       '${componentes[0].modelo}', '${componentes[0].serie}', '${componentes[0].capacidad}',
-       '${componentes[0].estadoId}')
-    `
-
-    if (componentes.length > 1) {
-        componentes.forEach((element, index) => {
-            if (index !== 0) {
-                quereyComponentes += `,\n ('${id}', '${element.componenteId}', '${element.marcaId}',  '${element.modelo}', '${element.serie}', '${element.capacidad}', '${element.estadoId}')`
-            }
-        });
-    }
-    const query = `
-        INSERT INTO componentes_activos( idactivo, componenteId, marca , modelo, serie, capacidad, estado)
-        VALUES ${quereyComponentes}
-
-    SELECT ca.id, ca.componenteId, TRIM(lp.componente) AS nombre, ca.marca AS marcaId, TRIM(ca.modelo) AS modelo, TRIM(ca.serie) AS serie,TRIM(ca.capacidad) AS capacidad, ca.estado as estadoId
-        FROM componentes_activos ca
-        INNER JOIN lista_componentes lp
-        ON lp.id = ca.componenteId
-    WHERE ca.idactivo = '${id}' AND  ca.estado = '1'`
-
-    try {
-        const pool = await conectardb()
-        const resultado = await pool.query(query)
-        cerrarConexion(pool)
-        return (resultado.recordsets)
-    } catch (error) {
-        console.error(error);
-        return { msg: 'Ha ocurido un error al intentar crear los componentes' }
-    }
-}
-
-
 const actualizarComponentes = async (componentes, id) => {
 
     let quereyComponentes = `UPDATE componentes_activos
@@ -405,6 +368,5 @@ export {
     eliminarActivoDb,
     consultarActivoUno,
     guardarSoportes,
-    crearComponenteActivo,
     actualizarComponentes
 }

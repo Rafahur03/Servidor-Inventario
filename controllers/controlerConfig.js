@@ -5,14 +5,14 @@ import { validarDatosConfigActualizar, validarDatosConfigNuevo } from "../helper
 
 const consultarconfig = async (req, res) => {
     const tablasConfig = {
-        '1': 'areas',
-        '2': 'marca_activos',
-        '3': 'tipo_activo',
-        '4': 'lista_componentes',
-        '5': 'frecuencia_Mtto',
-        '6': 'procesos',
-        '7': 'clasificacion_activos',
-        '8': 'proveedores'
+        1: 'areas',
+        2: 'marca_activos',
+        3: 'tipo_activo',
+        4: 'lista_componentes',
+        5: 'frecuencia_Mtto',
+        6: 'procesos',
+        7: 'clasificacion_activos',
+        8: 'proveedores'
     }
     const { config } = req.body
 
