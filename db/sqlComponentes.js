@@ -57,19 +57,20 @@ const datosValidacionComponetes = async () => {
 }
 
 const crearComponente = async (componente, id) => {
+
+    console.log(componente, id)
     try {
         const pool = await conectardb()
         const resultado = await pool.query(`
             INSERT INTO componentes_activos( idactivo, componenteId, marca , modelo, serie, capacidad)
-                VALUES ('${id}', '${componente.id}', '${componente.marca}',
+                VALUES (${id}, ${componente.idNombre}, ${componente.idmarca},
                 '${componente.modelo}', '${componente.serie}', '${componente.capacidad}')
-            SELECT IDENT_CURRENT('listado_activos') AS id
+            SELECT IDENT_CURRENT('componentes_activos') AS id
         `)
 
         const idcomponente = resultado.recordset[0].id
-
         const nuevoComponente = await pool.query(`
-            SELECT ca.id, TRIM(lp.componente) AS nombre, TRIM(ma.marca) AS marca,
+            SELECT ca.id, ca.idactivo, TRIM(lp.componente) AS nombre, TRIM(ma.marca) AS marca,
                 TRIM(ca.modelo) AS modelo, TRIM(ca.serie) AS serie,TRIM(ca.capacidad) AS capacidad
                 FROM componentes_activos ca
                 INNER JOIN lista_componentes lp

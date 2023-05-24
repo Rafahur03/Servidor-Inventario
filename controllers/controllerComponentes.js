@@ -56,6 +56,7 @@ const guardarComponente = async (req, res) => {
         }
 
         const data = req.body.data
+        console.log(data)
 
         if (data == '' || data == null || data == undefined) {
             return res.json({ msg: 'Los datos no pueden enviarse vacios' })
@@ -70,6 +71,7 @@ const guardarComponente = async (req, res) => {
         if (validacion.msg) return res.json(validacion)
 
         const crear = await crearComponente(data.componente, data.idActivo)
+        console.log(crear)
 
         res.json(crear)
 
