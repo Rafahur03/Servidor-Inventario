@@ -6,8 +6,8 @@ import mime from 'mime-types'
         const tipo = typeof dimension === 'undefined'
         const extenciones = ['jpg', 'png', 'jpeg', 'JPG', 'PNG', 'JEPG']
         if (!tipo) {
-            if (dimension > 7) {
-                return ({ msg: 'solo se admite un maximo de 7 Imagenes' })
+            if (dimension > 6) {
+                return ({ msg: 'solo se admite un maximo de 6 Imagenes' })
             }
             const validarExtencion = files.Image.map(imagen => {               
                     if(!extenciones.includes(mime.extension(imagen.mimetype))){

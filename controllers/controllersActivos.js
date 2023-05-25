@@ -45,9 +45,9 @@ const consultarActivo = async (req, res) => {
     const reportes = await consultarReportesActivo(id)
 
     reportes.forEach(element => {
-        if(element.proximoMtto != null){
+        if (element.proximoMtto != null) {
             element.proximoMtto = element.proximoMtto.toLocaleDateString('es-CO')
-        }        
+        }
         element.fechareporte = element.fechareporte.toLocaleDateString('es-CO')
     })
 
@@ -55,17 +55,17 @@ const consultarActivo = async (req, res) => {
     activo.fecha_compra = activo.fecha_compra.toISOString().substring(0, 10)
     activo.vencimiento_garantia = activo.vencimiento_garantia.toISOString().substring(0, 10)
     activo.fecha_creacion = activo.fecha_creacion.toISOString().substring(0, 10)
-   
+
 
     if (activo.url_img !== null && activo.url_img !== '') {
         activo.url_img = activo.url_img.split(',')
     }
     const Imagenes = await bufferimagenes(activo.url_img, activo)
- 
+
     if (activo.soporte === '') {
         activo.soportes = JSON.parse(activo.soportes)
     }
-    const soportes = bufferSoportespdf(activo.soportes, activo) 
+    const soportes = bufferSoportespdf(activo.soportes, activo)
     const hojadevida = await crearPdfMake(id, 'Activo')
     activo.BufferImagenes = Imagenes
     activo.Buffersoportes = soportes
@@ -121,7 +121,7 @@ const crearActivo = async (req, res) => {
             return res.json(dataActivo)
         }
 
-       //almacena los errores  que se presenten
+        //almacena los errores  que se presenten
         let error = {}
 
         //anexamos los datos de codigo
@@ -244,6 +244,7 @@ const actualizarActivo = async (req, res) => {
 
     // usa  formidable para recibir el req de imagenes y datos
     const form = formidable({ multiples: true });
+
     form.parse(req, async function (err, fields, files) {
 
         if (err) {
@@ -587,11 +588,83 @@ const eliminarActivo = async (req, res) => {
     })
 }
 
+const guardarImagenActivo = async (req, res) => {
+
+    const { permisos } = req
+    const arrPermisos = JSON.parse(permisos)
+    if (arrPermisos.indexOf(3) === -1) {
+        return res.json({ msg: 'Usted no tiene permisos para Actualizar Activos' })
+    }
+
+    // usa  formidable para recibir el req de imagenes y datos
+    const form = formidable({ multiples: true });
+
+    form.parse(req, async function (err, fields, files) {
+
+        if (err) {
+            console.error(err);
+            return res.status(500).json({ error: err });
+        }
+        // extrae los datos del req 
+        const data = JSON.parse(fields.data)
+
+        console.log(data)
+        console.log(files)
+        console.log(files)
+        return res.json({ msg: 'ya casi perro' })
+
+        //validar que el id corresponde al codigo interno del equipo
+        const dataBd = await consultarCodigoInterno(data.id)
+        if (dataBd.msg) {
+            return request.json({ msg: 'En estos momentos no es posible validar la informaciona  actualizar intetelo más tarde' })
+        }
+
+        if (dataBd.codigo !== data.codigo) {
+            return res.json({ msg: 'El Id del activo no corresponde al codigo interno no se puede actualizar los datos' })
+        }
+
+        if (files.Image) return res.json({ msg: 'Debe cargar al menos una imagen' })
+
+        let imageneDb = dataBd.url_img.split(',')
+
+        if (imageneDb.length === 6) return res.json({ msg: 'El numero maximo de imagenes por activo son 6 se ha llegado al limite favor elimine alguna para guardar nuevas imagenes' })
+
+
+        // validar archivos enviados 
+        const validarFile = validarFiles(files)
+        if (validarFile.msg) {
+            return res.json(validarFile)
+        }
+
+
+        const nuevaUrl_imag = await guardarImagenesNuevoActivo(files, dataBd)
+        if (nuevaUrl_imag.msg) return res.json(nuevaUrl_imag)
+
+        imageneDb.push(nuevaUrl_imag)
+
+        const guardadoExitoso = await guardarImagenes(imageneDb.toString(), data.id)
+        if (guardadoExitoso.msg) return res.json('los datos se guardaron correctamente, pero hubo un error al guardar las imagenes en la Base de datos intente cargarlos nuevamente si el error persiste consulte a soporte ')
+        
+
+        const imagen = bufferimagenes(nuevaUrl_imag, dataBd)
+        if (imagen.msg) return res.json('No se pudo devolver la imagen, por lo pornto puedes continuar con con la imagen local')
+
+        res.json({
+            msg: 'Activo actualizado correctamente',
+            imagen,
+            nombre: nuevaUrl_imag
+        })
+
+    })
+
+}
+
 export {
     consultarActivosTodos,
     crearActivo,
     actualizarActivo,
     cambiarClasificacion,
     eliminarActivo,
-    consultarActivo
+    consultarActivo,
+    guardarImagenActivo
 }
