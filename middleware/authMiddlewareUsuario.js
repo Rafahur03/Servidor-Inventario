@@ -2,6 +2,7 @@ import { desencriptarJson } from "../helpers/encriptarData.js";
 import { consultarToken } from "../db/sqlUsuarios.js";
 
 const checkAuth = async(req, res, next) => {
+
     if(req.headers.authorization && req.headers.authorization.startsWith('Bearer')){
 
         const token = req.headers.authorization.split(' ')[1];
@@ -33,7 +34,7 @@ const checkAuth = async(req, res, next) => {
         req.sessionid = tokenExisteBD.id
         req.permisos= tokenExisteBD.permisos
         req.Id_proveedores = tokenExisteBD.Id_proveedores
-        return   next()  
+        return  next()  
       
     }
 

@@ -7,7 +7,10 @@ import {
     actualizarActivo,
     cambiarClasificacion,
     eliminarActivo,
-    consultarActivo} from '../controllers/controllersActivos.js'
+    consultarActivo,
+    guardarImagenActivo,
+    eliminarImagenActivo
+} from '../controllers/controllersActivos.js'
 
 import { consultarSolicitudTodos,
     crearSolicitud,
@@ -51,6 +54,10 @@ router.post('/actualizarActivo', checkAuth, actualizarActivo)
 router.post('/cambiarClasificacion', checkAuth, cambiarClasificacion)
 
 router.post('/eliminarActivo', checkAuth, eliminarActivo)
+
+router.post('/guardarImagenActivo', checkAuth, guardarImagenActivo)
+
+router.delete('/eliminarImagenActivo', checkAuth, eliminarImagenActivo)
 
 // ruta de solicitudes de soporte 
 

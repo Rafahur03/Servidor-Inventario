@@ -1,4 +1,5 @@
 import formidable from "formidable"
+import mime from 'mime-types'
 import { validarDatosActivo } from "../helpers/validarDatosActivo.js"
 import { validarFiles } from "../helpers/validarFiles.js"
 import { crearPdfMake } from "../helpers/crearPdfMake.js"
@@ -6,7 +7,9 @@ import { consultarReportesActivo } from "../db/sqlReportes.js"
 import {
     copiarYCambiarNombre,
     guardarImagenesNuevoActivo,
+    guardarImagenesBase64,
     bufferimagenes,
+    bufferimagen,
     elimnarImagenes,
     eliminarCarpetaActivo,
     guardarPDF,
@@ -60,6 +63,7 @@ const consultarActivo = async (req, res) => {
     if (activo.url_img !== null && activo.url_img !== '') {
         activo.url_img = activo.url_img.split(',')
     }
+
     const Imagenes = await bufferimagenes(activo.url_img, activo)
 
     if (activo.soporte === '') {
@@ -596,66 +600,103 @@ const guardarImagenActivo = async (req, res) => {
         return res.json({ msg: 'Usted no tiene permisos para Actualizar Activos' })
     }
 
-    // usa  formidable para recibir el req de imagenes y datos
-    const form = formidable({ multiples: true });
+    // extrae los datos del req 
+    const { data } = req.body
 
-    form.parse(req, async function (err, fields, files) {
+    //validar que el id corresponde al codigo interno del equipo
+    const dataBd = await consultarCodigoInterno(data.id)
+    if (dataBd.msg) {
+        return request.json({ msg: 'En estos momentos no es posible validar la información  actualizar intetelo más tarde' })
+    }
 
-        if (err) {
-            console.error(err);
-            return res.status(500).json({ error: err });
-        }
-        // extrae los datos del req 
-        const data = JSON.parse(fields.data)
+    if (dataBd.codigo !== data.codigo) {
+        return res.json({ msg: 'El Id del activo no corresponde al codigo interno no se puede actualizar los datos' })
+    }
 
-        console.log(data)
-        console.log(files)
-        console.log(files)
-        return res.json({ msg: 'ya casi perro' })
+    if (!data.Imagen) return res.json({ msg: 'Debe cargar al menos una imagen' })
 
-        //validar que el id corresponde al codigo interno del equipo
-        const dataBd = await consultarCodigoInterno(data.id)
-        if (dataBd.msg) {
-            return request.json({ msg: 'En estos momentos no es posible validar la informaciona  actualizar intetelo más tarde' })
-        }
+    let imageneDb
+    if (dataBd.url_img.trim() === '') {
+        imageneDb = []
+    } else {
+        imageneDb = dataBd.url_img.trim().split(',')
+    }
 
-        if (dataBd.codigo !== data.codigo) {
-            return res.json({ msg: 'El Id del activo no corresponde al codigo interno no se puede actualizar los datos' })
-        }
+    if (imageneDb.length === 6) return res.json({ msg: 'El numero maximo de imagenes por activo son 6 se ha llegado al limite favor elimine alguna para guardar nuevas imagenes' })
 
-        if (files.Image) return res.json({ msg: 'Debe cargar al menos una imagen' })
+    const mimeType = data.Imagen.split(',')[0].split(';')[0].split(':')[1]
+    const extensiones = ['png', 'jpg', 'jpeg']
+    if (!extensiones.includes(mime.extension(mimeType))) return { msg: 'Solo se aceptan imagenes en formato png, jpg o jpeg' }
 
-        let imageneDb = dataBd.url_img.split(',')
+    const imgBase64 = data.Imagen.split(',')[1]
+    const decodedData = Buffer.from(imgBase64, 'base64');
+    const sizeInBytes = decodedData.length
+    if (sizeInBytes > 3145728) return { msg: 'Solo se aceptan imagenes de tamaño hasta 3 Mb' }
+    // guardar imagen en el dicrectorio
+    const nuevaImagen = await guardarImagenesBase64(data.Imagen, dataBd)
+    if (nuevaImagen.msg) return res.json(nuevaImagen)
 
-        if (imageneDb.length === 6) return res.json({ msg: 'El numero maximo de imagenes por activo son 6 se ha llegado al limite favor elimine alguna para guardar nuevas imagenes' })
+    let guardadoExitoso
+    if (imageneDb.length === 0) {
+        guardadoExitoso = await guardarImagenes(nuevaImagen, data.id)
+    } else {
+        imageneDb.push(nuevaImagen)
+        guardadoExitoso = await guardarImagenes(imageneDb.toString(), data.id)
+    }
 
+    if (guardadoExitoso.msg) return res.json('los datos se guardaron correctamente, pero hubo un error al guardar las imagenes en la Base de datos intente cargarlos nuevamente si el error persiste consulte a soporte ')
+    
 
-        // validar archivos enviados 
-        const validarFile = validarFiles(files)
-        if (validarFile.msg) {
-            return res.json(validarFile)
-        }
+    const imagen = await bufferimagen(nuevaImagen, dataBd)
+    if (imagen.msg) return res.json('No se pudo devolver la imagen, por lo pornto puedes continuar con con la imagen local')
 
-
-        const nuevaUrl_imag = await guardarImagenesNuevoActivo(files, dataBd)
-        if (nuevaUrl_imag.msg) return res.json(nuevaUrl_imag)
-
-        imageneDb.push(nuevaUrl_imag)
-
-        const guardadoExitoso = await guardarImagenes(imageneDb.toString(), data.id)
-        if (guardadoExitoso.msg) return res.json('los datos se guardaron correctamente, pero hubo un error al guardar las imagenes en la Base de datos intente cargarlos nuevamente si el error persiste consulte a soporte ')
-        
-
-        const imagen = bufferimagenes(nuevaUrl_imag, dataBd)
-        if (imagen.msg) return res.json('No se pudo devolver la imagen, por lo pornto puedes continuar con con la imagen local')
-
-        res.json({
-            msg: 'Activo actualizado correctamente',
-            imagen,
-            nombre: nuevaUrl_imag
-        })
-
+    res.json({
+        exito: 'Activo actualizado correctamente',
+        imagen,
+        nombre: guardadoExitoso
     })
+
+
+}
+
+const eliminarImagenActivo = async (req, res) => {
+
+    const { permisos } = req
+    const arrPermisos = JSON.parse(permisos)
+    if (arrPermisos.indexOf(3) === -1) {
+        return res.json({ msg: 'Usted no tiene permisos para Actualizar Activos' })
+    }
+
+    // extrae los datos del req 
+    const { data } = req.body
+
+    //validar que el id corresponde al codigo interno del equipo
+    const dataBd = await consultarCodigoInterno(data.id)
+    if (dataBd.msg) {
+        return request.json({ msg: 'En estos momentos no es posible validar la información  actualizar intetelo más tarde' })
+    }
+
+    if (dataBd.codigo !== data.codigo) {
+        return res.json({ msg: 'El Id del activo no corresponde al codigo interno no se puede actualizar los datos' })
+    }
+
+    if (dataBd.url_img.trim() === '') {
+        return res.json({ msg: 'El del activo no tiene imagenes para eliminar' })
+    }
+
+    //elimiar imagen
+    const elimnada = await elimnarImagenes(data.imagen, dataBd)
+    if (elimnada.msg) return res.json({msg: 'No fue posible eliminar la imagen del directorio'})
+
+    const imageneDb = dataBd.url_img.trim().split(',')
+    const nuevaImagen = imageneDb.filter((item) => item !== data.imagen)
+    const guardadoExitoso = await guardarImagenes(nuevaImagen.toString(), data.id)
+    if (guardadoExitoso.msg) return res.json({msg: 'la imagen no pudo ser eliminada de la base de datos'})
+
+    res.json({
+        elimnada
+    })
+
 
 }
 
@@ -666,5 +707,6 @@ export {
     cambiarClasificacion,
     eliminarActivo,
     consultarActivo,
-    guardarImagenActivo
+    guardarImagenActivo,
+    eliminarImagenActivo
 }

@@ -17,7 +17,7 @@ const copiarYCambiarNombre = async (data) => {
 		// cambia los nombres de los archivos al nuevo codigo
 
 		const carpeta = `${path}\\${siglaNueva}\\${codigoNuevo}\\`
-		const extenciones = ['jpg', 'JPG', 'png', 'PNG', 'jpeg', 'JPEG', 'pdf','PDF']
+		const extenciones = ['jpg', 'JPG', 'png', 'PNG', 'jpeg', 'JPEG', 'pdf', 'PDF']
 		const archivos = await fspromises.readdir(carpeta);
 
 		const promesasRenombramiento = archivos.map((archivo) => {
@@ -38,7 +38,63 @@ const copiarYCambiarNombre = async (data) => {
 		return { msg: 'error al guardar las imagenes' }
 	}
 }
+const guardarImagenesBase64 = async (imagen, data, destino) => {
 
+	function getRandomInt(max) {
+		return Math.floor(Math.random() * max);
+	}
+
+	// validat tipo de archivo
+	const base64Regex = /^data:(.+);base64,(.*)$/;
+	if (typeof imagen !== 'string' || !base64Regex.test(imagen)) return { msg: 'El tipo de archivo no es valido' }
+
+	// validar extencion de la imagen
+	const mimeType = imagen.split(',')[0].split(';')[0].split(':')[1]
+	const extensiones = ['png', 'jpg', 'jpeg']
+	if (!extensiones.includes(mime.extension(mimeType))) return { msg: 'Solo se aceptan imagenes en formato png, jpg o jpeg' }
+
+	//validar tamaño de la imagen
+	const imgBase64 = imagen.split(',')[1]
+	const decodedData = Buffer.from(imgBase64, 'base64');
+	const sizeInBytes = decodedData.length
+	if (sizeInBytes > 3145728) return { msg: 'Solo se aceptan imagenes de tamaño hasta 3 Mb' }
+
+	try {
+
+		let pathActivo
+
+		switch (destino) {
+			case 1:
+				pathActivo = `${path}${data.siglas}\\${data.codigo}\\Solicitud\\`
+				break
+
+			case 2:
+				pathActivo = `${path}${data.siglas}\\${data.codigo}\\Reporte\\`
+				break
+
+			default:
+				pathActivo = `${path}${data.siglas}\\${data.codigo}\\`
+				break
+		}
+
+
+		try {
+			await fspromises.access(pathActivo, fspromises.constants.F_OK);
+		} catch (error) {
+			await fspromises.mkdir(pathActivo);
+		}
+
+		const extencion = mime.extension(mimeType)
+		const nuevoNombre = `${Date.now()}${getRandomInt(100)}.${extencion}`
+		const pathDestino = `${pathActivo}${nuevoNombre}`
+		await fspromises.writeFile(pathDestino, decodedData);
+		return nuevoNombre
+
+	} catch (error) {
+		console.error(`Ha ocurrido un error: ${error.message}`);
+		return { msg: 'ocurrio un error al intentar guardar la imagen intentalo más tarde' }
+	}
+}
 const guardarImagenesNuevoActivo = async (files, data, destino) => {
 
 	function getRandomInt(max) {
@@ -127,9 +183,9 @@ const guardarImagenesNuevoActivo = async (files, data, destino) => {
 }
 
 const bufferimagenes = async (url_img, data, destino) => {
-	
-	if(url_img == null || url_img == '' || url_img == 'undefined'){
-				
+
+	if (url_img == null || url_img == '' || url_img == 'undefined') {
+
 		return [await bufferNoImage()]
 	}
 
@@ -150,14 +206,42 @@ const bufferimagenes = async (url_img, data, destino) => {
 
 	const imageBuffers = url_img.map(imageName => {
 		const imagePath = pathActivo + imageName
-		const buffer =  fs.readFileSync(imagePath);
+		const buffer = fs.readFileSync(imagePath);
 		const bufferCompleto = `data:${mime.lookup(imageName)};base64,${buffer.toString('base64')}`
 		return bufferCompleto
 	});
 	return imageBuffers
 }
 
-const elimnarImagenes = async (files, data, destino) => {
+const bufferimagen = async (url_img, data, destino) => {
+
+	if (url_img == null || url_img == '' || url_img == 'undefined') {
+
+		return [await bufferNoImage()]
+	}
+
+	let pathActivo
+	switch (destino) {
+		case 1:
+			pathActivo = `${path}${data.siglas}\\${data.codigo}\\Solicitud\\`
+			break
+
+		case 2:
+			pathActivo = `${path}${data.siglas}\\${data.codigo}\\Reporte\\`
+			break
+
+		default:
+			pathActivo = `${path}${data.siglas}\\${data.codigo}\\`
+			break
+	}
+
+	const imagePath = pathActivo + url_img
+	const buffer = fs.readFileSync(imagePath);
+	const bufferCompleto = `data:${mime.lookup(url_img)};base64,${buffer.toString('base64')}`
+	return bufferCompleto
+}
+
+const elimnarImagenes = async (file, data, destino) => {
 
 	try {
 		let pathActivo
@@ -175,14 +259,14 @@ const elimnarImagenes = async (files, data, destino) => {
 				break
 		}
 
-		const promesasEliminar = files.map(async file => {
-			const pathOrigen = pathActivo + file
-			await fspromises.unlink(pathOrigen);
-		})
-		await Promise.all(promesasEliminar);
+
+		const pathOrigen = pathActivo + file
+		await fspromises.unlink(pathOrigen)
+		return({exito: 'Imagen eliminada correctamente'})
+
 	} catch (error) {
 		console.error(`Ha ocurrido un error: ${error.message}`);
-		return { msg: 'error al elimiar las imagenes' }
+		return { msg: 'error al elimiar la imagenes' }
 	}
 }
 
@@ -263,7 +347,7 @@ const elimnarSoportePdf = async (file, data) => {
 
 	try {
 		const pathActivo = `${path}${data.siglas}\\${data.codigo}\\`
-			 await fspromises.rename(pathActivo + file, `${pathActivo}E-${file}`);
+		await fspromises.rename(pathActivo + file, `${pathActivo}E-${file}`);
 	} catch (error) {
 		console.error(`Ha ocurrido un error: ${error.message}`);
 		return { msg: 'error al elimiar las imagenes' }
@@ -272,7 +356,7 @@ const elimnarSoportePdf = async (file, data) => {
 
 const bufferSoportespdf = (soportes, data) => {
 	const pathActivo = `${path}${data.siglas}\\${data.codigo}\\`
-	let bufferpdf={}
+	let bufferpdf = {}
 	for (let soporte in soportes) {
 		const imagePath = pathActivo + soportes[soporte]
 		const buffer = fs.readFileSync(imagePath);
@@ -281,8 +365,8 @@ const bufferSoportespdf = (soportes, data) => {
 	return bufferpdf
 }
 
-const guadarReporteFinal =async (bufferPdf, data, id) =>{
-	const pathReporte = path + data.siglas + '\\' + data.codigo +'\\' + id +'.pdf'
+const guadarReporteFinal = async (bufferPdf, data, id) => {
+	const pathReporte = path + data.siglas + '\\' + data.codigo + '\\' + id + '.pdf'
 	try {
 		var buf = Buffer.from(bufferPdf, 'base64')
 		await fspromises.writeFile(pathReporte, buf)
@@ -296,8 +380,8 @@ const guadarReporteFinal =async (bufferPdf, data, id) =>{
 
 const bufferReporte = (data, id) => {
 	const pathSoporte = `${path}${data.siglas}\\${data.codigo}\\${id}.pdf`
-		const buffer = fs.readFileSync(pathSoporte);
-		return`data:application/pdf;base64,${buffer.toString('base64')}`
+	const buffer = fs.readFileSync(pathSoporte);
+	return `data:application/pdf;base64,${buffer.toString('base64')}`
 }
 
 
@@ -305,7 +389,9 @@ const bufferReporte = (data, id) => {
 export {
 	copiarYCambiarNombre,
 	guardarImagenesNuevoActivo,
+	guardarImagenesBase64, // nuevo
 	bufferimagenes,
+	bufferimagen, // nuevo
 	elimnarImagenes,
 	eliminarCarpetaActivo,
 	elimnarImagenesSoliRepor,
