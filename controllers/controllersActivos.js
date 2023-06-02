@@ -631,6 +631,7 @@ const guardarImagenActivo = async (req, res) => {
     const imgBase64 = data.Imagen.split(',')[1]
     const decodedData = Buffer.from(imgBase64, 'base64');
     const sizeInBytes = decodedData.length
+
     if (sizeInBytes > 3145728) return { msg: 'Solo se aceptan imagenes de tamaño hasta 3 Mb' }
     // guardar imagen en el dicrectorio
     const nuevaImagen = await guardarImagenesBase64(data.Imagen, dataBd)
@@ -653,7 +654,7 @@ const guardarImagenActivo = async (req, res) => {
     res.json({
         exito: 'Activo actualizado correctamente',
         imagen,
-        nombre: guardadoExitoso
+        nombre: nuevaImagen
     })
 
 
@@ -672,23 +673,20 @@ const eliminarImagenActivo = async (req, res) => {
 
     //validar que el id corresponde al codigo interno del equipo
     const dataBd = await consultarCodigoInterno(data.id)
-    if (dataBd.msg) {
-        return request.json({ msg: 'En estos momentos no es posible validar la información  actualizar intetelo más tarde' })
-    }
-
-    if (dataBd.codigo !== data.codigo) {
-        return res.json({ msg: 'El Id del activo no corresponde al codigo interno no se puede actualizar los datos' })
-    }
-
-    if (dataBd.url_img.trim() === '') {
-        return res.json({ msg: 'El del activo no tiene imagenes para eliminar' })
-    }
-
+    if (dataBd.msg) return request.json({ msg: 'En estos momentos no es posible validar la información  actualizar intetelo más tarde' })
+    
+    if (dataBd.codigo !== data.codigo)  return res.json({ msg: 'El Id del activo no corresponde al codigo interno no se puede actualizar los datos' })
+    
+    if (dataBd.url_img.trim() === '')  return res.json({ msg: 'El del activo no tiene imagenes para eliminar' })
+    
+    const imageneDb = dataBd.url_img.trim().split(',')
+    if(imageneDb.length === 1) return res.json({msg: 'El activo solo tiene una imagen no puede eliminarla sin antes guardar otras imagenes'})
+    
     //elimiar imagen
     const elimnada = await elimnarImagenes(data.imagen, dataBd)
     if (elimnada.msg) return res.json({msg: 'No fue posible eliminar la imagen del directorio'})
 
-    const imageneDb = dataBd.url_img.trim().split(',')
+    
     const nuevaImagen = imageneDb.filter((item) => item !== data.imagen)
     const guardadoExitoso = await guardarImagenes(nuevaImagen.toString(), data.id)
     if (guardadoExitoso.msg) return res.json({msg: 'la imagen no pudo ser eliminada de la base de datos'})

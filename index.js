@@ -1,11 +1,13 @@
 import express   from "express";
+import bodyParser from "body-parser"
 import dotenv from "dotenv";
 import {conectardb} from "./db/db.js";
 import router from "./routes/routes.js";
 dotenv.config();
 const app = express();
 
-app.use(express.raw({limit: '50mb'}))
+app.use(express.raw({limit: '10mb'}))
+app.use(bodyParser.json({ limit: '10mb'}));
 app.use(express.json())
 
 conectardb();
