@@ -60,20 +60,24 @@ const consultarActivo = async (req, res) => {
     activo.fecha_creacion = activo.fecha_creacion.toISOString().substring(0, 10)
 
 
-    if (activo.url_img !== null && activo.url_img !== '') {
+    if (activo.url_img !== null && activo.url_img.trim() !== '') {
         activo.url_img = activo.url_img.split(',')
+        const Imagenes = await bufferimagenes(activo.url_img, activo)
+        activo.BufferImagenes = Imagenes
     }
 
-    const Imagenes = await bufferimagenes(activo.url_img, activo)
 
-    if (activo.soporte === '') {
-        activo.soportes = JSON.parse(activo.soportes)
+    if (activo.soportes !== null) {
+        if (activo.soportes.length > 0) {
+            activo.soportes = JSON.parse(activo.soportes)
+            const soportes = bufferSoportespdf(activo.soportes, activo)
+            activo.Buffersoportes = soportes
+        }
     }
-    const soportes = bufferSoportespdf(activo.soportes, activo)
+
     const hojadevida = await crearPdfMake(id, 'Activo')
-    activo.BufferImagenes = Imagenes
-    activo.Buffersoportes = soportes
     activo.hojadevida = hojadevida
+
     res.json(
         {
             activo,
@@ -646,7 +650,7 @@ const guardarImagenActivo = async (req, res) => {
     }
 
     if (guardadoExitoso.msg) return res.json('los datos se guardaron correctamente, pero hubo un error al guardar las imagenes en la Base de datos intente cargarlos nuevamente si el error persiste consulte a soporte ')
-    
+
 
     const imagen = await bufferimagen(nuevaImagen, dataBd)
     if (imagen.msg) return res.json('No se pudo devolver la imagen, por lo pornto puedes continuar con con la imagen local')
@@ -674,22 +678,22 @@ const eliminarImagenActivo = async (req, res) => {
     //validar que el id corresponde al codigo interno del equipo
     const dataBd = await consultarCodigoInterno(data.id)
     if (dataBd.msg) return request.json({ msg: 'En estos momentos no es posible validar la información  actualizar intetelo más tarde' })
-    
-    if (dataBd.codigo !== data.codigo)  return res.json({ msg: 'El Id del activo no corresponde al codigo interno no se puede actualizar los datos' })
-    
-    if (dataBd.url_img.trim() === '')  return res.json({ msg: 'El del activo no tiene imagenes para eliminar' })
-    
+
+    if (dataBd.codigo !== data.codigo) return res.json({ msg: 'El Id del activo no corresponde al codigo interno no se puede actualizar los datos' })
+
+    if (dataBd.url_img.trim() === '') return res.json({ msg: 'El del activo no tiene imagenes para eliminar' })
+
     const imageneDb = dataBd.url_img.trim().split(',')
-    if(imageneDb.length === 1) return res.json({msg: 'El activo solo tiene una imagen no puede eliminarla sin antes guardar otras imagenes'})
-    
+    if (imageneDb.length === 1) return res.json({ msg: 'El activo solo tiene una imagen no puede eliminarla sin antes guardar otras imagenes' })
+
     //elimiar imagen
     const elimnada = await elimnarImagenes(data.imagen, dataBd)
-    if (elimnada.msg) return res.json({msg: 'No fue posible eliminar la imagen del directorio'})
+    if (elimnada.msg) return res.json({ msg: 'No fue posible eliminar la imagen del directorio' })
 
-    
+
     const nuevaImagen = imageneDb.filter((item) => item !== data.imagen)
     const guardadoExitoso = await guardarImagenes(nuevaImagen.toString(), data.id)
-    if (guardadoExitoso.msg) return res.json({msg: 'la imagen no pudo ser eliminada de la base de datos'})
+    if (guardadoExitoso.msg) return res.json({ msg: 'la imagen no pudo ser eliminada de la base de datos' })
 
     res.json({
         elimnada
