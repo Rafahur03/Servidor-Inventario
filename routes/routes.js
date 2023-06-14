@@ -9,7 +9,9 @@ import {
     eliminarActivo,
     consultarActivo,
     guardarImagenActivo,
-    eliminarImagenActivo
+    eliminarImagenActivo,
+    eliminarDocumento,
+    descargarDocumento
 } from '../controllers/controllersActivos.js'
 
 import { consultarSolicitudTodos,
@@ -58,6 +60,10 @@ router.post('/eliminarActivo', checkAuth, eliminarActivo)
 router.post('/guardarImagenActivo', checkAuth, guardarImagenActivo)
 
 router.delete('/eliminarImagenActivo', checkAuth, eliminarImagenActivo)
+
+router.delete('/eliminarDocumento', checkAuth, eliminarDocumento)
+
+router.post('/descargarDocumento', checkAuth, descargarDocumento)
 
 // ruta de solicitudes de soporte 
 

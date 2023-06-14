@@ -14,7 +14,8 @@ import {
     eliminarCarpetaActivo,
     guardarPDF,
     bufferSoportespdf,
-    elimnarSoportePdf
+    elimnarSoportePdf,
+    bufferSoportepdf
 } from "../helpers/copiarCarpetasArchivos.js"
 
 import {
@@ -28,7 +29,8 @@ import {
     actualizarClasificacion,
     eliminarActivoDb,
     guardarSoportes,
-    actualizarComponentes
+    actualizarComponentes,
+    actualizarSoportes
 } from "../db/sqlActivos.js"
 
 import { consultarComponentes } from "../db/sqlComponentes.js"
@@ -698,8 +700,61 @@ const eliminarImagenActivo = async (req, res) => {
     res.json({
         elimnada
     })
+}
 
+const eliminarDocumento = async (req, res) => {
 
+    const { permisos } = req
+    const arrPermisos = JSON.parse(permisos)
+    if (arrPermisos.indexOf(3) === -1) {
+        return res.json({ msg: 'Usted no tiene permisos para eliminar Documentos de Activos' })
+    }
+
+    // extrae los datos del req 
+    const { data } = req.body
+
+    //validar que el id corresponde al codigo interno del equipo
+    const dataBd = await consultarCodigoInterno(data.id)
+    if (dataBd.msg) return request.json({ msg: 'En estos momentos no es posible validar la información  actualizar intetelo más tarde' })
+
+    if (dataBd.soportes.trim() === null) return res.json({ msg: 'El del activo no tiene documentos para eliminar' })
+    if (dataBd.soportes.trim() === '') return res.json({ msg: 'El del activo no tiene documentos para eliminar' })
+    const soportes = JSON.parse(dataBd.soportes)
+   
+    //elimiar soporte
+    const nombre = soportes[data.documento]
+    delete soportes[data.documento]
+    const eliminar = await elimnarSoportePdf(nombre, dataBd)
+    if(eliminar.msg) return res.json({ msg: 'No fue posible eliminar el documento intentelo mas tarde' })
+    const nuevoSoportes  =  JSON.stringify(soportes)
+    const actualizarDB = await actualizarSoportes(nuevoSoportes, data.id )
+    if(actualizarDB.msg) return res.json(actualizarDB)
+    
+    res.json(eliminar)
+}
+
+const descargarDocumento = async (req, res) => {
+
+    // extrae los datos del req 
+    const { data } = req.body
+
+    //validar que el id corresponde al codigo interno del equipo
+    const dataBd = await consultarCodigoInterno(data.id)
+    if (dataBd.msg) return request.json({ msg: 'En estos momentos no es posible validar la información  actualizar intetelo más tarde' })
+
+    if (dataBd.soportes.trim() === null) return res.json({ msg: 'El del activo no tiene documentos' })
+    if (dataBd.soportes.trim() === '') return res.json({ msg: 'El del activo no tiene documentos' })
+    const soportes = JSON.parse(dataBd.soportes)
+   
+    //elimiar soporte
+    console.log(data.documento)
+    const nombre = soportes[data.documento]
+    const buffedocumento = bufferSoportepdf(nombre, dataBd)
+    
+    res.json({
+        buffer: buffedocumento,
+        nombre: dataBd.codigo + '-' + data.documento
+    })
 }
 
 export {
@@ -710,5 +765,7 @@ export {
     eliminarActivo,
     consultarActivo,
     guardarImagenActivo,
-    eliminarImagenActivo
+    eliminarImagenActivo,
+    eliminarDocumento,
+    descargarDocumento
 }

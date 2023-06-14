@@ -353,6 +353,24 @@ const actualizarComponentes = async (componentes, id) => {
     }
 }
 
+const actualizarSoportes = async (soportes, id) => {
+
+    const query = `
+        UPDATE listado_activos 
+            SET soportes = '${soportes}'
+        WHERE id = ${id}
+    `
+    try {
+        const pool = await conectardb()
+        const resultado = await pool.query(query)
+        cerrarConexion(pool)
+        return (resultado.rowsAffected)
+    } catch (error) {
+        console.error(error);
+        return { msg: 'Ha ocurido un error al intentar actualizar lo soportes' }
+    }
+}
+
 
 
 
@@ -368,5 +386,6 @@ export {
     eliminarActivoDb,
     consultarActivoUno,
     guardarSoportes,
-    actualizarComponentes
+    actualizarComponentes,
+    actualizarSoportes
 }

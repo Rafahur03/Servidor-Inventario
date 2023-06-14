@@ -262,7 +262,7 @@ const elimnarImagenes = async (file, data, destino) => {
 
 		const pathOrigen = pathActivo + file
 		await fspromises.unlink(pathOrigen)
-		return({exito: 'Imagen eliminada correctamente'})
+		return ({ exito: 'Imagen eliminada correctamente' })
 
 	} catch (error) {
 		console.error(`Ha ocurrido un error: ${error.message}`);
@@ -348,6 +348,7 @@ const elimnarSoportePdf = async (file, data) => {
 	try {
 		const pathActivo = `${path}${data.siglas}\\${data.codigo}\\`
 		await fspromises.rename(pathActivo + file, `${pathActivo}E-${file}`);
+		return { exito: 'documento eliminado correctamente' }
 	} catch (error) {
 		console.error(`Ha ocurrido un error: ${error.message}`);
 		return { msg: 'error al elimiar las imagenes' }
@@ -362,6 +363,14 @@ const bufferSoportespdf = (soportes, data) => {
 		const buffer = fs.readFileSync(imagePath);
 		bufferpdf[soporte] = `data:${mime.lookup(soportes[soporte])};base64,${buffer.toString('base64')}`
 	};
+	return bufferpdf
+}
+
+const bufferSoportepdf = (soportes, data) => {
+	const pathActivo = `${path}${data.siglas}\\${data.codigo}\\`
+	const imagePath = pathActivo + soportes
+	const buffer = fs.readFileSync(imagePath);
+	const bufferpdf = `data:${mime.lookup(soportes)};base64,${buffer.toString('base64')}`
 	return bufferpdf
 }
 
@@ -397,6 +406,7 @@ export {
 	elimnarImagenesSoliRepor,
 	guardarPDF,
 	bufferSoportespdf,
+	bufferSoportepdf,// nuevo solo un soporte 
 	elimnarSoportePdf,
 	guadarReporteFinal,
 	bufferReporte
