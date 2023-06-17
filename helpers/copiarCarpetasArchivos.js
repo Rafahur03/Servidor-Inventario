@@ -343,6 +343,64 @@ const guardarPDF = async (file, data, complemento) => {
 	}
 }
 
+const guardarDocumentoBase64 = async (datos, data, destino) => {
+
+	function getRandomInt(max) {
+		return Math.floor(Math.random() * max);
+	}
+
+	const file = datos.file
+
+	// validat tipo de archivo
+	const base64Regex = /^data:(.+);base64,(.*)$/;
+	if (typeof file !== 'string' || !base64Regex.test(file)) return { msg: 'El tipo de archivo no es valido' }
+
+	// validar extencion de la imagen
+	const mimeType = file.split(',')[0].split(';')[0].split(':')[1]
+	if (mime.extension(mimeType) !== 'pdf') return { msg: 'Solo se acepta formato pdf' }
+	//validar tamaño de la imagen
+	const imgBase64 = file.split(',')[1]
+	const decodedData = Buffer.from(imgBase64, 'base64');
+	const sizeInBytes = decodedData.length
+	if (sizeInBytes > 3145728) return { msg: 'Solo se aceptan documentos de menos de 3 Mb' }
+
+	try {
+
+		let pathActivo
+
+		switch (destino) {
+			case 1:
+				pathActivo = `${path}${data.siglas}\\${data.codigo}\\Solicitud\\`
+				break
+
+			case 2:
+				pathActivo = `${path}${data.siglas}\\${data.codigo}\\Reporte\\`
+				break
+
+			default:
+				pathActivo = `${path}${data.siglas}\\${data.codigo}\\`
+				break
+		}
+
+
+		try {
+			await fspromises.access(pathActivo, fspromises.constants.F_OK);
+		} catch (error) {
+			await fspromises.mkdir(pathActivo);
+		}
+
+		const extencion = mime.extension(mimeType)
+		const nuevoNombre = `${data.codigo}-${datos.documento}-${getRandomInt(100)}.${extencion}`
+		const pathDestino = `${pathActivo}${nuevoNombre}`
+		await fspromises.writeFile(pathDestino, decodedData);
+		return nuevoNombre
+
+	} catch (error) {
+		console.error(`Ha ocurrido un error: ${error.message}`);
+		return { msg: 'ocurrio un error al intentar guardar la imagen intentalo más tarde' }
+	}
+}
+
 const elimnarSoportePdf = async (file, data) => {
 
 	try {
@@ -366,12 +424,18 @@ const bufferSoportespdf = (soportes, data) => {
 	return bufferpdf
 }
 
-const bufferSoportepdf = (soportes, data) => {
-	const pathActivo = `${path}${data.siglas}\\${data.codigo}\\`
-	const imagePath = pathActivo + soportes
-	const buffer = fs.readFileSync(imagePath);
-	const bufferpdf = `data:${mime.lookup(soportes)};base64,${buffer.toString('base64')}`
-	return bufferpdf
+const bufferSoportepdf = async (soportes, data) => {
+	try {
+		const pathActivo = `${path}${data.siglas}\\${data.codigo}\\`
+		const imagePath = pathActivo + soportes
+		const buffer = fs.readFileSync(imagePath);
+		const bufferpdf = `data:${mime.lookup(soportes)};base64,${buffer.toString('base64')}`
+		return bufferpdf
+
+	} catch (error) {
+		return {msg:'no se pudo devolver el buffer'}
+	}
+
 }
 
 const guadarReporteFinal = async (bufferPdf, data, id) => {
@@ -409,5 +473,6 @@ export {
 	bufferSoportepdf,// nuevo solo un soporte 
 	elimnarSoportePdf,
 	guadarReporteFinal,
-	bufferReporte
+	bufferReporte,
+	guardarDocumentoBase64 //nuevo
 }

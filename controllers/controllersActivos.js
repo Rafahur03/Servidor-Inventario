@@ -15,10 +15,12 @@ import {
     guardarPDF,
     bufferSoportespdf,
     elimnarSoportePdf,
-    bufferSoportepdf
+    bufferSoportepdf,
+    guardarDocumentoBase64
 } from "../helpers/copiarCarpetasArchivos.js"
 
 import {
+    dataConfActivo,
     consultarActivos,
     consultarActivoUno,
     gudardarNuevoActivo,
@@ -40,6 +42,11 @@ import { consultarComponentes } from "../db/sqlComponentes.js"
 const consultarActivosTodos = async (req, res) => {
     const listadoActivos = await consultarActivos()
     res.json(listadoActivos)
+}
+
+const consultarListasConfActivos = async (req, res) => {
+    const listadoConfActivos = await dataConfActivo()
+    res.json(listadoConfActivos)
 }
 
 const consultarActivo = async (req, res) => {
@@ -757,8 +764,62 @@ const descargarDocumento = async (req, res) => {
     })
 }
 
+const guardarDocumento = async (req, res) => {
+
+
+    const { permisos } = req
+    const arrPermisos = JSON.parse(permisos)
+    if (arrPermisos.indexOf(3) === -1) {
+        return res.json({ msg: 'Usted no tiene permisos para Actualizar Activos' })
+    }
+
+    // extrae los datos del req 
+    const { data } = req.body
+
+    //validar que el id corresponde al codigo interno del equipo
+    const dataBd = await consultarCodigoInterno(data.id)
+    if (dataBd.msg) {
+        return request.json({ msg: 'En estos momentos no es posible validar la información  actualizar intetelo más tarde' })
+    }
+    if (!data.file) return res.json({ msg: 'Debe cargar un documento' })
+    if (!data.documento || data.documento == '') return res.json({ msg: 'No se selecciono el tipo de documento ' })
+
+    const mimeType = data.file.split(',')[0].split(';')[0].split(':')[1]
+   
+    if (mime.extension(mimeType) !== 'pdf') return { msg: 'Solo se acepta formato pdf' }
+
+    const imgBase64 = data.file.split(',')[1]
+    const decodedData = Buffer.from(imgBase64, 'base64');
+    const sizeInBytes = decodedData.length
+
+    if (sizeInBytes > 3145728) return { msg: 'Solo se aceptan documentos de menos de 3 Mb' }
+
+    const soportes = JSON.parse(dataBd.soportes)
+    let documentoeliminar = null
+    if(soportes[data.documento]) documentoeliminar = soportes[data.documento]
+
+    // guardar imagen en el dicrectorio
+    const nuevoDocumento = await guardarDocumentoBase64(data, dataBd)
+    if (nuevoDocumento.msg) return res.json(nuevoDocumento)
+    
+    soportes[data.documento] = nuevoDocumento
+    const nuevosoportes = JSON.stringify(soportes)
+    const actualizarDB = await actualizarSoportes(nuevosoportes, data.id )
+    if(actualizarDB.msg) return res.json(actualizarDB)
+    if(documentoeliminar !==null) await elimnarSoportePdf(documentoeliminar, dataBd)
+    const bufferSoporte = await bufferSoportepdf(nuevoDocumento, dataBd)
+    if(bufferSoporte.msg) return res.json(actualizarDB)
+
+    res.json({
+        data:bufferSoporte,
+    })
+
+
+}
+
 export {
     consultarActivosTodos,
+    consultarListasConfActivos,
     crearActivo,
     actualizarActivo,
     cambiarClasificacion,
@@ -767,5 +828,6 @@ export {
     guardarImagenActivo,
     eliminarImagenActivo,
     eliminarDocumento,
-    descargarDocumento
+    descargarDocumento,
+    guardarDocumento
 }

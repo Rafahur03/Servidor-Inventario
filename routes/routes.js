@@ -3,6 +3,7 @@ import { iniciaSesion, crearUsuario, actualizaUsuario } from '../controllers/con
 import {checkAuth} from '../middleware/authMiddlewareUsuario.js';
 import {
     consultarActivosTodos,
+    consultarListasConfActivos,
     crearActivo,
     actualizarActivo,
     cambiarClasificacion,
@@ -11,7 +12,8 @@ import {
     guardarImagenActivo,
     eliminarImagenActivo,
     eliminarDocumento,
-    descargarDocumento
+    descargarDocumento,
+    guardarDocumento
 } from '../controllers/controllersActivos.js'
 
 import { consultarSolicitudTodos,
@@ -47,6 +49,8 @@ router.post('/actualizaPerfil', checkAuth, actualizaUsuario)
 
 router.get('/consultarActivosTodos', checkAuth, consultarActivosTodos)
 
+router.get('/consultarListasConfActivos', checkAuth, consultarListasConfActivos)
+
 router.post('/consultarActivo', checkAuth, consultarActivo)
 
 router.post('/crearActivos', checkAuth, crearActivo)
@@ -64,6 +68,8 @@ router.delete('/eliminarImagenActivo', checkAuth, eliminarImagenActivo)
 router.delete('/eliminarDocumento', checkAuth, eliminarDocumento)
 
 router.post('/descargarDocumento', checkAuth, descargarDocumento)
+
+router.post('/guardarDocumento', checkAuth, guardarDocumento)
 
 // ruta de solicitudes de soporte 
 

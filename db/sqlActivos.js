@@ -4,20 +4,20 @@ const dataConfActivo = async () => {
 
     try {
         const pool = await conectardb()
-        const resultado = await pool.query(
-            `SELECT * FROM clasificacion_activos
-            SELECT * FROM marca_activos
-            SELECT * FROM procesos
-            SELECT * FROM areas
-            SELECT id, nombre_comercial, razon_social, nit, estado FROM proveedores
-            SELECT * FROM tipo_activo
-            SELECT * FROM estados
-            SELECT id, nombre, nombre_1, apellido, apellido_1 FROM usuarios
-            SELECT * FROM frecuencia_Mtto
-            SELECT * FROM estado_solicitudes
-            SELECT * FROM tipo_mantenimeintos
-            SELECT * FROM lista_componentes`
-        )
+        const resultado = await pool.query(`
+            SELECT id, TRIM(siglas) AS siglas, TRIM(nombre) AS nombre FROM clasificacion_activos WHERE estado != 3
+            SELECT id, TRIM(marca) AS marca FROM marca_activos WHERE estado !=3
+            SELECT id, TRIM(proceso) AS proceso, TRIM(sigla) AS sigla FROM procesos WHERE estado !=3
+            SELECT id, TRIM(area) AS area FROM areas WHERE estado !=3
+            SELECT id, TRIM(nombre_comercial) AS nombre_comercial, TRIM(razon_social) AS razon_social, TRIM(nit) AS nit FROM proveedores WHERE estado !=3
+            SELECT id, TRIM(tipo_activo) AS tipoActivo FROM tipo_activo WHERE estado !=3
+            SELECT id, TRIM(estado) AS estado FROM estados
+            SELECT id, CONCAT(TRIM(nombre),SPACE(1), TRIM(nombre_1),SPACE(1), TRIM(apellido), SPACE(1), TRIM(apellido_1)) AS nombre FROM usuarios WHERE estado !=3
+            SELECT id, TRIM(frecuencia) AS frecuencia, dias FROM frecuencia_Mtto WHERE estado !=3
+            SELECT id, TRIM(estado) AS estado FROM estado_solicitudes
+            SELECT id, TRIM(tipoMtto) AS tipoMtto FROM tipo_mantenimeintos WHERE estado_id !=3
+
+        `)
         cerrarConexion(pool)
         return (resultado.recordsets)
     } catch (error) {
