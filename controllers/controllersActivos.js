@@ -1,5 +1,6 @@
 import formidable from "formidable"
 import mime from 'mime-types'
+import { validarDatosActivoOld } from "../helpers/validarDatosActivoOld.js"
 import { validarDatosActivo } from "../helpers/validarDatosActivo.js"
 import { validarFiles } from "../helpers/validarFiles.js"
 import { crearPdfMake } from "../helpers/crearPdfMake.js"
@@ -67,7 +68,9 @@ const consultarActivo = async (req, res) => {
     activo.fecha_compra = activo.fecha_compra.toISOString().substring(0, 10)
     activo.vencimiento_garantia = activo.vencimiento_garantia.toISOString().substring(0, 10)
     activo.fecha_creacion = activo.fecha_creacion.toISOString().substring(0, 10)
-
+    if (activo.fecha_proximo_mtto !== null) {
+        activo.fecha_proximo_mtto =  activo.fecha_proximo_mtto.toISOString().substring(0, 10)
+    }
 
     if (activo.url_img !== null && activo.url_img.trim() !== '') {
         activo.url_img = activo.url_img.split(',')
@@ -253,244 +256,39 @@ const crearActivo = async (req, res) => {
 
 const actualizarActivo = async (req, res) => {
 
+    // valida los permisos
     const { permisos } = req
     const arrPermisos = JSON.parse(permisos)
-    if (arrPermisos.indexOf(3) === -1) {
-        return res.json({ msg: 'Usted no tiene permisos para Actualizar Activos' })
+    if (arrPermisos.indexOf(3) === -1) return res.json({ msg: 'Usted no tiene permisos para Actualizar Activos' })
+    // extrae los datos del req 
+ 
+    const datos = req.body.datos
+    //validar que el id corresponde al codigo interno del equipo
+    const id = datos.activo.split('-')[1]
+
+    const dataBd = await consultarCodigoInterno(id)
+    if (dataBd.msg) return res.json({ msg: 'En estos momentos no es posible validar la informaciona  actualizar intetelo más tarde' })
+
+    if (dataBd.codigo !== datos.codigoInterno) return res.json({ msg: 'El Id del activo no corresponde al codigo interno no se puede actualizar los datos' })
+
+    const validacion = await validarDatosActivo(datos)
+    if (validacion.msg) return validacion.msg
+
+    const actualizacion = actualizarActivoDb(validacion)
+    if (actualizacion.msg) return actualizacion.msg
+    const activo = await consultarActivoUno(id)
+    activo.fecha_compra = activo.fecha_compra.toISOString().substring(0, 10)
+    activo.vencimiento_garantia = activo.vencimiento_garantia.toISOString().substring(0, 10)
+    activo.fecha_creacion = activo.fecha_creacion.toISOString().substring(0, 10)
+    if (activo.fecha_proximo_mtto !== null) {
+        activo.fecha_proximo_mtto =  activo.fecha_proximo_mtto.toISOString().substring(0, 10)
     }
 
-    // usa  formidable para recibir el req de imagenes y datos
-    const form = formidable({ multiples: true });
-
-    form.parse(req, async function (err, fields, files) {
-
-        if (err) {
-            console.error(err);
-            return res.status(500).json({ error: err });
-        }
-        // extrae los datos del req 
-        const data = JSON.parse(fields.data)
-
-
-
-        //validar que el id corresponde al codigo interno del equipo
-        const dataBd = await consultarCodigoInterno(data.id)
-        if (dataBd.msg) {
-            return request.json({ msg: 'En estos momentos no es posible validar la informaciona  actualizar intetelo más tarde' })
-        }
-
-        if (dataBd.codigo !== data.codigo) {
-            return res.json({ msg: 'El Id del activo no corresponde al codigo interno no se puede actualizar los datos' })
-        }
-
-        // validar si se elimino alguna imagen
-        if (data.url_img.length <= 0 && !files.Image) {
-            return res.json({ msg: 'No se puede eliminar todas las imagenes' })
-        }
-
-        let imageneDb = dataBd.url_img.split(',')
-        const ElminoImagen = JSON.stringify(imageneDb) === JSON.stringify(data.url_img)
-        // valida que esten normalizados para ingreso a la bd
-        const validacion = await validarDatosActivo(data, true)
-        if (validacion.msg) {
-            return res.json(validacion)
-        }
-        // validar si hubo cambio en los componentes
-        let errores = {}
-        let modificoComponentes = true
-        const componentesDb = await consultarComponentes(data.id)
-        if (componentesDb.msg) {
-            errores.componentes = componentesDb.msg
-        } else {
-            modificoComponentes = JSON.stringify(componentesDb) === JSON.stringify(data.componentes)
-        }
-
-
-        // validar archivos enviados 
-        const validarFile = validarFiles(files)
-        if (validarFile.msg) {
-            return res.json(validarFile)
-        }
-
-        // crea un nuevo arreglo con los nombres de las imagenes
-        let imagenesEliminar
-
-        if (!ElminoImagen) {
-            imagenesEliminar = imageneDb.filter(image => !data.url_img.includes(image))
-        }
-
-        // verificar si existen imagenes guardarlas
-
-        if (files.Image) {
-            const nuevaUrl_imag = await guardarImagenesNuevoActivo(files, dataBd)
-            if (nuevaUrl_imag.msg) {
-                errores.url_img = nuevaUrl_imag.msg
-            } else {
-                const nuevasImages = nuevaUrl_imag.concat(data.url_img)
-                data.url_img = nuevasImages
-            }
-        }
-
-        // validar que soporte se va a elimiar o reemplazar
-        let nuevosSoportes = {}
-        if (dataBd.soportes !== JSON.stringify(data.soportes)) {
-            //extrae los soportes de bd y los enviados en la actualizacion
-
-            const soportesBD = JSON.parse(dataBd.soportes)
-            const { soportes } = data
-            // valida si la factura se elimina o reemplaza
-            if (!soportes.factura) {
-
-                await elimnarSoportePdf(soportesBD.factura, dataBd)
-            } else {
-                nuevosSoportes.factura = soportes.factura
-            }
-
-            if (files.Factura) {
-                const factura = await guardarPDF(files.Factura, dataBd, 'Factura')
-                if (factura.msg) {
-                    errores.factura = factura.msg
-                } else {
-                    nuevosSoportes.factura = factura
-                }
-            }
-            // valida si la importacion se elimina o reemplaza
-            if (!soportes.importacion) {
-                elimnarSoportePdf(soportesBD.importacion, dataBd)
-            } else {
-                nuevosSoportes.importacion = soportes.importacion
-            }
-            if (files.Importacion) {
-                const importacion = await guardarPDF(files.Importacion, dataBd, 'Importacion')
-                if (importacion.msg) {
-                    errores.importacion = importacion.msg
-                } else {
-                    nuevosSoportes.importacion = importacion
-                }
-            }
-
-            // valida si la invima se elimina o reemplaza
-            if (!soportes.invima) {
-                elimnarSoportePdf(soportesBD.invima, dataBd)
-            } else {
-                nuevosSoportes.invima = soportes.invima
-            }
-            if (files.Invima) {
-                const invima = await guardarPDF(files.Invima, dataBd, 'Invima')
-                if (invima.msg) {
-                    errores.invima = invima.msg
-                } else {
-                    nuevosSoportes.invima = invima
-                }
-            }
-
-            // valida si la actaEntrega se elimina o reemplaza
-            if (!soportes.actaEntrega) {
-                elimnarSoportePdf(soportesBD.actaEntrega, dataBd)
-            } else {
-                nuevosSoportes.actaEntrega = soportes.actaEntrega
-            }
-            if (files.ActaEntrega) {
-                const actaEntrega = await guardarPDF(files.ActaEntrega, dataBd, 'ActaEntrega')
-                if (actaEntrega.msg) {
-                    errores.actaEntrega = actaEntrega.msg
-                } else {
-                    nuevosSoportes.actaEntrega = actaEntrega
-                }
-            }
-
-            // valida si la garantia se elimina o reemplaza
-            if (!soportes.garantia) {
-                elimnarSoportePdf(soportesBD.garantia, dataBd)
-            } else {
-                nuevosSoportes.garantia = soportes.garantia
-            }
-            if (files.Garantia) {
-                const garantia = await guardarPDF(files.Garantia, dataBd, 'Garantia')
-                if (garantia.msg) {
-                    errores.garantia = garantia.msg
-                } else {
-                    nuevosSoportes.garantia = garantia
-                }
-            }
-
-            if (!soportes.manual) {
-                elimnarSoportePdf(soportesBD.manual, dataBd)
-            } else {
-                nuevosSoportes.manual = soportes.manual
-            }
-            if (files.Manual) {
-                const manual = await guardarPDF(files.Manual, dataBd, 'Manual')
-                if (manual.msg) {
-                    errores.manual = manual.msg
-                } else {
-                    nuevosSoportes.manual = manual
-                }
-            }
-
-            if (!soportes.otro) {
-                elimnarSoportePdf(soportesBD.otro, dataBd)
-            } else {
-                nuevosSoportes.otro = soportes.otro
-            }
-            if (files.Otro) {
-                const otro = await guardarPDF(files.Otro, dataBd, 'Otro')
-                if (otro.msg) {
-                    errores.otro = otro.msg
-                } else {
-                    nuevosSoportes.otro = otro
-                }
-            }
-
-            // pasa el nuvo objeto de soportes
-            data.soportes = nuevosSoportes
-        }
-
-        // actualizar activo en bd
-        data.url_img = data.url_img.toString()
-        data.soportes = JSON.stringify(data.soportes)
-
-        //actualiza los components en la bd
-
-        if (!modificoComponentes) {
-            const componentesActualizado = await actualizarComponentes(data.componentes, data.id)
-            if (componentesActualizado.msg) {
-                errores.componentes = componentesActualizado.msg
-            } else {
-                data.componentes = componentesActualizado
-            }
-        }
-
-        // actualzia el activo en la bd
-        const actualizarActivo = await actualizarActivoDb(data)
-        if (actualizarActivo.msg) {
-            return res.json(actualizarActivo)
-        }
-
-
-        if (!ElminoImagen) {
-            await elimnarImagenes(imagenesEliminar, dataBd)
-        }
-
-        data.url_img = data.url_img.split(',')
-        data.soportes = JSON.parse(data.soportes)
-        // devolver los nuevos datos del activo y las imagenes
-
-        const Imagenes = bufferimagenes(data.url_img, dataBd)
-        const bufferSoportes = bufferSoportespdf(data.soportes, dataBd)
-        const hojadevida = await crearPdfMake(data.id, 'Activo')
-
-        // enviar respuesta con los datos del activo e imagenes
-        res.json({
-            msg: 'Activo actualizado correctamente',
-            data,
-            Imagenes,
-            bufferSoportes,
-            hojadevida,
-            errores
-        })
-
+    res.json({
+        exito: 'Los datos del Activo se actualizaron correctamente',
+        activo
     })
+
 
 }
 
@@ -727,16 +525,16 @@ const eliminarDocumento = async (req, res) => {
     if (dataBd.soportes.trim() === null) return res.json({ msg: 'El del activo no tiene documentos para eliminar' })
     if (dataBd.soportes.trim() === '') return res.json({ msg: 'El del activo no tiene documentos para eliminar' })
     const soportes = JSON.parse(dataBd.soportes)
-   
+
     //elimiar soporte
     const nombre = soportes[data.documento]
     delete soportes[data.documento]
     const eliminar = await elimnarSoportePdf(nombre, dataBd)
-    if(eliminar.msg) return res.json({ msg: 'No fue posible eliminar el documento intentelo mas tarde' })
-    const nuevoSoportes  =  JSON.stringify(soportes)
-    const actualizarDB = await actualizarSoportes(nuevoSoportes, data.id )
-    if(actualizarDB.msg) return res.json(actualizarDB)
-    
+    if (eliminar.msg) return res.json({ msg: 'No fue posible eliminar el documento intentelo mas tarde' })
+    const nuevoSoportes = JSON.stringify(soportes)
+    const actualizarDB = await actualizarSoportes(nuevoSoportes, data.id)
+    if (actualizarDB.msg) return res.json(actualizarDB)
+
     res.json(eliminar)
 }
 
@@ -752,12 +550,12 @@ const descargarDocumento = async (req, res) => {
     if (dataBd.soportes.trim() === null) return res.json({ msg: 'El del activo no tiene documentos' })
     if (dataBd.soportes.trim() === '') return res.json({ msg: 'El del activo no tiene documentos' })
     const soportes = JSON.parse(dataBd.soportes)
-   
+
     //elimiar soporte
     console.log(data.documento)
     const nombre = soportes[data.documento]
     const buffedocumento = bufferSoportepdf(nombre, dataBd)
-    
+
     res.json({
         buffer: buffedocumento,
         nombre: dataBd.codigo + '-' + data.documento
@@ -785,7 +583,7 @@ const guardarDocumento = async (req, res) => {
     if (!data.documento || data.documento == '') return res.json({ msg: 'No se selecciono el tipo de documento ' })
 
     const mimeType = data.file.split(',')[0].split(';')[0].split(':')[1]
-   
+
     if (mime.extension(mimeType) !== 'pdf') return { msg: 'Solo se acepta formato pdf' }
 
     const imgBase64 = data.file.split(',')[1]
@@ -796,22 +594,22 @@ const guardarDocumento = async (req, res) => {
 
     const soportes = JSON.parse(dataBd.soportes)
     let documentoeliminar = null
-    if(soportes[data.documento]) documentoeliminar = soportes[data.documento]
+    if (soportes[data.documento]) documentoeliminar = soportes[data.documento]
 
     // guardar imagen en el dicrectorio
     const nuevoDocumento = await guardarDocumentoBase64(data, dataBd)
     if (nuevoDocumento.msg) return res.json(nuevoDocumento)
-    
+
     soportes[data.documento] = nuevoDocumento
     const nuevosoportes = JSON.stringify(soportes)
-    const actualizarDB = await actualizarSoportes(nuevosoportes, data.id )
-    if(actualizarDB.msg) return res.json(actualizarDB)
-    if(documentoeliminar !==null) await elimnarSoportePdf(documentoeliminar, dataBd)
+    const actualizarDB = await actualizarSoportes(nuevosoportes, data.id)
+    if (actualizarDB.msg) return res.json(actualizarDB)
+    if (documentoeliminar !== null) await elimnarSoportePdf(documentoeliminar, dataBd)
     const bufferSoporte = await bufferSoportepdf(nuevoDocumento, dataBd)
-    if(bufferSoporte.msg) return res.json(actualizarDB)
+    if (bufferSoporte.msg) return res.json(actualizarDB)
 
     res.json({
-        data:bufferSoporte,
+        data: bufferSoporte,
     })
 
 

@@ -223,8 +223,7 @@ const actualizarActivoDb = async (data) => {
                 recomendaciones_Mtto ='${data.recomendaciones_Mtto}',
                 obervacion ='${data.obervacion}',
                 tipo_activo_id ='${data.tipo_activo_id}',
-                url_img ='${data.url_img}',
-                soportes ='${data.soportes}'
+                fecha_proximo_mtto = '${data.proximoMtto}'
 
             WHERE id='${data.id}'
         `)
