@@ -100,6 +100,13 @@ const validarDatosActivo = async (datos) => {
         if (config[8].length === key + 1) return { msg: 'Debe escoger un frecuencia del listado' }
     }
 
+    const date = Date.now()
+    const hoy = new Date(date).toISOString().substring(0, 10)
+
+    const proximo = new Date(datos.proximoMtto).toISOString().substring(0, 10)
+    if(proximo <= hoy) return { msg: 'La fecha del proximo de mantenimiento no puede ser menor al dia de hoy' }
+    
+
     return {
         id,
         nombre : datos.nombreActivo,

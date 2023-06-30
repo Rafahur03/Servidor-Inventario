@@ -552,9 +552,9 @@ const descargarDocumento = async (req, res) => {
     const soportes = JSON.parse(dataBd.soportes)
 
     //elimiar soporte
-    console.log(data.documento)
     const nombre = soportes[data.documento]
     const buffedocumento = bufferSoportepdf(nombre, dataBd)
+    console.log(buffedocumento)
 
     res.json({
         buffer: buffedocumento,
@@ -615,6 +615,23 @@ const guardarDocumento = async (req, res) => {
 
 }
 
+const descargarHojaDeVida = async (req, res) => {
+
+    // extrae los datos del req 
+    const { data } = req.body
+
+    //validar que el id corresponde al codigo interno del equipo
+    const dataBd = await consultarCodigoInterno(data.id)
+    if (dataBd.msg) return request.json({ msg: 'En estos momentos no es posible validar la información  actualizar intetelo más tarde' })
+
+    const hojadevida = await crearPdfMake(data.id, 'Activo')
+
+    res.json({
+        hojadevida,
+        nombre: `data:application/pdf;base64,${dataBd.codigo}`
+    })
+}
+
 export {
     consultarActivosTodos,
     consultarListasConfActivos,
@@ -627,5 +644,6 @@ export {
     eliminarImagenActivo,
     eliminarDocumento,
     descargarDocumento,
-    guardarDocumento
+    guardarDocumento,
+    descargarHojaDeVida
 }
