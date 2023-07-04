@@ -379,12 +379,14 @@ const eliminarActivo = async (req, res) => {
     if (arrPermisos.indexOf(4) === -1) {
         return res.json({ msg: 'Usted no tiene permisos para eliminar Activos' })
     }
-
+    
     const data = req.body
+
+    console.log(data)
 
     const datadb = await consultarCodigoInterno(data.id)
     if (datadb.codigo !== data.codigo) {
-        return res.json({ msg: 'El codigo ingresado no coincide con el codigo del activo' })
+        return res.json({ msg: 'El codigo del activo no coincide con el codigo del Id del activo' })
     }
     const eliminado = eliminarActivoDb(data)
     if (eliminado.msg) {
@@ -396,10 +398,8 @@ const eliminarActivo = async (req, res) => {
         return res.json(carpetaEliminada)
     }
 
-
     res.json({
-        msg: 'Eliminado Correctamete',
-        data
+        exito: 'Eliminado Correctamete',
     })
 }
 
@@ -516,7 +516,7 @@ const eliminarDocumento = async (req, res) => {
     }
 
     // extrae los datos del req 
-    const { data } = req.body
+    const data = req.body
 
     //validar que el id corresponde al codigo interno del equipo
     const dataBd = await consultarCodigoInterno(data.id)
@@ -541,7 +541,7 @@ const eliminarDocumento = async (req, res) => {
 const descargarDocumento = async (req, res) => {
 
     // extrae los datos del req 
-    const { data } = req.body
+    const  data  = req.body
 
     //validar que el id corresponde al codigo interno del equipo
     const dataBd = await consultarCodigoInterno(data.id)
@@ -554,8 +554,7 @@ const descargarDocumento = async (req, res) => {
     //elimiar soporte
     const nombre = soportes[data.documento]
     const buffedocumento = bufferSoportepdf(nombre, dataBd)
-    console.log(buffedocumento)
-
+  
     res.json({
         buffer: buffedocumento,
         nombre: dataBd.codigo + '-' + data.documento
@@ -618,17 +617,16 @@ const guardarDocumento = async (req, res) => {
 const descargarHojaDeVida = async (req, res) => {
 
     // extrae los datos del req 
-    const { data } = req.body
+    const data = req.body
 
     //validar que el id corresponde al codigo interno del equipo
     const dataBd = await consultarCodigoInterno(data.id)
     if (dataBd.msg) return request.json({ msg: 'En estos momentos no es posible validar la información  actualizar intetelo más tarde' })
 
     const hojadevida = await crearPdfMake(data.id, 'Activo')
-
     res.json({
-        hojadevida,
-        nombre: `data:application/pdf;base64,${dataBd.codigo}`
+        hojadevida:`data:application/pdf;base64,${hojadevida}`,
+        nombre: dataBd.codigo
     })
 }
 

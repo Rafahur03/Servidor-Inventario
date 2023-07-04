@@ -26,7 +26,8 @@ import { consultarSolicitudTodos,
 import { consultarReportesTodos,
     consultarReporte,
     crearReporte,
-    modificarReporte } from '../controllers/controllersReportes.js'
+    modificarReporte,
+    descargarListaMtto } from '../controllers/controllersReportes.js'
 
 import { consultarconfig,
     actualizarConfig,
@@ -60,7 +61,7 @@ router.post('/actualizarActivo', checkAuth, actualizarActivo)
 
 router.post('/cambiarClasificacion', checkAuth, cambiarClasificacion)
 
-router.post('/eliminarActivo', checkAuth, eliminarActivo)
+router.delete('/eliminarActivo', checkAuth, eliminarActivo)
 
 router.post('/guardarImagenActivo', checkAuth, guardarImagenActivo)
 
@@ -96,6 +97,8 @@ router.post('/consultarReporte', checkAuth, consultarReporte)
 router.post('/crearReporte', checkAuth, crearReporte)
 
 router.post('/modificarReporte', checkAuth, modificarReporte)
+
+router.post('/descargarListaMtto', checkAuth, descargarListaMtto)
 
 // router configuraciones
 router.post('/consultarconfig', checkAuth, consultarconfig)

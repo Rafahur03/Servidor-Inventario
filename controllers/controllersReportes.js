@@ -327,9 +327,27 @@ const modificarReporte = async (req, res) => {
     });
 }
 
+const descargarListaMtto = async (req, res) => {
+
+    // extrae los datos del req 
+    const data = req.body
+
+    //validar que el id corresponde al codigo interno del equipo
+    const dataBd = await consultarCodigoInterno(data.id)
+    if (dataBd.msg) return request.json({ msg: 'En estos momentos no es posible validar la información  actualizar intetelo más tarde' })
+
+    const listaMtto = await crearPdfMake(data.id, 'listadoReportes')
+
+    res.json({
+        listaMtto:`data:application/pdf;base64,${listaMtto}`,
+        nombre: dataBd.codigo + ' - listaMtto'
+    })
+}
+
 export {
     consultarReportesTodos,
     consultarReporte,
     crearReporte,
-    modificarReporte
+    modificarReporte,
+    descargarListaMtto
 }

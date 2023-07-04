@@ -3,7 +3,6 @@ import pdfMake from 'pdfmake/build/pdfmake.js'
 import vfsFonts from 'pdfmake/build/vfs_fonts.js'
 
 const ddListadoReporte = async data => {
-	console.log(data)
 
 	pdfMake.vfs = vfsFonts.pdfMake.vfs;
 	const dd = {
@@ -37,14 +36,21 @@ const ddListadoReporte = async data => {
 		header: function (currentPage, pageCount) {
 			return [
 				{
-					margin: [40, 20, 40, 0],
+					margin: [40, 10, 40, 0],
 					rowSpan: 3, image: data.logo,
 					fit: [60, 30],
 					alignment: 'left',
 				},
 				{
-					margin: [40, 0, 40, 0],
-					text: 'LISTADO DE MANTENIMIENTOS DEL ACTIVO: ' + data.codigo + '-' + data.nombre.toUpperCase(),
+					margin: [40, 0, 40, 5],
+					text: 'LISTADO DE MANTENIMIENTOS DEL ACTIVO:',
+					alignment: 'center',
+					fontSize: 12,
+					bold: true
+				},
+				{
+					margin: [40, 0, 40, 5],
+					text:  data.codigo + '-' + data.nombre.toUpperCase(),
 					alignment: 'center',
 					fontSize: 12,
 					bold: true
@@ -70,6 +76,8 @@ const ddListadoReporte = async data => {
 
 
 	}
+
+	console.log(dd)
 	return dd
 }
 

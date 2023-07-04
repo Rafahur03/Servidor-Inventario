@@ -8,6 +8,7 @@ import { ddReporte } from "./docDefinitionPdfMake/pdfReporte.js"
 import { ddSolicitud } from "./docDefinitionPdfMake/pdfSolicitud.js";
 import { ddHojaDeVida } from "./docDefinitionPdfMake/pdfHojadeVida.js";
 import { ddListadoReporte } from "./docDefinitionPdfMake/pdfListadoMtto.js";
+import { consultarActivoUno } from "../db/sqlActivos.js";
 const pathBase = process.env.PATH_FILES
 const __dirname = new URL('.', import.meta.url).pathname.substring(1)
 
@@ -26,14 +27,15 @@ async function crearPdfMake(id, tipo) {
         dd = await ddSolicitud(data)
     }
 
-    if (tipo === 'Activo') {    
+    if (tipo === 'Activo') {
         data = await activoData(id)
         dd = await ddHojaDeVida(data)
     }
 
     if (tipo === 'listadoReportes') {
         data = await listadoReporteData(id)
-        dd = await ddListadoReporte(data)
+        if (data)
+            dd = await ddListadoReporte(data)
     }
 
     const pdfDocGenerator = pdfMake.createPdf(dd);
@@ -102,8 +104,8 @@ const solicitudData = async id => {
             }
         })
         datadb.imgSolicitud = bodyImagenes
-    }else{
-        datadb.imgSolicitud=[]
+    } else {
+        datadb.imgSolicitud = []
 
     }
 
@@ -125,7 +127,7 @@ const reporteData = async id => {
     datadb.fechaReporte = datadb.fechaReporte.toLocaleDateString('es-CO')
 
     datadb.fechaCierre = datadb.fechaCierre.toLocaleString('es-CO')
-    
+
     datadb.proximoMtto.setMinutes(datadb.proximoMtto.getMinutes() + datadb.proximoMtto.getTimezoneOffset())
     datadb.proximoMtto = datadb.proximoMtto.toLocaleDateString('es-CO')
 
@@ -327,30 +329,47 @@ const activoData = async id => {
 const listadoReporteData = async id => {
     // consultamos los datos del reporte,
     const datos = await dataListaReporte(id)
-    if (datos < 1) return { msg: 'No se encontraron reportes' }
 
-    const datadb = {
-        codigo: datos[0].codigo,
-        nombre: datos[0].nombre
+    let  datadb = { }
 
-    }
-
-    datadb.body = datos.map((element, index) => {
-        element.fechaReporte.setMinutes(element.fechaReporte.getMinutes() + element.fechaReporte.getTimezoneOffset())
-        element.fechaReporte = element.fechaReporte.toLocaleDateString('es-CO')
-        element.fechaProximo.setMinutes(element.fechaProximo.getMinutes() + element.fechaProximo.getTimezoneOffset())
-        element.fechaProximo = element.fechaProximo.toLocaleDateString('es-CO')
-        return [
-            { text: index + 1 },
-            { text: element.id },
-            { text: element.fechaReporte },
-            { text: element.hallazgos },
-            { text: element.reporte },
-            { text: element.recomendaciones },
-            { text: element.proveedor },
-            { text: element.fechaProximo },
+    if (datos < 1) {
+        const activoBd = await consultarActivoUno(id)
+        datadb.codigo = activoBd.codigo,
+        datadb.nombre = activoBd.nombre
+        const noDatos = [
+            { text: ' ' },
+            { text: ' ' },
+            { text: ' ' },
+            { text: 'A LA FECHA EL ACTIVO NO CUENTA CON REPORTES DE MANTENIMIENTO ' },
+            { text: ' ' },
+            { text: ' ' },
+            { text: ' ' },
+            { text: ' ' },
         ]
-    });
+        datadb.body =[noDatos]
+
+    } else {
+
+        datadb.codigo = datos[0].codigo,
+        datadb.nombre = datos[0].nombre
+
+        datadb.body = datos.map((element, index) => {
+            element.fechaReporte.setMinutes(element.fechaReporte.getMinutes() + element.fechaReporte.getTimezoneOffset())
+            element.fechaReporte = element.fechaReporte.toLocaleDateString('es-CO')
+            element.fechaProximo.setMinutes(element.fechaProximo.getMinutes() + element.fechaProximo.getTimezoneOffset())
+            element.fechaProximo = element.fechaProximo.toLocaleDateString('es-CO')
+            return [
+                { text: index + 1 },
+                { text: element.id },
+                { text: element.fechaReporte },
+                { text: element.hallazgos },
+                { text: element.reporte },
+                { text: element.recomendaciones },
+                { text: element.proveedor },
+                { text: element.fechaProximo },
+            ]
+        });
+    }
 
     datadb.body.unshift(
 
