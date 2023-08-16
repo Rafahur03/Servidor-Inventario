@@ -1,6 +1,6 @@
 import formidable from "formidable"
 import { validarDatoReporte } from "../helpers/validarDatosReporte.js"
-import { validarFiles } from "../helpers/validarFiles.js"
+// validar cambio de funcion import { validarFiles } from "../helpers/validarFiles.js"
 import { consultarCodigoInterno } from "../db/sqlActivos.js"
 import { consultarSolicitudUno } from "../db/sqlSolicitudes.js"
 import { crearPdfMake } from "../helpers/crearPdfMake.js"
@@ -131,10 +131,10 @@ const crearReporte = async (req, res) => {
             return res.json(validarDatos)
         }
 
-        const validarFile = validarFiles(files)
-        if (validarFile.msg) {
-            return res.json(validarFile)
-        }
+        // const validarFile = validarFiles(files)
+        // if (validarFile.msg) {
+        //     return res.json(validarFile)
+        // } validar cambio de funcion 
 
         data.usuario_idReporte = sessionid
 

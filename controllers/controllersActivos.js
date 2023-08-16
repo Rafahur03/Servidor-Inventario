@@ -2,9 +2,11 @@ import formidable from "formidable"
 import mime from 'mime-types'
 import { validarDatosActivoOld } from "../helpers/validarDatosActivoOld.js"
 import { validarDatosActivo } from "../helpers/validarDatosActivo.js"
-import { validarFiles } from "../helpers/validarFiles.js"
+import { validarImagenes, validarDocumentos } from "../helpers/validarFiles.js"
 import { crearPdfMake } from "../helpers/crearPdfMake.js"
 import { consultarReportesActivo } from "../db/sqlReportes.js"
+import { validarDatosComponente } from "../helpers/validarComponentes.js"
+import { crearComponente } from "../db/sqlComponentes.js"
 import {
     copiarYCambiarNombre,
     guardarImagenesNuevoActivo,
@@ -24,7 +26,7 @@ import {
     dataConfActivo,
     consultarActivos,
     consultarActivoUno,
-    gudardarNuevoActivo,
+    guardarNuevoActivo,
     guardarImagenes,
     consultarCodigoInterno,
     actualizarActivoDb,
@@ -33,7 +35,8 @@ import {
     eliminarActivoDb,
     guardarSoportes,
     actualizarComponentes,
-    actualizarSoportes
+    actualizarSoportes,
+    consultarActivoSolicitud
 } from "../db/sqlActivos.js"
 
 import { consultarComponentes } from "../db/sqlComponentes.js"
@@ -64,12 +67,11 @@ const consultarActivo = async (req, res) => {
         element.fechareporte = element.fechareporte.toLocaleDateString('es-CO')
     })
 
-
     activo.fecha_compra = activo.fecha_compra.toISOString().substring(0, 10)
     activo.vencimiento_garantia = activo.vencimiento_garantia.toISOString().substring(0, 10)
     activo.fecha_creacion = activo.fecha_creacion.toISOString().substring(0, 10)
     if (activo.fecha_proximo_mtto !== null) {
-        activo.fecha_proximo_mtto =  activo.fecha_proximo_mtto.toISOString().substring(0, 10)
+        activo.fecha_proximo_mtto = activo.fecha_proximo_mtto.toISOString().substring(0, 10)
     }
 
     if (activo.url_img !== null && activo.url_img.trim() !== '') {
@@ -108,150 +110,93 @@ const crearActivo = async (req, res) => {
         return res.json({ msg: 'Usted no tiene permisos para crear Activos' })
     }
 
-    // usa  formidable para recibir el req de imagenes y datos
-    const form = formidable({ multiples: true });
+    // extrae los datos del req y valida que esten normalizados para ingreso a la bd
+    const { datos } = req.body
 
-    form.parse(req, async function (err, fields, files) {
+    const imagenes = datos.imagenes
+    const componentes = datos.componentes
+    const documentos = datos.documentos
+    const campos = datos
+    delete campos.imagenes
+    delete campos.componentes
+    delete campos.documentos
 
-        if (err) {
-            console.error(err);
-            return res.status(500).json({ error: err });
+    // validar datos del activo
+    const validacion = await validarDatosActivo(campos, 'crear')
+    if (validacion.msg) return validacion.msg
+
+    // validar imagenes del activo
+    if (imagenes.length > 0) {
+        for (let imagen of imagenes) {
+            const validacionImagen = validarImagenes(imagen)
+            if (validacionImagen.msg) return validacionImagen
         }
-        // extrae los datos del req y valida que esten normalizados para ingreso a la bd
-        const data = JSON.parse(fields.data)
-        const validacion = await validarDatosActivo(data)
+    } else {
+        return { msg: 'El activo debe tener almenos una Imagen' }
+    }
 
-        if (validacion.msg) {
-            res.json(validacion)
+    const documentosKey = Object.keys(documentos)
+    //validar documentos si se envian
+    if (documentosKey.length > 0) {
+        for (let key of documentosKey) {
+            const validacionDocumento = validarDocumentos(documentos[key])
+            if (validacionDocumento.msg) return validacionDocumento
         }
+    }
 
-        const validarFile = validarFiles(files)
-
-        if (validarFile.msg) {
-            return res.json(validarFile)
+    // validar componentes si tiene 
+    if (componentes.length > 0) {
+        for (let componente of componentes) {
+            const validacionComponente = await validarDatosComponente(componente)
+            if (validacionComponente.msg) return validacionComponente
         }
+    }
+    // guardar el activo y retornar los datos necesarios para guardar los demas datos
+    validacion.create_by = sessionid
+    const nuevoActivo = await guardarNuevoActivo(validacion)
+    if (nuevoActivo.msg) return nuevoActivo
 
-        // anexamos los datos de create by, fecha de creacion
-        data.create_by = sessionid
-        data.fecha_creacion = new Date(Date.now()).toISOString().substring(0, 19).replace('T', ' ')
+    // guardar imagenes 
+    let nombreImagenes = []
+    for (const imagen of imagenes) {
+        const guardarImagen = await guardarImagenesBase64(imagen, nuevoActivo);
+        if (!guardarImagen.msg) nombreImagenes.push(guardarImagen);
+    }
 
-        // guardamos los datos en la bd y devolvemos el codigo el id y el tipo de activo
-        const dataActivo = await gudardarNuevoActivo(data)
-        if (dataActivo.msg) {
-            return res.json(dataActivo)
-        }
+    //gudardar los nombres de las imagenes en la base de datos
+    let guardarImagenBd
+    if (nombreImagenes.length > 0) {
+        guardarImagenBd = await guardarImagenes(nombreImagenes.toString(), nuevoActivo.id)
+    }
 
-        //almacena los errores  que se presenten
-        let error = {}
+    // guardar los documentos
+    let nombreDocumentos = {}
 
-        //anexamos los datos de codigo
-        data.codigo = dataActivo.codigo
-        data.id = dataActivo.id
-
-        // guarda las imagenes en la ruta perteneciente al activo y devolver los nombres de la imagenes
-        const url_img = await guardarImagenesNuevoActivo(files, dataActivo)
-        if (url_img.msg) {
-            error.url_img = url_img.msg
-        } else {
-            data.url_img = url_img
-            // guardar el listado de images en la base de datos
-            const guardadoExitoso = await guardarImagenes(url_img.toString(), data.id)
-            if (guardadoExitoso.msg) {
-                error.url_img = 'los datos se guardaron correctamente, pero hubo un error al guardar las imagenes en la Base de datos '
+    if (documentosKey.length > 0) {
+        for (let key of documentosKey) {
+            const data = {
+                file: documentos[key],
+                documento: key
             }
+            const nuevoDocumento = await guardarDocumentoBase64(data, nuevoActivo)
+            if (!nuevoDocumento.msg) nombreDocumentos[key] = nuevoDocumento     
         }
+    }
 
-        let soportes = {}
-
-        if (files.Factura) {
-            const factura = await guardarPDF(files.Factura, dataActivo, 'Factura')
-            if (factura.msg) {
-                error.factura = factura.msg
-            } else {
-                soportes.factura = factura
-            }
+    // guardar los nombres de los documentos en la base de datos
+  
+    if (Object.keys(nombreDocumentos).length > 0) {
+        const nuevosoportes = JSON.stringify(nombreDocumentos)
+        const soportesBd = await actualizarSoportes(nuevosoportes, nuevoActivo.id)
+    }
+    // guardar los componentes en la base de datos
+    if (componentes.length > 0) {
+        for (let componente of componentes) {
+            const nuevoComponente = await crearComponente(componente, nuevoActivo.id)
         }
-
-        if (files.Importacion) {
-            const importacion = await guardarPDF(files.Importacion, dataActivo, 'Importacion')
-            if (importacion.msg) {
-                error.importacion = importacion.msg
-            } else {
-                soportes.importacion = importacion
-            }
-        }
-
-        if (files.Invima) {
-            const invima = await guardarPDF(files.Invima, dataActivo, 'Invima')
-            if (invima.msg) {
-                error.invima = invima.msg
-            } else {
-                soportes.invima = invima
-            }
-        }
-
-        if (files.ActaEntrega) {
-            const actaEntrega = await guardarPDF(files.ActaEntrega, dataActivo, 'ActaEntrega')
-            if (actaEntrega.msg) {
-                error.actaEntrega = actaEntrega.msg
-            } else {
-                soportes.actaEntrega = actaEntrega
-            }
-        }
-
-        if (files.Garantia) {
-            const garantia = await guardarPDF(files.Garantia, dataActivo, 'Garantia')
-            if (garantia.msg) {
-                error.garantia = garantia.msg
-            } else {
-                soportes.garantia = garantia
-            }
-        }
-
-        if (files.Manual) {
-            const manual = await guardarPDF(files.Manual, dataActivo, 'Manual')
-            if (manual.msg) {
-                error.manual = manual.msg
-            } else {
-                soportes.manual = manual
-            }
-        }
-
-        if (files.Otro) {
-            const otro = await guardarPDF(files.Otro, dataActivo, 'Otro')
-            if (otro.msg) {
-                error.otro = otro.msg
-            } else {
-                soportes.otro = otro
-            }
-        }
-
-        const soportestring = JSON.stringify(soportes)
-        if (Object.keys(soportes).length !== 0) {
-            const guardardo = await guardarSoportes(soportestring, data.id)
-            if (guardardo.msg) {
-                error.soporte = 'ocurrio un error al guardar los soportes en la base de datos'
-            }
-        }
-
-        if (Object.keys(error).length !== 0) {
-            data.error = error
-        }
-        //optener un buffer de las imagenes 
-        const Imagenes = bufferimagenes(url_img, dataActivo)
-        const bufferSoportes = bufferSoportespdf(soportes, dataActivo)
-        data.soportes = JSON.parse(soportestring)
-        const hojadevida = await crearPdfMake(data.id, 'Activo')
-        // enviar respuesta con los datos del activo 
-        res.json({
-            msg: 'Activo creado correctamente',
-            data,
-            Imagenes,
-            bufferSoportes,
-            hojadevida
-        })
-
-    });
+    }
+    // devolvemos el id del nuevo activo
+    res.json({ id: nuevoActivo.id })
 }
 
 const actualizarActivo = async (req, res) => {
@@ -261,7 +206,7 @@ const actualizarActivo = async (req, res) => {
     const arrPermisos = JSON.parse(permisos)
     if (arrPermisos.indexOf(3) === -1) return res.json({ msg: 'Usted no tiene permisos para Actualizar Activos' })
     // extrae los datos del req 
- 
+
     const datos = req.body.datos
     //validar que el id corresponde al codigo interno del equipo
     const id = datos.activo.split('-')[1]
@@ -281,7 +226,7 @@ const actualizarActivo = async (req, res) => {
     activo.vencimiento_garantia = activo.vencimiento_garantia.toISOString().substring(0, 10)
     activo.fecha_creacion = activo.fecha_creacion.toISOString().substring(0, 10)
     if (activo.fecha_proximo_mtto !== null) {
-        activo.fecha_proximo_mtto =  activo.fecha_proximo_mtto.toISOString().substring(0, 10)
+        activo.fecha_proximo_mtto = activo.fecha_proximo_mtto.toISOString().substring(0, 10)
     }
 
     res.json({
@@ -379,7 +324,7 @@ const eliminarActivo = async (req, res) => {
     if (arrPermisos.indexOf(4) === -1) {
         return res.json({ msg: 'Usted no tiene permisos para eliminar Activos' })
     }
-    
+
     const data = req.body
 
     console.log(data)
@@ -435,15 +380,9 @@ const guardarImagenActivo = async (req, res) => {
 
     if (imageneDb.length === 6) return res.json({ msg: 'El numero maximo de imagenes por activo son 6 se ha llegado al limite favor elimine alguna para guardar nuevas imagenes' })
 
-    const mimeType = data.Imagen.split(',')[0].split(';')[0].split(':')[1]
-    const extensiones = ['png', 'jpg', 'jpeg']
-    if (!extensiones.includes(mime.extension(mimeType))) return { msg: 'Solo se aceptan imagenes en formato png, jpg o jpeg' }
+    const validar = validarImagenes(data.Imagen)
+    if (validar.msg) return res.json(validar)
 
-    const imgBase64 = data.Imagen.split(',')[1]
-    const decodedData = Buffer.from(imgBase64, 'base64');
-    const sizeInBytes = decodedData.length
-
-    if (sizeInBytes > 3145728) return { msg: 'Solo se aceptan imagenes de tamaño hasta 3 Mb' }
     // guardar imagen en el dicrectorio
     const nuevaImagen = await guardarImagenesBase64(data.Imagen, dataBd)
     if (nuevaImagen.msg) return res.json(nuevaImagen)
@@ -541,7 +480,7 @@ const eliminarDocumento = async (req, res) => {
 const descargarDocumento = async (req, res) => {
 
     // extrae los datos del req 
-    const  data  = req.body
+    const data = req.body
 
     //validar que el id corresponde al codigo interno del equipo
     const dataBd = await consultarCodigoInterno(data.id)
@@ -554,7 +493,7 @@ const descargarDocumento = async (req, res) => {
     //elimiar soporte
     const nombre = soportes[data.documento]
     const buffedocumento = bufferSoportepdf(nombre, dataBd)
-  
+
     res.json({
         buffer: buffedocumento,
         nombre: dataBd.codigo + '-' + data.documento
@@ -581,29 +520,25 @@ const guardarDocumento = async (req, res) => {
     if (!data.file) return res.json({ msg: 'Debe cargar un documento' })
     if (!data.documento || data.documento == '') return res.json({ msg: 'No se selecciono el tipo de documento ' })
 
-    const mimeType = data.file.split(',')[0].split(';')[0].split(':')[1]
 
-    if (mime.extension(mimeType) !== 'pdf') return { msg: 'Solo se acepta formato pdf' }
-
-    const imgBase64 = data.file.split(',')[1]
-    const decodedData = Buffer.from(imgBase64, 'base64');
-    const sizeInBytes = decodedData.length
-
-    if (sizeInBytes > 3145728) return { msg: 'Solo se aceptan documentos de menos de 3 Mb' }
+    const validar = validarDocumentos(data.file)
+    if (validar.msg) return res.json(validar)
 
     const soportes = JSON.parse(dataBd.soportes)
     let documentoeliminar = null
     if (soportes[data.documento]) documentoeliminar = soportes[data.documento]
 
-    // guardar imagen en el dicrectorio
+    // guardar documento en el dicrectorio
     const nuevoDocumento = await guardarDocumentoBase64(data, dataBd)
     if (nuevoDocumento.msg) return res.json(nuevoDocumento)
 
     soportes[data.documento] = nuevoDocumento
     const nuevosoportes = JSON.stringify(soportes)
     const actualizarDB = await actualizarSoportes(nuevosoportes, data.id)
+
     if (actualizarDB.msg) return res.json(actualizarDB)
     if (documentoeliminar !== null) await elimnarSoportePdf(documentoeliminar, dataBd)
+
     const bufferSoporte = await bufferSoportepdf(nuevoDocumento, dataBd)
     if (bufferSoporte.msg) return res.json(actualizarDB)
 
@@ -625,12 +560,27 @@ const descargarHojaDeVida = async (req, res) => {
 
     const hojadevida = await crearPdfMake(data.id, 'Activo')
     res.json({
-        hojadevida:`data:application/pdf;base64,${hojadevida}`,
+        hojadevida: `data:application/pdf;base64,${hojadevida}`,
         nombre: dataBd.codigo
     })
 }
 
+const consultarDatosActivoSolicitud = async (req, res) => {
+    const id = req.body.id
+
+    const activo = await consultarActivoSolicitud(id)
+    const dataBd = await consultarCodigoInterno(id)
+
+    if (activo.url_img !== null && activo.url_img.trim() !== '') {
+        activo.url_img = activo.url_img.split(',')
+        const Imagenes = await bufferimagenes(activo.url_img, dataBd)
+        activo.BufferImagenes = Imagenes
+    }
+    res.json(activo)
+}   
+
 export {
+
     consultarActivosTodos,
     consultarListasConfActivos,
     crearActivo,
@@ -643,5 +593,7 @@ export {
     eliminarDocumento,
     descargarDocumento,
     guardarDocumento,
-    descargarHojaDeVida
+    descargarHojaDeVida,
+    consultarDatosActivoSolicitud
+    
 }

@@ -58,7 +58,6 @@ const datosValidacionComponetes = async () => {
 
 const crearComponente = async (componente, id) => {
 
-    console.log(componente, id)
     try {
         const pool = await conectardb()
         const resultado = await pool.query(`

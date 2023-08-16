@@ -6,6 +6,7 @@ const validarDatosComponente = async componente => {
         if(dataBd.msg){
             return dataBd
         }
+        
         let validarComponentesId = false
         for (const element of dataBd[1]) {
             if (element.id == componente.idNombre) {

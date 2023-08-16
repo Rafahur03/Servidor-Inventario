@@ -1,8 +1,7 @@
 import { promises as fspromises } from 'fs'; // Importa el módulo fs con promesas
 import fs from 'fs'
 import mime from 'mime-types'
-import { bufferNoImage } from './crearPdfMake.js';
-
+import { bufferNoImage } from './crearPdfMake.js'
 
 const path = process.env.PATH_FILES
 
@@ -44,55 +43,59 @@ const guardarImagenesBase64 = async (imagen, data, destino) => {
 		return Math.floor(Math.random() * max);
 	}
 
-	// validat tipo de archivo
 	const base64Regex = /^data:(.+);base64,(.*)$/;
-	if (typeof imagen !== 'string' || !base64Regex.test(imagen)) return { msg: 'El tipo de archivo no es valido' }
+	if (typeof imagen !== 'string' || !base64Regex.test(imagen))
+		return { msg: 'El tipo de archivo no es válido' };
 
-	// validar extencion de la imagen
-	const mimeType = imagen.split(',')[0].split(';')[0].split(':')[1]
-	const extensiones = ['png', 'jpg', 'jpeg']
-	if (!extensiones.includes(mime.extension(mimeType))) return { msg: 'Solo se aceptan imagenes en formato png, jpg o jpeg' }
+	const mimeType = imagen.split(',')[0].split(';')[0].split(':')[1];
+	const extensiones = ['png', 'jpg', 'jpeg'];
+	if (!extensiones.includes(mime.extension(mimeType)))
+		return { msg: 'Solo se aceptan imágenes en formato png, jpg o jpeg' };
 
-	//validar tamaño de la imagen
-	const imgBase64 = imagen.split(',')[1]
+	const imgBase64 = imagen.split(',')[1];
 	const decodedData = Buffer.from(imgBase64, 'base64');
-	const sizeInBytes = decodedData.length
-	if (sizeInBytes > 3145728) return { msg: 'Solo se aceptan imagenes de tamaño hasta 3 Mb' }
+	const sizeInBytes = decodedData.length;
+	if (sizeInBytes > 3145728)
+		return { msg: 'Solo se aceptan imágenes de tamaño hasta 3 Mb' };
 
 	try {
-
-		let pathActivo
+		let pathActivo;
 
 		switch (destino) {
 			case 1:
-				pathActivo = `${path}${data.siglas}\\${data.codigo}\\Solicitud\\`
-				break
-
+				pathActivo = `${path}${data.siglas}\\${data.codigo}\\Solicitud\\${data.idSolicitud}\\`;
+				break;
 			case 2:
-				pathActivo = `${path}${data.siglas}\\${data.codigo}\\Reporte\\`
-				break
-
+				pathActivo = `${path}${data.siglas}\\${data.codigo}\\Reporte\\	`;
+				break;
 			default:
-				pathActivo = `${path}${data.siglas}\\${data.codigo}\\`
-				break
+				pathActivo = `${path}${data.siglas}\\${data.codigo}\\`;
+				break;
 		}
-
 
 		try {
-			await fspromises.access(pathActivo, fspromises.constants.F_OK);
+			fs.accessSync(pathActivo, fs.constants.F_OK);
 		} catch (error) {
-			await fspromises.mkdir(pathActivo);
+			if (error.code === 'ENOENT') {
+				fs.mkdirSync(pathActivo, { recursive: true });
+			} else {
+				throw error;
+			}
 		}
 
-		const extencion = mime.extension(mimeType)
-		const nuevoNombre = `${Date.now()}${getRandomInt(100)}.${extencion}`
-		const pathDestino = `${pathActivo}${nuevoNombre}`
-		await fspromises.writeFile(pathDestino, decodedData);
-		return nuevoNombre
 
+		const extencion = mime.extension(mimeType);
+		const nuevoNombre = `${Date.now()}${getRandomInt(100)}.${extencion}`;
+		const pathDestino = `${pathActivo}${nuevoNombre}`;
+
+		fs.writeFileSync(pathDestino, decodedData);
+
+		return nuevoNombre;
 	} catch (error) {
 		console.error(`Ha ocurrido un error: ${error.message}`);
-		return { msg: 'ocurrio un error al intentar guardar la imagen intentalo más tarde' }
+		return {
+			msg: 'Ocurrió un error al intentar guardar la imagen. Inténtalo más tarde.',
+		};
 	}
 }
 const guardarImagenesNuevoActivo = async (files, data, destino) => {
@@ -192,7 +195,7 @@ const bufferimagenes = async (url_img, data, destino) => {
 	let pathActivo
 	switch (destino) {
 		case 1:
-			pathActivo = `${path}${data.siglas}\\${data.codigo}\\Solicitud\\`
+			pathActivo = `${path}${data.siglas}\\${data.codigo}\\Solicitud\\${data.idSolicitud}\\`
 			break
 
 		case 2:
@@ -433,7 +436,7 @@ const bufferSoportepdf = async (soportes, data) => {
 		return bufferpdf
 
 	} catch (error) {
-		return {msg:'no se pudo devolver el buffer'}
+		return { msg: 'no se pudo devolver el buffer' }
 	}
 
 }

@@ -31,7 +31,7 @@ const consultarActivos = async () => {
     try {
         const pool = await conectardb()
         const resultado = await pool.query(`
-            SELECT la.id,CONCAT(RTRIM(ca.siglas), la.consecutivo_interno) AS codigoInterno,
+            SELECT la.id, CONCAT(RTRIM(ca.siglas), la.consecutivo_interno) AS codigoInterno,
                 TRIM(la.nombre) AS nombreActivo, TRIM(ma.marca) AS marca, TRIM(la.modelo) AS modelo,
                 TRIM(la.serie) AS serie, TRIM(la.ubicacion) AS ubicacion, CONCAT(us.nombre, SPACE(1),
                 us.nombre_1, SPACE(1), us.apellido, SPACE(1), us.apellido_1) AS nombreResponsable,
@@ -101,8 +101,42 @@ const consultarActivoUno = async (id) => {
     }
 }
 
-const gudardarNuevoActivo = async (data) => {
+const consultarActivoSolicitud = async (id) => {
+
+    try {
+        const pool = await conectardb()
+        const resultado = await pool.query(`
+            SELECT  la.id, CONCAT(TRIM(ca.siglas),la.consecutivo_interno) AS codigo, TRIM(la.nombre) AS nombre, TRIM(ma.marca) AS marca, TRIM(la.modelo) AS modelo, TRIM(la.serie) AS serie, TRIM(ar.area) AS area, TRIM(la.ubicacion) AS ubicacion, CONCAT(TRIM(us.nombre), SPACE(1), TRIM(us.nombre_1),SPACE(1), TRIM(us.apellido),SPACE(1), TRIM(us.apellido_1)) AS responsable, TRIM(es.estado) AS estado, la.url_img, TRIM(pr.proceso) AS proceso
+                FROM listado_activos la
+                INNER JOIN clasificacion_activos ca
+                ON ca.id = la.clasificacion_id
+                INNER JOIN marca_activos ma
+                ON ma.id = la.marca_id
+                INNER JOIN areas ar
+                ON ar.id = la.area_id
+                INNER JOIN estados es
+                ON es.id = la.estado_id
+                INNER JOIN usuarios us
+                ON us.id = la.usuario_id
+                INNER JOIN tipo_activo ta
+                ON ta.id = la.tipo_activo_id
+                INNER JOIN procesos pr
+                ON pr.id = la.proceso_id
+            WHERE la.id ='${id}'
+        `)
+        cerrarConexion(pool)
+        return (resultado.recordset[0])
+
+    } catch (error) {
+        console.error(error);
+        return { msg: 'Ha ocurido un error al intentar consultar los dato' }
+    }
+}
+
+const guardarNuevoActivo = async (data) => {
     const pool = await conectardb()
+
+
 
     try {
         const consecutivo = await pool.query(
@@ -114,7 +148,7 @@ const gudardarNuevoActivo = async (data) => {
 
         const aumento = parseInt(consecutivo.recordset[0].consecutivo_interno) + 1
         data.consecutivo_interno = aumento.toString().padStart(4, 0)
-
+   
         const resultado = await pool.query(`
             INSERT INTO listado_activos (clasificacion_id, 
                 consecutivo_interno,
@@ -144,9 +178,7 @@ const gudardarNuevoActivo = async (data) => {
             SELECT IDENT_CURRENT('listado_activos') AS id
         `)
         const id = resultado.recordset[0].id
-        if (data.componentes) {
-        }
-
+      
         const newActivo = await pool.query(`
             SELECT la.id, RTRIM(ca.siglas) AS siglas, CONCAT( RTRIM(ca. siglas), la.consecutivo_interno) AS codigo
                 FROM listado_activos la
@@ -165,7 +197,6 @@ const gudardarNuevoActivo = async (data) => {
 }
 
 const guardarImagenes = async (imagenes, id) => {
-
     try {
         const pool = await conectardb()
         const resultado = await pool.query(`
@@ -376,7 +407,7 @@ const actualizarSoportes = async (soportes, id) => {
 export {
     consultarActivos,
     dataConfActivo,
-    gudardarNuevoActivo,
+    guardarNuevoActivo,
     guardarImagenes,
     consultarCodigoInterno,
     actualizarActivoDb,
@@ -386,5 +417,6 @@ export {
     consultarActivoUno,
     guardarSoportes,
     actualizarComponentes,
-    actualizarSoportes
+    actualizarSoportes,
+    consultarActivoSolicitud
 }

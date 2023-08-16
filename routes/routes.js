@@ -14,7 +14,8 @@ import {
     eliminarDocumento,
     descargarDocumento,
     guardarDocumento,
-    descargarHojaDeVida
+    descargarHojaDeVida,
+    consultarDatosActivoSolicitud
 } from '../controllers/controllersActivos.js'
 
 import { consultarSolicitudTodos,
@@ -75,9 +76,11 @@ router.post('/guardarDocumento', checkAuth, guardarDocumento)
 
 router.post('/descargarHojaDeVida', checkAuth, descargarHojaDeVida)
 
+router.post('/consultarDatosActivoSolicitud', checkAuth, consultarDatosActivoSolicitud)
+
 // ruta de solicitudes de soporte 
 
-router.get('/consultarSoportesTodos', checkAuth, consultarSolicitudTodos)
+router.get('/consultarSolicitudTodos', checkAuth, consultarSolicitudTodos)
 
 router.post('/consultarSolicitud', checkAuth, consultarSolicitud)
 
