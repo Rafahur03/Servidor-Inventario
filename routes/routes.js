@@ -20,9 +20,12 @@ import {
 
 import { consultarSolicitudTodos,
     crearSolicitud,
-    modificarSolicitud,
+    editarSolicitud,
     eliminarSolicitud,
-    consultarSolicitud } from '../controllers/controllerSolicitudSoporte.js'
+    consultarSolicitud,
+    eliminarImagenSolicitud,
+    guardarImagenSolicitud,
+    descargarSolicitud } from '../controllers/controllerSolicitudSoporte.js'
 
 import { consultarReportesTodos,
     consultarReporte,
@@ -86,9 +89,15 @@ router.post('/consultarSolicitud', checkAuth, consultarSolicitud)
 
 router.post('/crearSolicitud', checkAuth, crearSolicitud)
 
-router.post('/modificarSolicitud', checkAuth, modificarSolicitud)
+router.post('/editarSolicitud', checkAuth, editarSolicitud)
 
-router.post('/eliminarSolicitud', checkAuth, eliminarSolicitud)
+router.delete('/eliminarSolicitud', checkAuth, eliminarSolicitud)
+
+router.post('/descargarSolicitud', checkAuth, descargarSolicitud)
+
+router.post('/guardarImagenSolicitud', checkAuth, guardarImagenSolicitud)
+
+router.delete('/eliminarImagenSolicitud', checkAuth, eliminarImagenSolicitud)
 
 
 // router reportes

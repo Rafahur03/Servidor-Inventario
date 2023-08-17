@@ -92,7 +92,7 @@ const ddSolicitud = async data => {
 							{ colSpan: 2, text: 'Fecha Solicitud', bold: true },
 							'',
 							{ text: data.fechaSolicitud },
-							{ text: 'Usuario Soliciutd', bold: true },
+							{ text: 'Usuario Solicitud', bold: true },
 							{ colSpan: 4, text: data.usuarioSolicitud },
 							'',
 							'',

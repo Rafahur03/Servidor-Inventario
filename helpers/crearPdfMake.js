@@ -95,7 +95,7 @@ const solicitudData = async id => {
 
         // creamos un buffer de las imagenes en un array que se pude insertar  dirrectamente en el PDF del reporte
         const bodyImagenes = datadb.imgSolicitud.map(imagen => {
-            const imageData = fs.readFileSync(path + 'Solicitud\\' + imagen);
+            const imageData = fs.readFileSync(path + 'Solicitud\\' + id + '\\' + imagen);
             const buffer = `data:${mime.lookup(imagen)};base64,${Buffer.from(imageData).toString('base64')}`
             return {
                 image: buffer,

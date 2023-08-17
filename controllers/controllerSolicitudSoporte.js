@@ -6,8 +6,8 @@ import { crearPdfMake } from "../helpers/crearPdfMake.js"
 import {
     guardarImagenesNuevoActivo,
     bufferimagenes,
-    elimnarImagenes,
-    elimnarImagenesSoliRepor,
+    eliminarImagenes,
+    eliminarImagenesSoliRepor,
     guardarImagenesBase64
 } from "../helpers/copiarCarpetasArchivos.js"
 import {
@@ -45,7 +45,7 @@ const consultarSolicitud = async (req, res) => {
         solicitud.img_solicitud = solicitud.img_solicitud.split(',')
         dataBd.idSolicitud = solicitud.id
         const imagenesSolicitud = await bufferimagenes(solicitud.img_solicitud, dataBd, 1)
-        solicitud.imagenesSolicitud =  imagenesSolicitud
+        solicitud.imagenesSolicitud = imagenesSolicitud
     }
 
     solicitud.imagenes_Activo = solicitud.imagenes_Activo.split(',')
@@ -101,7 +101,7 @@ const crearSolicitud = async (req, res) => {
 
 
     if (imagenes !== null) {
-      
+
         const nombreImagenes = []
         for (const imagen of imagenes) {
             const guardarImagen = await guardarImagenesBase64(imagen, dataBd, 1);
@@ -116,160 +116,250 @@ const crearSolicitud = async (req, res) => {
             }
             const guardadoImagenes = await actualizarImagenesSolicitud(datos)
 
-            if(!guardadoImagenes.msg) data.img_solicitud = nombreImagenes
+            if (!guardadoImagenes.msg) data.img_solicitud = nombreImagenes
         }
 
 
     }
 
     data.id = guardado
-    if(data.img_solicitud){
+    if (data.img_solicitud) {
         const Imagenes = await bufferimagenes(data.img_solicitud, dataBd, 1) //
         return res.json({
             data,
             Imagenes
         })
     }
-    
+
     res.json({
         data
     })
 
 }
 
-const modificarSolicitud = async (req, res) => {
+const editarSolicitud = async (req, res) => {
 
     // validar permisos para crear activos
     const { sessionid, permisos } = req
+    const data = req.body.datos
+    const solicitud = data.solicitud.split('-')[1]
+    if (solicitud != data.idSolicitud) return res.json({ msg: 'No se puede procesar la solicitud, Error en el ID de la solicitud' })
 
-    // usa  formidable para recibir el req de imagenes y datos
-    const form = formidable({ multiples: true });
 
-    form.parse(req, async function (err, fields, files) {
+    // VALIDAR QUE EL CODIGO PERTENESCA AL ACTIVO
+    const dataBd = await consultarSolicitudUno(data.idSolicitud)
 
-        if (err) {
-            console.error(err);
-            return res.status(500).json({ error: err });
+    if (dataBd.msg) return { msg: 'No se pudo validar la informacion intente mas tarde' }
+    if (data.idActivo === dataBd.id_activo) return res.json({ msg: 'La solicitud no corresponde al activo verifique la informacion' })
+
+
+    if (dataBd.id_estado !== 1) return res.json({ msg: 'No se puede Actualizar la solictud, ya ha sido gestionada su estado es diferente de Abierto' })
+
+
+    if (dataBd.idReporte !== null) return res.json({ msg: 'No se puede Actualizar la solictud, ya ha sido gestionada y tiene un reporte creado ' })
+
+    if (dataBd.idUsuario !== sessionid) {
+        const arrPermisos = JSON.parse(permisos)
+        if (arrPermisos.indexOf(5) === -1) {
+            return res.json({ msg: 'Usted no tiene permisos para editar solicitudes' })
+        } else {
+            return res.json({ msg: 'Esta solicitud Fue radicada por otro usuario. usted no puede modificarla' })
         }
-        const data = JSON.parse(fields.data)
+    }
 
-        // VALIDAR QUE EL CODIGO PERTENESCA AL ACTIVO
-        const dataBd = await consultarSolicitud(data.id)
+    const validarDatos = validarDatoSolicitud(data)
 
-        if (dataBd.id_estado !== 1) {
-            return res.json({ msg: 'La solictud ya ha sido gestionada su estado es diferente de Abierto' })
-        }
+    if (validarDatos.msg) {
+        return res.json(validarDatos)
+    }
 
-        if (dataBd.id_usuario !== sessionid) {
-            const arrPermisos = JSON.parse(permisos)
-            if (arrPermisos.indexOf(5) === -1) {
-                return res.json({ msg: 'Usted no tiene permisos para modificar solicitudes' })
-            } else {
-                return res.json({ msg: 'Esta solicitud Fue radicada por otro usuario.' })
-            }
-        }
+    const actualizar = await actualizarSolicitud(data)
+    if (actualizar.msg) {
+        return res.json(actualizar)
+    }
 
-        // validar datos y files
-        const validarDatos = validarDatoSolicitud(data)
+    res.json({
+        exito: 'Activo actualizado correctamente'
+    })
 
-        if (!validarDatos.msg) {
-            return res.json(validarDatos)
-        }
-
-        const validarFile = validarFiles(files)
-        if (!validarFile.msg) {
-            return res.json(validarFile)
-        }
-
-        // validar si se elimino alguna imagen
-        if (data.img_solicitud.length <= 0 && !files.Image) {
-            return res.json({ msg: 'No se puede eliminar todas las imagenes' })
-        }
-
-        let imageneDb = dataBd.img_solicitud.split(',')
-        const ElminoImagen = JSON.stringify(imageneDb) === JSON.stringify(data.img_solicitud)
-
-        let imagenesEliminar
-
-        if (!ElminoImagen) {
-            imagenesEliminar = imageneDb.filter(image => !data.img_solicitud.includes(image))
-        }
-
-        if (files.Image) {
-            const nuevaUrl_imag = await guardarImagenesNuevoActivo(files, dataBd, 1)
-            if (nuevaUrl_imag.msg) {
-                return res.json(nuevaUrl_imag)
-            }
-            const nuevasImages = nuevaUrl_imag.concat(data.img_solicitud)
-            data.img_solicitud = nuevasImages
-        }
-        if (!ElminoImagen) {
-            await elimnarImagenes(imagenesEliminar, dataBd, 1)
-        }
-        data.img_solicitud = data.img_solicitud.toString()
-
-        console.log(data)
-
-        const actualizar = await actualizarSolicitud(data)
-        if (actualizar.msg) {
-            return res.json(actualizar)
-        }
-
-        data.img_solicitud = data.img_solicitud.split(',')
-
-        const Imagenes = bufferimagenes(data.img_solicitud, dataBd, 1)
-
-
-        // enviar respuesta con los datos del activo e imagenes
-        res.json({
-            msg: 'Activo actualizado correctamente',
-            data,
-            Imagenes
-        })
-    });
 }
 
 const eliminarSolicitud = async (req, res) => {
     const { sessionid, permisos } = req
-    const id = req.body
+    const data = req.body.datos
+    const solicitud = data.solicitud.split('-')[1]
+    if (solicitud != data.idSolicitud) return res.json({ msg: 'No se puede procesar la solicitud, Error en el ID de la solicitud' })
+
 
     // VALIDAR QUE EL CODIGO PERTENESCA AL ACTIVO
-    const dataBd = await consultarSolicitud(id.id)
+    const dataBd = await consultarSolicitudUno(data.idSolicitud)
 
-    if (dataBd.id_estado !== 1) {
-        return res.json({ msg: 'La solictud ya ha sido gestionada su estado es diferente de Abierto no se puede eliminarla solicitud' })
-    }
+    if (dataBd.msg) return { msg: 'No se pudo validar la informacion intente mas tarde' }
+    if (data.idActivo === dataBd.id_activo) return res.json({ msg: 'La solicitud no corresponde al activo verifique la informacion' })
 
-    if (dataBd.id_usuario !== sessionid) {
+
+    if (dataBd.id_estado !== 1) return res.json({ msg: 'No se puede eliminar la solictud, ya ha sido gestionada su estado es diferente de Abierto' })
+
+
+    if (dataBd.idReporte !== null) return res.json({ msg: 'No se puede eliminar la solictud, ya ha sido gestionada y tiene un reporte creado ' })
+
+    if (dataBd.idUsuario !== sessionid) {
         const arrPermisos = JSON.parse(permisos)
         if (arrPermisos.indexOf(5) === -1) {
-            return res.json({ msg: 'Usted no tiene permisos para modificar solicitudes' })
+            return res.json({ msg: 'Usted no tiene permisos para eliminar solicitudes' })
         } else {
-            return res.json({ msg: 'Esta solicitud Fue radicada por otro usuario.' })
+            return res.json({ msg: 'Esta solicitud Fue radicada por otro usuario. Usted no puede eliminarla' })
         }
     }
 
-    const eliminado = await eliminarSolicitudDb(dataBd.id)
-    if (eliminado.msg) {
-        return res.json(eliminado.msg)
+    const actualizar = await eliminarSolicitudDb(dataBd.id)
+    if (actualizar.msg) {
+        return res.json(actualizar)
     }
-
-    const img_solicitud = dataBd.img_solicitud.split(',')
-    const carpetaEliminada = elimnarImagenesSoliRepor(img_solicitud, dataBd, 1)
-    if (carpetaEliminada.msg) {
-        return res.json(carpetaEliminada)
-    }
-
 
     res.json({
-        msg: 'Eliminado Correctamete',
+        exito: 'Eliminado Correctamente',
     })
 }
+
+const eliminarImagenSolicitud = async (req, res) => {
+
+    const { sessionid, permisos } = req
+    const data = req.body.datos
+    const solicitud = data.solicitud.split('-')[1]
+    if (solicitud != data.idSolicitud) return res.json({ msg: 'No se puede procesar la solicitud, Error en el ID de la solicitud' })
+
+
+    // VALIDAR QUE EL CODIGO PERTENESCA AL ACTIVO
+    const dataBd = await consultarSolicitudUno(data.idSolicitud)
+
+    if (dataBd.msg) return { msg: 'No se pudo validar la informacion intente mas tarde' }
+    if (data.idActivo === dataBd.id_activo) return res.json({ msg: 'La solicitud no corresponde al activo verifique la informacion' })
+
+
+    if (dataBd.id_estado !== 1) return res.json({ msg: 'No se puede eliminar la Imagen, la solicitud ya ha sido gestionada su estado es diferente de Abierto' })
+
+
+    if (dataBd.idReporte !== null) return res.json({ msg: 'No se puede eliminar la Imagen, la solicitud ya ha sido gestionada y tiene un reporte creado ' })
+
+    if (dataBd.idUsuario !== sessionid) {
+        const arrPermisos = JSON.parse(permisos)
+        if (arrPermisos.indexOf(5) === -1) {
+            return res.json({ msg: 'Usted no tiene permisos para editar solicitudes' })
+        } else {
+            return res.json({ msg: 'Esta solicitud Fue radicada por otro usuario. Usted no puede editarla' })
+        }
+    }
+    const imagenes = dataBd.img_solicitud.split(',')
+    const imagen = data.imagen
+    const nuevaImagen = imagenes.filter((item) => item !== imagen)
+    if (imagenes.length == nuevaImagen.length) return res.json({ msg: 'No se encontro la imagen a eliminar' })
+
+    const datos = {
+        img_solicitud: nuevaImagen.toString(),
+        id: dataBd.id
+    }
+    const actualizar = await actualizarImagenesSolicitud(datos)
+    if (actualizar.msg) {
+        return res.json(actualizar)
+    }
+
+    const dataActivo = await consultarCodigoInterno(dataBd.id_activo)
+    dataActivo.idSolicitud = dataBd.id
+    // elimina la imagen del bd
+    const eliminada = await eliminarImagenesSoliRepor(imagen, dataActivo, 1)
+    if (eliminada.msg) return res.json({ msg: 'No fue posible eliminar la imagen del directorio' })
+
+    res.json({
+        exito: 'Eliminado Correctamente',
+    })
+}
+
+const guardarImagenSolicitud = async (req, res) => {
+
+    const { sessionid, permisos } = req
+    const data = req.body.datos
+    const solicitud = data.solicitud.split('-')[1]
+    if (solicitud != data.idSolicitud) return res.json({ msg: 'No se puede procesar la solicitud, Error en el ID de la solicitud' })
+
+
+    // VALIDAR QUE EL CODIGO PERTENESCA AL ACTIVO
+    const dataBd = await consultarSolicitudUno(data.idSolicitud)
+
+    if (dataBd.msg) return { msg: 'No se pudo validar la informacion intente mas tarde' }
+    if (data.idActivo === dataBd.id_activo) return res.json({ msg: 'La solicitud no corresponde al activo verifique la informacion' })
+
+
+    if (dataBd.id_estado !== 1) return res.json({ msg: 'No se puede cargar la Imagen, la solicitud ya ha sido gestionada su estado es diferente de Abierto' })
+
+
+    if (dataBd.idReporte !== null) return res.json({ msg: 'No se puede cargar la Imagen, la solicitud ya ha sido gestionada y tiene un reporte creado ' })
+
+    if (dataBd.idUsuario !== sessionid) {
+        const arrPermisos = JSON.parse(permisos)
+        if (arrPermisos.indexOf(5) === -1) {
+            return res.json({ msg: 'Usted no tiene permisos para editar solicitudes' })
+        } else {
+            return res.json({ msg: 'Esta solicitud Fue radicada por otro usuario. Usted no puede editarla' })
+        }
+    }
+
+    const imagen = data.imagen
+    const validacionImagen = validarImagenes(imagen)
+    if (validacionImagen.msg) return res.json(validacionImagen)
+
+    const imagenes = dataBd.img_solicitud.split(',')
+    if (imagenes.length >= 4) return res.json({ msg: 'La solicitud tiene 4 imagenes, el maximo que se puede subir' })
+
+    const dataActivo = await consultarCodigoInterno(dataBd.id_activo)
+    dataActivo.idSolicitud = dataBd.id
+
+    const guardarImagen = await guardarImagenesBase64(imagen, dataActivo, 1);
+    if (guardarImagen.msg) return res.json(guardarImagen)
+
+    imagenes.push(guardarImagen);
+
+    const datos = {
+        img_solicitud: imagenes.toString(),
+        id: dataBd.id   
+    }
+    const actualizar = await actualizarImagenesSolicitud(datos)
+    if (actualizar.msg) {
+        return res.json(actualizar)
+    }
+
+    res.json({
+        nombre:guardarImagen
+    })
+}
+
+const descargarSolicitud = async (req, res) => {
+
+    // extrae los datos del req 
+    const data = req.body.datos
+    const solicitud = data.solicitud.split('-')[1]
+    if (solicitud != data.idSolicitud) return res.json({ msg: 'No se puede procesar la solicitud, Error en el ID de la solicitud' })
+    // VALIDAR QUE EL CODIGO PERTENESCA AL ACTIVO
+    const dataBd = await consultarSolicitudUno(data.idSolicitud)
+
+    if (dataBd.msg) return request.json({ msg: 'En estos momentos no es posible validar la información  actualizar intetelo más tarde' })
+
+    const pdfSolicitud = await crearPdfMake(dataBd.id, 'Solicitud')
+    res.json({
+        solicitud: `data:application/pdf;base64,${pdfSolicitud}`,
+        nombre: `Solictud - Sol-${dataBd.id}`
+    })
+}
+
+
 
 export {
     consultarSolicitudTodos,
     crearSolicitud,
-    modificarSolicitud,
+    editarSolicitud,
     eliminarSolicitud,
-    consultarSolicitud
+    consultarSolicitud,
+    eliminarImagenSolicitud,
+    guardarImagenSolicitud,
+    descargarSolicitud
 }

@@ -7,7 +7,7 @@ import { crearPdfMake } from "../helpers/crearPdfMake.js"
 import {
     guardarImagenesNuevoActivo,
     bufferimagenes,
-    elimnarImagenes,
+    eliminarImagenes,
     guardarPDF,
     guadarReporteFinal,
     bufferReporte
@@ -279,7 +279,7 @@ const modificarReporte = async (req, res) => {
         }
         // elimina las imagenes
         if (!ElminoImagen) {
-            await elimnarImagenes(imagenesEliminar, dataActivo, 2)
+            await eliminarImagenes(imagenesEliminar, dataActivo, 2)
         }
         // actualiza los datos de las imagenes y fecha de cierre del formato
         data.img_reporte = data.img_reporte.toString()

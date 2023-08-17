@@ -31,10 +31,11 @@ const consultarSolicitudUno = async (id) => {
     try {
         const pool = await conectardb()
         const resultado = await pool.query(`
-            SELECT sm.id, sm.id_activo, CONCAT(TRIM(cl.siglas), la.consecutivo_interno) as codigo, la.      nombre, TRIM(la.serie) AS serie,
-                TRIM(la.modelo) AS modelo,TRIM(la.ubicacion) AS ubicacion, TRIM(ma.marca) AS marca,TRIM(es.estado) AS estado, TRIM(ta.tipo_activo) AS tipoActivo,
-                CONCAT(TRIM(us.nombre),SPACE(1),TRIM(us.nombre_1),SPACE(1),TRIM(us.apellido),SPACE(1) ,TRIM(us.apellido_1)) AS usuario,
-                sm.fecha_solicitud,sm.solicitud,TRIM(ess.estado) AS estadoSolicitud, TRIM(sm.img_solicitud) AS img_solicitud, TRIM(la.url_img) AS imagenes_Activo
+            SELECT sm.id, sm.id_activo, CONCAT(TRIM(cl.siglas), la.consecutivo_interno) as codigo, la.nombre, TRIM(la.serie) AS serie,
+                TRIM(la.modelo) AS modelo,TRIM(la.ubicacion) AS ubicacion, TRIM(ma.marca) AS marca,TRIM(es.estado) AS estado,TRIM(ta.tipo_activo) AS tipoActivo,
+                CONCAT(TRIM(us.nombre),SPACE(1),TRIM(us.nombre_1),SPACE(1),TRIM(us.apellido),SPACE(1) ,TRIM(us.apellido_1)) AS usuario,sm.id_usuario AS idUsuario,
+                sm.fecha_solicitud,sm.solicitud,TRIM(ess.estado) AS estadoSolicitud, TRIM(sm.img_solicitud) AS img_solicitud,
+                TRIM(la.url_img) AS imagenes_Activo, rm.id AS idReporte, sm.id_estado
                 FROM solicitudes_mtto sm
                 INNER JOIN listado_activos la
                 ON sm.id_activo = la.id
@@ -50,6 +51,8 @@ const consultarSolicitudUno = async (id) => {
                 ON us.id = sm.id_usuario
                 INNER JOIN tipo_activo ta
                 ON ta.id = la.tipo_activo_id
+                LEFT JOIN repotesMtto rm
+                ON sm.id = rm.solicitud_id
             WHERE sm.id = '${id}'
         `)
         cerrarConexion(pool)
@@ -101,14 +104,14 @@ const actualizarSolicitud = async (data) => {
         const pool = await conectardb()
         const resultado = await pool.query(`
             UPDATE solicitudes_mtto 
-                SET id_activo='${data.id_activo}', solicitud='${data.solicitud}', img_solicitud='${data.img_solicitud}'
-            WHERE id = '${data.id}'
+                SET solicitud='${data.descripcion}'
+            WHERE id = '${data.idSolicitud}'
         `)
         cerrarConexion(pool)
         return (resultado.rowsAffected)
     } catch (error) {
         console.error(error);
-        return { msg: 'Ha ocurido un error al intentar eliminar el activo' }
+        return { msg: 'Ha ocurido un error al intentar actualizar la solicitud' }
     }
 }
 

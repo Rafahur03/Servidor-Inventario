@@ -13,7 +13,7 @@ import {
     guardarImagenesBase64,
     bufferimagenes,
     bufferimagen,
-    elimnarImagenes,
+    eliminarImagenes,
     eliminarCarpetaActivo,
     guardarPDF,
     bufferSoportespdf,
@@ -431,15 +431,16 @@ const eliminarImagenActivo = async (req, res) => {
 
     const imageneDb = dataBd.url_img.trim().split(',')
     if (imageneDb.length === 1) return res.json({ msg: 'El activo solo tiene una imagen no puede eliminarla sin antes guardar otras imagenes' })
-
-    //elimiar imagen
-    const elimnada = await elimnarImagenes(data.imagen, dataBd)
-    if (elimnada.msg) return res.json({ msg: 'No fue posible eliminar la imagen del directorio' })
-
-
+    
+    // elimina la imagen de la base de datos
     const nuevaImagen = imageneDb.filter((item) => item !== data.imagen)
     const guardadoExitoso = await guardarImagenes(nuevaImagen.toString(), data.id)
     if (guardadoExitoso.msg) return res.json({ msg: 'la imagen no pudo ser eliminada de la base de datos' })
+    
+    //elimiar imagen de la carpeta
+    const eliminada = await eliminarImagenes(data.imagen, dataBd)
+    if (eliminada.msg) return res.json({ msg: 'No fue posible eliminar la imagen del directorio' })
+  
 
     res.json({
         elimnada
@@ -486,8 +487,8 @@ const descargarDocumento = async (req, res) => {
     const dataBd = await consultarCodigoInterno(data.id)
     if (dataBd.msg) return request.json({ msg: 'En estos momentos no es posible validar la información  actualizar intetelo más tarde' })
 
-    if (dataBd.soportes.trim() === null) return res.json({ msg: 'El del activo no tiene documentos' })
-    if (dataBd.soportes.trim() === '') return res.json({ msg: 'El del activo no tiene documentos' })
+    if (dataBd.soportes.trim() === null) return res.json({ msg: 'El  activo no tiene documentos' })
+    if (dataBd.soportes.trim() === '') return res.json({ msg: 'El  activo no tiene documentos' })
     const soportes = JSON.parse(dataBd.soportes)
 
     //elimiar soporte

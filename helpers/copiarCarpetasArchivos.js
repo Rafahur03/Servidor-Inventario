@@ -244,13 +244,13 @@ const bufferimagen = async (url_img, data, destino) => {
 	return bufferCompleto
 }
 
-const elimnarImagenes = async (file, data, destino) => {
+const eliminarImagenes = async (file, data, destino) => {
 
 	try {
 		let pathActivo
 		switch (destino) {
 			case 1:
-				pathActivo = `${path}${data.siglas}\\${data.codigo}\\Solicitud\\`
+				pathActivo = `${path}${data.siglas}\\${data.codigo}\\Solicitud\\${data.idSolicitud}\\`
 				break
 
 			case 2:
@@ -286,13 +286,13 @@ const eliminarCarpetaActivo = async (data) => {
 	}
 }
 
-const elimnarImagenesSoliRepor = async (files, data, destino) => {
+const eliminarImagenesSoliRepor = async (file, data, destino) => {
 
 	try {
 		let pathActivo
 		switch (destino) {
 			case 1:
-				pathActivo = `${path}${data.siglas}\\${data.codigo}\\Solicitud\\`
+				pathActivo = `${path}${data.siglas}\\${data.codigo}\\Solicitud\\${data.idSolicitud}\\`
 				break
 
 			case 2:
@@ -303,12 +303,9 @@ const elimnarImagenesSoliRepor = async (files, data, destino) => {
 				return ({ msg: 'esta funcion es solo para reportes y solicitudes' })
 				break
 		}
+		await fspromises.rename(pathActivo + file, `${pathActivo}\\E-${file}`);
+		return ({ exito: 'Imagen eliminada correctamente' })
 
-		const promesasEliminar = files.map(async file => {
-			const pathOrigen = pathActivo + file
-			return await fspromises.rename(pathActivo + file, `${pathActivo}\\E-${file}`);
-		})
-		await Promise.all(promesasEliminar);
 	} catch (error) {
 		console.error(`Ha ocurrido un error: ${error.message}`);
 		return { msg: 'error al elimiar las imagenes' }
@@ -468,9 +465,9 @@ export {
 	guardarImagenesBase64, // nuevo
 	bufferimagenes,
 	bufferimagen, // nuevo
-	elimnarImagenes,
+	eliminarImagenes,
 	eliminarCarpetaActivo,
-	elimnarImagenesSoliRepor,
+	eliminarImagenesSoliRepor,
 	guardarPDF,
 	bufferSoportespdf,
 	bufferSoportepdf,// nuevo solo un soporte 
