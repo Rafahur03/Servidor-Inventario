@@ -35,6 +35,7 @@ const consultarSolicitudTodos = async (req, res) => {
 }
 
 const consultarSolicitud = async (req, res) => {
+    const { sessionid, permisos } = req
     const id = req.body.id
     const solicitud = await consultarSolicitudUno(id)
     if (solicitud.msg) {
@@ -53,6 +54,18 @@ const consultarSolicitud = async (req, res) => {
     solicitud.imagenesActivo = imagenesActivo
     solicitud.fecha_solicitud = solicitud.fecha_solicitud.toISOString().substring(0, 10)
 
+    solicitud.editar = false
+    solicitud.reporte = false
+    const arrPermisos = JSON.parse(permisos)
+
+    if (solicitud.idUsuario == sessionid) {
+        solicitud.editar = true
+    }else{
+        if (arrPermisos.indexOf(5) !== -1) solicitud.editar = true
+    }
+    
+    if(solicitud.idReporte !== null) solicitud.editar = false
+    if(arrPermisos.indexOf(6) !== -1) solicitud.reporte = true
     res.json(
         solicitud
     )
@@ -335,6 +348,7 @@ const guardarImagenSolicitud = async (req, res) => {
 
 const descargarSolicitud = async (req, res) => {
 
+
     // extrae los datos del req 
     const data = req.body.datos
     const solicitud = data.solicitud.split('-')[1]
@@ -351,6 +365,45 @@ const descargarSolicitud = async (req, res) => {
     })
 }
 
+const consultarSolicitudReporte = async (req, res) => {
+    const { sessionid, permisos } = req
+    
+    if(arrPermisos.indexOf(6) === -1) return res.json({msg: 'Usted no tiene permisos para crear reportes'})
+    const id = req.body.id
+
+    const solicitud = await consultarSolicitudUno(id)
+    if(solicitud.msg)return res.json({msg: 'Ha ocurido un error consultando los datos intentelo mas tarde'})
+
+    if (solicitud.msg) {
+        return res.json(solicitud)
+    }
+    const dataBd = await consultarCodigoInterno(solicitud.id_activo)
+    if(dataBd.msg)return res.json({msg: 'Ha ocurido un error consultando los datos intentelo mas tarde'})
+    
+    solicitud.imagenes_Activo = solicitud.imagenes_Activo.split(',')
+    const imagenesActivo = await bufferimagenes(solicitud.imagenes_Activo, dataBd)
+    solicitud.imagenesActivo = imagenesActivo
+    solicitud.fecha_solicitud = solicitud.fecha_solicitud.toISOString().substring(0, 10)
+
+    solicitud.editar = false
+    solicitud.reporte = false
+    const arrPermisos = JSON.parse(permisos)
+
+    if (solicitud.idUsuario == sessionid) {
+        solicitud.editar = true
+    }else{
+        if (arrPermisos.indexOf(5) !== -1) solicitud.editar = true
+    }
+    
+    if(solicitud.idReporte !== null) solicitud.editar = false
+    
+    res.json(
+        solicitud
+    )
+
+
+}
+
 
 
 export {
@@ -361,5 +414,6 @@ export {
     consultarSolicitud,
     eliminarImagenSolicitud,
     guardarImagenSolicitud,
-    descargarSolicitud
+    descargarSolicitud,
+    consultarSolicitudReporte
 }

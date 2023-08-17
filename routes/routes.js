@@ -25,7 +25,8 @@ import { consultarSolicitudTodos,
     consultarSolicitud,
     eliminarImagenSolicitud,
     guardarImagenSolicitud,
-    descargarSolicitud } from '../controllers/controllerSolicitudSoporte.js'
+    descargarSolicitud,
+    consultarSolicitudReporte } from '../controllers/controllerSolicitudSoporte.js'
 
 import { consultarReportesTodos,
     consultarReporte,
@@ -99,6 +100,7 @@ router.post('/guardarImagenSolicitud', checkAuth, guardarImagenSolicitud)
 
 router.delete('/eliminarImagenSolicitud', checkAuth, eliminarImagenSolicitud)
 
+router.post('/consultarSolicitudReporte', checkAuth, consultarSolicitudReporte)
 
 // router reportes
 
