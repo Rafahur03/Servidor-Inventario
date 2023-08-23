@@ -1,23 +1,27 @@
 import formidable from "formidable"
 import { validarDatoReporte } from "../helpers/validarDatosReporte.js"
 // validar cambio de funcion import { validarFiles } from "../helpers/validarFiles.js"
-import { consultarCodigoInterno } from "../db/sqlActivos.js"
-import { consultarSolicitudUno } from "../db/sqlSolicitudes.js"
+import { consultarCodigoInterno, actualizarEstadoActivo } from "../db/sqlActivos.js"
+import { consultaValidarSolicitudReporte, actualizarEstadoSolicitud } from "../db/sqlSolicitudes.js"
 import { crearPdfMake } from "../helpers/crearPdfMake.js"
+import { validarImagenes } from "../helpers/validarFiles.js"
 import {
     guardarImagenesNuevoActivo,
     bufferimagenes,
     eliminarImagenes,
     guardarPDF,
     guadarReporteFinal,
-    bufferReporte
+    bufferReporte,
+    guardarImagenesBase64
 } from "../helpers/copiarCarpetasArchivos.js"
 
 import {
     consultarReportes,
     consultarReporteUno,
     guardarReporte,
-    actualizarReporte
+    actualizarReporte,
+    dataConfReporte,
+    actualizarImagenesReporte
 } from "../db/sqlReportes.js"
 
 
@@ -27,7 +31,7 @@ const consultarReportesTodos = async (req, res) => {
         return res.json(solicitudes[0])
     }
     listadoReportes.forEach(element => {
-        element.fechareporte =  element.fechareporte.toLocaleDateString('es-CO')
+        element.fechareporte = element.fechareporte.toLocaleDateString('es-CO')
     })
     res.json(listadoReportes)
 }
@@ -73,126 +77,122 @@ const crearReporte = async (req, res) => {
     const { sessionid, permisos, Id_proveedores } = req
 
     const arrPermisos = JSON.parse(permisos)
-
     const proveedores = JSON.parse(Id_proveedores)
 
-    if (arrPermisos.indexOf(6) === -1) {
-        res.json({ msg: 'Usted no tiene permisos para crear crear reportes de mantenimiento' })
-        return
+    if (arrPermisos.indexOf(6) === -1) return res.json({ msg: 'Usted no tiene permisos para crear crear reportes de mantenimiento' })
+
+    const data = req.body.datos
+    const idSolicitud = data.idSolicitud.split('-')[1]
+    if (idSolicitud !== data.solicitud.split('-')[1]) return res.json({ msg: 'La solicitud no pudo verificarse para crear el reporte' })
+
+    // validar que la solicitud exista y que no este cerrada o eliminada
+    const dataSolicitud = await consultaValidarSolicitudReporte(idSolicitud)
+    if (dataSolicitud.msg) return res.json(dataSolicitud)
+
+    if (dataSolicitud.estadoSolicitud == 3) {
+        return res.json({ msg: 'la solicitud esta en estado cerrada y no puede modificarse' })
     }
 
-    // usa  formidable para recibir el req de imagenes y datos
-    const form = formidable({ multiples: true });
+    if (dataSolicitud.estadoSolicitud == 4) {
+        return res.json({ msg: 'la solicitu no existe o fue eliminada' })
+    }
 
-    form.parse(req, async function (err, fields, files) {
+    const validarDatos = await validarDatoReporte(data)
+    if (validarDatos.msg) return res.json(validarDatos)
 
-        if (err) {
-            console.error(err);
-            return res.status(500).json({ error: err });
+    if (dataSolicitud.codigo !== data.codigo) return res.json({ msg: 'La solicitud no corresponde al activo selecionado' })
+    data.id_activo = dataSolicitud.id_activo
+
+    data.provedorMttoId = parseInt(data.provedorMttoId.split('-')[1])
+    if (proveedores.indexOf(data.provedorMttoId) === -1) return res.json({ msg: 'Usted no esta asociado al proveedor de mantenimientos seleccionado, favor seleccione uno al cual este asociado.' })
+
+    const fechaSolicitud = dataSolicitud.fecha_solicitud.toISOString().substring(0, 10)
+
+    if (fechaSolicitud > data.fechareporte) return res.json({ msg: 'La fecha de realizacion del mantenimiento no puede ser inferior a la fecha de solicitud' })
+    //validar las imagenes  
+
+    let imagenes = null
+    if (data.imagenes.length > 0) {
+        for (let imagen of data.imagenes) {
+            const validacionImagen = validarImagenes(imagen)
+            if (validacionImagen.msg) return res.json(validacionImagen)
         }
-        const data = JSON.parse(fields.data)
+        imagenes = data.imagenes
+        delete data.imagenes
+    }
+
+    data.usuario_idReporte = sessionid
+    data.fechaCreacion = new Date(Date.now()).toISOString().substring(0, 19).replace('T', ' ')
+    data.estadoSolicitudId = data.estadoSolicitudId.split('-')[1]
+    if (data.estadoSolicitudId == 3) data.fechaCierre = new Date(Date.now()).toISOString().substring(0, 19).replace('T', ' ')
+
+    // depuramos el objeto data para normalizar los datos que se ingresaran a la bd    
+
+    delete data.estadoActivo
+    delete data.tipoMantenimiento
+    delete data.provedorMtto
+    delete data.recibidoConforme
+    delete data.estadoSolicitud
+    delete data.codigo
+    delete data.solicitud
+
+    data.estadoActivoId = data.estadoActivoId.split('-')[1]
+    data.recibidoConformeId = data.recibidoConformeId.split('-')[1]
+    data.tipoMantenimientoId = data.tipoMantenimientoId.split('-')[1]
+    data.idSolicitud = idSolicitud
 
 
-        // validar que la solicitud exista y que no este cerrada o eliminada
-        const dataSolicitud = await consultarSolicitudUno(data.solicitud_id)
+    // guardar datos en la BD
+    const guardado = await guardarReporte(data)
+    if (guardado.msg) return res.json(guardado)
+    
+    // consulta los datos del activo
+    const dataBd = await consultarCodigoInterno(dataSolicitud.id_activo)
+    if (dataBd.msg) return res.json({ msg: ' no fue posible terminar de guardar los datos del reporte verifique los datos guardados y actualicelos' })
 
-        if (dataSolicitud.msg) {
-            return res.json(dataSolicitud)
+    dataBd.idReporte = guardado
+
+    if (imagenes !== null) {
+        const nombreImagenes = []
+        for (const imagen of imagenes) {
+            const guardarImagen = await guardarImagenesBase64(imagen, dataBd, 2);
+            if (!guardarImagen.msg) nombreImagenes.push(guardarImagen);
         }
+        // guardar imagenes y actualizar en la base de datos.
 
-        if (dataSolicitud.id_estado == 3) {
-            return res.json({ msg: 'la solicitu esta en estado cerrada y no puede modificarse' })
-        }
-
-        if (dataSolicitud.id_estado == 4) {
-            return res.json({ msg: 'la solicitu no existe o fue eliminada' })
-        }
-
-        if (dataSolicitud.id_activo !== data.id_activo) {
-            return res.json({ msg: 'La solicitud no corresponde al activo selecionado' })
-        }
-
-        if (proveedores.indexOf(data.proveedor_id) === -1) {
-            return res.json({ msg: 'Usted no esta asociado al proveedor de mantenimientos seleccionado, favor seleccione uno al cual este asociado.' })
-        }
-
-        const validarDatos = validarDatoReporte(data)
-        // normalizamos las fechas para poder compararlas 
-        const fechaSolicitud = dataSolicitud.fecha_solicitud.toLocalDateString('es-CO')
-       
-        if (fechaSolicitud > data.fechareporte) {
-            res.json({ msg: 'La fecha de realizacion del mantenimiento no puede ser inferior a la fecha de solicitud' })
-            return
-        }
-
-        // validar datos y files
-        
-        if (validarDatos.msg) {
-            return res.json(validarDatos)
-        }
-
-        // const validarFile = validarFiles(files)
-        // if (validarFile.msg) {
-        //     return res.json(validarFile)
-        // } validar cambio de funcion 
-
-        data.usuario_idReporte = sessionid
-
-        data.fechaCreacion = new Date(Date.now()).toISOString().substring(0, 19).replace('T', ' ')
-        // consulta los datos del activo
-        const dataBd = await consultarCodigoInterno(data.id_activo)
-
-        // guardar las imagenes del reporte 
-        let errores = {}
-        if (files.Image) {
-            //  sin nada para activos, 1 para solicitudes, 2 reportes
-            const img_reporte = await guardarImagenesNuevoActivo(files, dataBd, 2)
-            if (img_reporte.msg) {
-                errores.img_reporte = img_solicitud.msg
-            } else {
-                data.img_reporte = img_reporte
+        if (nombreImagenes.length > 0) {
+            const datos = {
+                id: guardado,
+                img_reporte: nombreImagenes.toString()
             }
+            const guardadoImagenes = await actualizarImagenesReporte(datos)
+
+            if (guardadoImagenes.msg) return res.json({ msg: 'no fue posible guardar las imagenes en la base de datos verifique los datos guardados y actualicelos', reporte: gudardado })
+            data.img_reporte = nombreImagenes
         }
+    }
 
-        // guardar los datos del reporte
-        const guardado = await guardarReporte(data)
-
-        if (guardado.msg) {
-            return res.json(guardado)
+    if (data.estadoActivoId != dataSolicitud.estadoActivo) {
+        const dataActivo = {
+            id: dataSolicitud.id_activo,
+            estadoActivoId: data.estadoActivoId
         }
-
-        if (data.id_estado === 3) {
-            if (files.ReporteExterno) {
-                // guarda el sreporte externo
-                const reporte = await guardarPDF(files.ReporteExterno, dataBd, guardado)
-                if (reporte.msg) {
-                    errores.reportes = reporte.msg
-                } else {
-                    //crea un buffer del reporte externo y lo envia al usuario
-                    data.pdfReporte = bufferReporte(dataBd, guardado)
-                }
-            } else {
-                //crear un buffer de los datos del soporte guardarlo en la carpeta del a activo y devolverlos al usuario
-                data.pdfReporte = await crearPdfMake(guardado, 'Reporte')
-                const guardarReporte = await guadarReporteFinal(data.pdfReporte, dataBd, guardado)
-                if (guardarReporte === 0) errores.guardarpdf = 'no fue posible crear el pdf del reporte'
-
-            }
-        } else {
-            data.pdfReporte = await crearPdfMake(guardado, 'Reporte')
+        const actualizacion = await actualizarEstadoActivo(dataActivo)
+        if (actualizacion.msg) res.json({ msg: 'No fuen posible actualizar el estado del activo ni el estado de la solicitud favor verifique y actualicelos', reporte: gudardado })
+    }
+    if (data.estadoSolicitudId != dataSolicitud.estadoSolicitud) {
+        const datosSolicitud = {
+            id: dataSolicitud.id,
+            estadoSolicitudId: data.estadoSolicitudId
         }
+        const actualizacion = await actualizarEstadoSolicitud(datosSolicitud)
+        if (actualizacion.msg) res.json({ msg: 'No fuen posible actualizar el estado de la solicitud favor verifique y actualicelo', reporte: gudardado })
+    }
 
-        data.id = guardado
+    res.json({
+        reporte: guardado
+    })
 
-        if (data.img_reporte) {
-            data.Imagenes = await bufferimagenes(data.img_reporte, dataBd, 2) //
-        }
-
-        res.json({
-            data,
-            errores
-        })
-    });
 
 }
 
@@ -244,7 +244,7 @@ const modificarReporte = async (req, res) => {
         // normalizar las fechas compararlas y normalizar para enviar a la bd
         const fechaSolicitud = dataSolicitud.fecha_solicitud.toLocaleDateString('es-CO')
         //verifica que la fecha del reporte no sea menor que la fecha de solciitud 
-        if (fechaSolicitud >  data.fechareporte) {
+        if (fechaSolicitud > data.fechareporte) {
             res.json({ msg: 'La fecha de realizacion del mantenimiento no puede ser inferior a la fecha de solicitud' })
             return
         }
@@ -339,9 +339,14 @@ const descargarListaMtto = async (req, res) => {
     const listaMtto = await crearPdfMake(data.id, 'listadoReportes')
 
     res.json({
-        listaMtto:`data:application/pdf;base64,${listaMtto}`,
+        listaMtto: `data:application/pdf;base64,${listaMtto}`,
         nombre: dataBd.codigo + ' - listaMtto'
     })
+}
+
+const consultarListasCofigReporte = async (req, res) => {
+    const listadoConfReporte = await dataConfReporte()
+    res.json(listadoConfReporte)
 }
 
 export {
@@ -349,5 +354,6 @@ export {
     consultarReporte,
     crearReporte,
     modificarReporte,
-    descargarListaMtto
+    descargarListaMtto,
+    consultarListasCofigReporte
 }

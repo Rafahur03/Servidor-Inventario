@@ -66,7 +66,7 @@ const guardarImagenesBase64 = async (imagen, data, destino) => {
 				pathActivo = `${path}${data.siglas}\\${data.codigo}\\Solicitud\\${data.idSolicitud}\\`;
 				break;
 			case 2:
-				pathActivo = `${path}${data.siglas}\\${data.codigo}\\Reporte\\	`;
+				pathActivo = `${path}${data.siglas}\\${data.codigo}\\Reporte\\${data.idReporte}\\`;
 				break;
 			default:
 				pathActivo = `${path}${data.siglas}\\${data.codigo}\\`;
@@ -199,7 +199,7 @@ const bufferimagenes = async (url_img, data, destino) => {
 			break
 
 		case 2:
-			pathActivo = `${path}${data.siglas}\\${data.codigo}\\Reporte\\`
+			pathActivo = `${path}${data.siglas}\\${data.codigo}\\Reporte\\${data.idReporte}\\`
 			break
 
 		default:
@@ -254,7 +254,7 @@ const eliminarImagenes = async (file, data, destino) => {
 				break
 
 			case 2:
-				pathActivo = `${path}${data.siglas}\\${data.codigo}\\Reporte\\`
+				pathActivo = `${path}${data.siglas}\\${data.codigo}\\Reporte\\${data.idReporte}\\`
 				break
 
 			default:
@@ -296,7 +296,7 @@ const eliminarImagenesSoliRepor = async (file, data, destino) => {
 				break
 
 			case 2:
-				pathActivo = `${path}${data.siglas}\\${data.codigo}\\Reporte\\`
+				pathActivo = `${path}${data.siglas}\\${data.codigo}\\Reporte\\${data.idReporte}\\`
 				break
 
 			default:

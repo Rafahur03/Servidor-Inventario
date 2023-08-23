@@ -32,7 +32,8 @@ import { consultarReportesTodos,
     consultarReporte,
     crearReporte,
     modificarReporte,
-    descargarListaMtto } from '../controllers/controllersReportes.js'
+    descargarListaMtto,
+    consultarListasCofigReporte } from '../controllers/controllersReportes.js'
 
 import { consultarconfig,
     actualizarConfig,
@@ -113,6 +114,8 @@ router.post('/crearReporte', checkAuth, crearReporte)
 router.post('/modificarReporte', checkAuth, modificarReporte)
 
 router.post('/descargarListaMtto', checkAuth, descargarListaMtto)
+
+router.get('/consultarListasCofigReporte', checkAuth, consultarListasCofigReporte)
 
 // router configuraciones
 router.post('/consultarconfig', checkAuth, consultarconfig)

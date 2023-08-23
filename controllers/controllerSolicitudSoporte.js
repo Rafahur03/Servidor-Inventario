@@ -16,8 +16,11 @@ import {
     consultarSolicitudUno,
     actualizarSolicitud,
     eliminarSolicitudDb,
-    actualizarImagenesSolicitud
+    actualizarImagenesSolicitud,
+    consultarSolicitureporte
 } from "../db/sqlSolicitudes.js"
+
+import { listaNuevoReporte } from "../db/sqlConfig.js"
 
 import { validarImagenes } from "../helpers/validarFiles.js"
 import { dataSolicitud } from "../db/sqlPdf.js"
@@ -129,9 +132,8 @@ const crearSolicitud = async (req, res) => {
             }
             const guardadoImagenes = await actualizarImagenesSolicitud(datos)
 
-            if (!guardadoImagenes.msg) data.img_solicitud = nombreImagenes
+            if (!guardadoImagenes.msg) return res.json({ msg: 'no fue posible guardar las imagenes en la base de datos'})
         }
-
 
     }
 
@@ -175,9 +177,7 @@ const editarSolicitud = async (req, res) => {
         const arrPermisos = JSON.parse(permisos)
         if (arrPermisos.indexOf(5) === -1) {
             return res.json({ msg: 'Usted no tiene permisos para editar solicitudes' })
-        } else {
-            return res.json({ msg: 'Esta solicitud Fue radicada por otro usuario. usted no puede modificarla' })
-        }
+        } 
     }
 
     const validarDatos = validarDatoSolicitud(data)
@@ -219,10 +219,8 @@ const eliminarSolicitud = async (req, res) => {
     if (dataBd.idUsuario !== sessionid) {
         const arrPermisos = JSON.parse(permisos)
         if (arrPermisos.indexOf(5) === -1) {
-            return res.json({ msg: 'Usted no tiene permisos para eliminar solicitudes' })
-        } else {
-            return res.json({ msg: 'Esta solicitud Fue radicada por otro usuario. Usted no puede eliminarla' })
-        }
+            return res.json({ msg: 'Usted no tiene permisos para editar solicitudes' })
+        } 
     }
 
     const actualizar = await eliminarSolicitudDb(dataBd.id)
@@ -259,10 +257,9 @@ const eliminarImagenSolicitud = async (req, res) => {
         const arrPermisos = JSON.parse(permisos)
         if (arrPermisos.indexOf(5) === -1) {
             return res.json({ msg: 'Usted no tiene permisos para editar solicitudes' })
-        } else {
-            return res.json({ msg: 'Esta solicitud Fue radicada por otro usuario. Usted no puede editarla' })
-        }
+        } 
     }
+
     const imagenes = dataBd.img_solicitud.split(',')
     const imagen = data.imagen
     const nuevaImagen = imagenes.filter((item) => item !== imagen)
@@ -312,9 +309,7 @@ const guardarImagenSolicitud = async (req, res) => {
         const arrPermisos = JSON.parse(permisos)
         if (arrPermisos.indexOf(5) === -1) {
             return res.json({ msg: 'Usted no tiene permisos para editar solicitudes' })
-        } else {
-            return res.json({ msg: 'Esta solicitud Fue radicada por otro usuario. Usted no puede editarla' })
-        }
+        } 
     }
 
     const imagen = data.imagen
@@ -367,36 +362,31 @@ const descargarSolicitud = async (req, res) => {
 
 const consultarSolicitudReporte = async (req, res) => {
     const { sessionid, permisos } = req
-    
+    const arrPermisos = JSON.parse(permisos)
     if(arrPermisos.indexOf(6) === -1) return res.json({msg: 'Usted no tiene permisos para crear reportes'})
     const id = req.body.id
 
-    const solicitud = await consultarSolicitudUno(id)
+    const solicitud = await consultarSolicitureporte(id)
     if(solicitud.msg)return res.json({msg: 'Ha ocurido un error consultando los datos intentelo mas tarde'})
 
     if (solicitud.msg) {
         return res.json(solicitud)
     }
+
     const dataBd = await consultarCodigoInterno(solicitud.id_activo)
     if(dataBd.msg)return res.json({msg: 'Ha ocurido un error consultando los datos intentelo mas tarde'})
+    
+    //valos por aqui
     
     solicitud.imagenes_Activo = solicitud.imagenes_Activo.split(',')
     const imagenesActivo = await bufferimagenes(solicitud.imagenes_Activo, dataBd)
     solicitud.imagenesActivo = imagenesActivo
     solicitud.fecha_solicitud = solicitud.fecha_solicitud.toISOString().substring(0, 10)
 
-    solicitud.editar = false
-    solicitud.reporte = false
-    const arrPermisos = JSON.parse(permisos)
+    const listado = await listaNuevoReporte()
+    if(listado.msg)return res.json({msg: 'Ha ocurido un error consultando los datos intentelo mas tarde'})
+    solicitud.listados = listado    
 
-    if (solicitud.idUsuario == sessionid) {
-        solicitud.editar = true
-    }else{
-        if (arrPermisos.indexOf(5) !== -1) solicitud.editar = true
-    }
-    
-    if(solicitud.idReporte !== null) solicitud.editar = false
-    
     res.json(
         solicitud
     )
