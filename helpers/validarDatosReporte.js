@@ -137,7 +137,13 @@ const validarDatoReporte = async (datos, token) => {
     if (datos.fechaReporte == '') return { titulo: 'ERROR', mensaje: 'El campo fecha de reporte es obligatorio' }
 
     if (fechaActual < datos.fechaReporte) return { titulo: 'ERROR', mensaje: 'La fecha de reporte no puede ser mayor al dia de hoy' }
+    
+    if (datos.fechaReporte < datos.fechaSolicitud) return modalMensaje({ titulo: 'ERROR', mensaje: 'La fecha del reporte no puede ser menor a la fecha de solicitud' })
 
+    if (datos.fechaproximoMtto == '') return { titulo: 'ERROR', mensaje: 'El campo fecha de reporte es obligatorio' }
+
+    if (datos.fechaproximoMtto < datos.fechaReporte) return modalMensaje({ titulo: 'ERROR', mensaje: 'La fecha del proximo mantenimeinto no puede ser menor a la fecha de reporte' })
+    
     return true
 
 }

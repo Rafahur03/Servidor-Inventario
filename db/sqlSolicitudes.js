@@ -142,7 +142,7 @@ const consultarSolicitureporte = async (id) => {
                 TRIM(la.modelo) AS modelo,TRIM(la.ubicacion) AS ubicacion, TRIM(ma.marca) AS marca,TRIM(es.estado) AS estadoActivo,
                 la.estado_id AS idEstadoActivo,	TRIM(ta.tipo_activo) AS tipoActivo, sm.id_usuario AS idUsuario,
                 sm.fecha_solicitud,sm.solicitud, TRIM(ess.estado) AS estadoSolicitud, TRIM(la.url_img) AS imagenes_Activo,
-                sm.id_estado AS idEstadoSolicitud, TRIM(pr.proceso) AS proceso, TRIM(ar.area) AS area
+                sm.id_estado AS idEstadoSolicitud, TRIM(pr.proceso) AS proceso, TRIM(ar.area) AS area, fr.dias
                 FROM solicitudes_mtto sm
                 INNER JOIN listado_activos la
                 ON sm.id_activo = la.id
@@ -160,6 +160,8 @@ const consultarSolicitureporte = async (id) => {
                 ON pr.id = la.proceso_id
                 INNER JOIN areas ar
                 ON ar.id = la.area_id
+                INNER JOIN	frecuencia_Mtto fr
+                on fr.id = la.frecuencia_id
             WHERE sm.id = '${id}'
         `)
         cerrarConexion(pool)

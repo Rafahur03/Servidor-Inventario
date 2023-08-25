@@ -1,10 +1,10 @@
 import formidable from "formidable"
 import { validarDatoReporte } from "../helpers/validarDatosReporte.js"
 // validar cambio de funcion import { validarFiles } from "../helpers/validarFiles.js"
-import { consultarCodigoInterno, actualizarEstadoActivo } from "../db/sqlActivos.js"
+import { consultarCodigoInterno, actualizarEstadoyFechaActivo } from "../db/sqlActivos.js"
 import { consultaValidarSolicitudReporte, actualizarEstadoSolicitud } from "../db/sqlSolicitudes.js"
 import { crearPdfMake } from "../helpers/crearPdfMake.js"
-import { validarImagenes } from "../helpers/validarFiles.js"
+import { validarImagenes, validarDocumentos } from "../helpers/validarFiles.js"
 import {
     guardarImagenesNuevoActivo,
     bufferimagenes,
@@ -12,7 +12,8 @@ import {
     guardarPDF,
     guadarReporteFinal,
     bufferReporte,
-    guardarImagenesBase64
+    guardarImagenesBase64,
+    guardarDocumentoBase64,
 } from "../helpers/copiarCarpetasArchivos.js"
 
 import {
@@ -82,12 +83,18 @@ const crearReporte = async (req, res) => {
     if (arrPermisos.indexOf(6) === -1) return res.json({ msg: 'Usted no tiene permisos para crear crear reportes de mantenimiento' })
 
     const data = req.body.datos
+
     const idSolicitud = data.idSolicitud.split('-')[1]
     if (idSolicitud !== data.solicitud.split('-')[1]) return res.json({ msg: 'La solicitud no pudo verificarse para crear el reporte' })
 
     // validar que la solicitud exista y que no este cerrada o eliminada
+
     const dataSolicitud = await consultaValidarSolicitudReporte(idSolicitud)
     if (dataSolicitud.msg) return res.json(dataSolicitud)
+
+    if (dataSolicitud.idReporte != null) {
+        return res.json({ msg: 'la solicitud ya tiene un reporte creado' })
+    }
 
     if (dataSolicitud.estadoSolicitud == 3) {
         return res.json({ msg: 'la solicitud esta en estado cerrada y no puede modificarse' })
@@ -96,11 +103,12 @@ const crearReporte = async (req, res) => {
     if (dataSolicitud.estadoSolicitud == 4) {
         return res.json({ msg: 'la solicitu no existe o fue eliminada' })
     }
-
+    // validamos que todos los datos sean correctos para ingresarlos a la bd
     const validarDatos = await validarDatoReporte(data)
     if (validarDatos.msg) return res.json(validarDatos)
 
     if (dataSolicitud.codigo !== data.codigo) return res.json({ msg: 'La solicitud no corresponde al activo selecionado' })
+
     data.id_activo = dataSolicitud.id_activo
 
     data.provedorMttoId = parseInt(data.provedorMttoId.split('-')[1])
@@ -119,6 +127,11 @@ const crearReporte = async (req, res) => {
         }
         imagenes = data.imagenes
         delete data.imagenes
+    }
+
+    if (data.soportePDF != null) {
+        const validarDocumento = validarDocumentos(data.soportePDF)
+        if (validarDocumento.msg) return res.json(validarDocumento)
     }
 
     data.usuario_idReporte = sessionid
@@ -141,15 +154,14 @@ const crearReporte = async (req, res) => {
     data.tipoMantenimientoId = data.tipoMantenimientoId.split('-')[1]
     data.idSolicitud = idSolicitud
 
-
-    // guardar datos en la BD
+    // guardamos los datos del reporte en la base de  datos
     const guardado = await guardarReporte(data)
     if (guardado.msg) return res.json(guardado)
-    
     // consulta los datos del activo
     const dataBd = await consultarCodigoInterno(dataSolicitud.id_activo)
     if (dataBd.msg) return res.json({ msg: ' no fue posible terminar de guardar los datos del reporte verifique los datos guardados y actualicelos' })
 
+    // guardamos las imagenes en la carpeta del reporte del activo y actualizamos los nombres en la base de datos
     dataBd.idReporte = guardado
 
     if (imagenes !== null) {
@@ -166,27 +178,42 @@ const crearReporte = async (req, res) => {
                 img_reporte: nombreImagenes.toString()
             }
             const guardadoImagenes = await actualizarImagenesReporte(datos)
-
-            if (guardadoImagenes.msg) return res.json({ msg: 'no fue posible guardar las imagenes en la base de datos verifique los datos guardados y actualicelos', reporte: gudardado })
+            if (guardadoImagenes.msg) return res.json({ msg: 'no fue posible guardar las imagenes en la base de datos verifique los datos guardados y actualicelos', reporte: guardado })
             data.img_reporte = nombreImagenes
         }
     }
 
-    if (data.estadoActivoId != dataSolicitud.estadoActivo) {
-        const dataActivo = {
-            id: dataSolicitud.id_activo,
-            estadoActivoId: data.estadoActivoId
-        }
-        const actualizacion = await actualizarEstadoActivo(dataActivo)
-        if (actualizacion.msg) res.json({ msg: 'No fuen posible actualizar el estado del activo ni el estado de la solicitud favor verifique y actualicelos', reporte: gudardado })
+    // actualizamos el estado y la fecha del proximo mtto del equipo en listado activo
+    const dataActivo = {
+        id: dataSolicitud.id_activo,
+        estadoActivoId: data.estadoActivoId,
+        fechaproximoMtto: data.fechaproximoMtto
     }
-    if (data.estadoSolicitudId != dataSolicitud.estadoSolicitud) {
-        const datosSolicitud = {
-            id: dataSolicitud.id,
-            estadoSolicitudId: data.estadoSolicitudId
+    const actualizacion = await actualizarEstadoyFechaActivo(dataActivo)
+    if (actualizacion.msg) return res.json({ msg: 'No fuen posible actualizar el estado del activo favor verifique y actualicelos', reporte: guardado })
+
+    // guardamos el pdf de soporte externo en la cartpeta del activo 
+
+    if (data.soportePDF != null) {
+        const datos = {
+            file: data.soportePDF,
+            documento: 'Rep',
+            idReporte: guardado
         }
-        const actualizacion = await actualizarEstadoSolicitud(datosSolicitud)
-        if (actualizacion.msg) res.json({ msg: 'No fuen posible actualizar el estado de la solicitud favor verifique y actualicelo', reporte: gudardado })
+        const guardarDocumento = guardarDocumentoBase64(datos, dataBd, 2)
+        if (guardarDocumento.msg) return res.json({ msg: 'No fue posible guardar el Soporte en pdf, favor verifique y actualice el reporte.', reporte: guardado })
+    } else {
+        const pdfmake = await crearPdfMake(guardado, 'Reporte');
+
+        const datos = {
+            file: 'data:application/pdf;base64,'+ pdfmake,
+            documento: 'Rep',
+            idReporte: guardado
+        }
+
+        const guardarDocumento = await guardarDocumentoBase64(datos, dataBd, 2)
+  
+        if (guardarDocumento.msg) return res.json({ msg: 'No fue posible guardar el Soporte en pdf make, favor verifique y actualice el reporte.', reporte: guardado })
     }
 
     res.json({

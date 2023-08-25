@@ -104,7 +104,7 @@ const crearSolicitud = async (req, res) => {
     data.id_activo = activo
     data.solicitud = data.descripcion
     data.id_usuario = sessionid
-    data.fecha_solicitud = new Date(Date.now()).toISOString().substring(0, 10)
+    data.fecha_solicitud = new Date(Date.now()).toISOString().substring(0, 19).replace('T', ' ')
     data.id_estado = 1
     delete data.idActivo
     delete data.descripcion

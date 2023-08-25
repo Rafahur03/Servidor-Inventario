@@ -365,20 +365,24 @@ const guardarDocumentoBase64 = async (datos, data, destino) => {
 	if (sizeInBytes > 3145728) return { msg: 'Solo se aceptan documentos de menos de 3 Mb' }
 
 	try {
-
+		const extencion = mime.extension(mimeType)
 		let pathActivo
+		let nuevoNombre
 
 		switch (destino) {
 			case 1:
 				pathActivo = `${path}${data.siglas}\\${data.codigo}\\Solicitud\\`
+				nuevoNombre = `${data.codigo}-${datos.documento}-${getRandomInt(100)}.${extencion}`
 				break
 
 			case 2:
-				pathActivo = `${path}${data.siglas}\\${data.codigo}\\Reporte\\`
+				pathActivo = `${path}${data.siglas}\\${data.codigo}\\`
+				nuevoNombre = `${datos.documento}-${data.codigo}-${datos.idReporte}.${extencion}`
 				break
 
 			default:
 				pathActivo = `${path}${data.siglas}\\${data.codigo}\\`
+				nuevoNombre = `${data.codigo}-${datos.documento}-${getRandomInt(100)}.${extencion}`
 				break
 		}
 
@@ -388,16 +392,13 @@ const guardarDocumentoBase64 = async (datos, data, destino) => {
 		} catch (error) {
 			await fspromises.mkdir(pathActivo);
 		}
-
-		const extencion = mime.extension(mimeType)
-		const nuevoNombre = `${data.codigo}-${datos.documento}-${getRandomInt(100)}.${extencion}`
 		const pathDestino = `${pathActivo}${nuevoNombre}`
 		await fspromises.writeFile(pathDestino, decodedData);
 		return nuevoNombre
 
 	} catch (error) {
 		console.error(`Ha ocurrido un error: ${error.message}`);
-		return { msg: 'ocurrio un error al intentar guardar la imagen intentalo más tarde' }
+		return { msg: 'ocurrio un error al intentar guardar el documento intentalo más tarde' }
 	}
 }
 

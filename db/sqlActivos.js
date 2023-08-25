@@ -401,6 +401,24 @@ const actualizarSoportes = async (soportes, id) => {
     }
 }
 
+const actualizarEstadoyFechaActivo = async (data) => {
+
+    try {
+        const pool = await conectardb()
+        const resultado = await pool.query(`
+            UPDATE listado_activos
+                SET estado_id ='${data.estadoActivoId}',fecha_proximo_mtto ='${data.fechaproximoMtto}',
+                eliminacion_cambio ='reporte de mantenimiento'
+            WHERE id='${data.id}'
+        `)
+        cerrarConexion(pool)
+        return (resultado.rowsAffected)
+    } catch (error) {
+        console.error(error);
+        return { msg: 'Ha ocurido un error al intentar eliminar el activo' }
+    }
+}
+
 const actualizarEstadoActivo = async (data) => {
 
     try {
@@ -437,5 +455,6 @@ export {
     actualizarComponentes,
     actualizarSoportes,
     consultarActivoSolicitud,
-    actualizarEstadoActivo
+    actualizarEstadoActivo,
+    actualizarEstadoyFechaActivo
 }

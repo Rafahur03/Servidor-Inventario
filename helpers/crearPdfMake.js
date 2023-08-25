@@ -122,14 +122,14 @@ const reporteData = async id => {
     // normalizamos los datos del reporte para su ingreso a pdf y creamos los buffer de imagenes para ingresarlos al pdf 
     // normalizamos las fechas 
     datadb.fechaSolicitud = datadb.fechaSolicitud.toLocaleString('es-CO')
-
-    datadb.fechareporte.setMinutes(datadb.fechareporte.getMinutes() + datadb.fechareporte.getTimezoneOffset())
-    datadb.fechaReporte = datadb.fechaReporte.toLocaleDateString('es-CO')
-
-    datadb.fechaCierre = datadb.fechaCierre.toLocaleString('es-CO')
-
-    datadb.proximoMtto.setMinutes(datadb.proximoMtto.getMinutes() + datadb.proximoMtto.getTimezoneOffset())
-    datadb.proximoMtto = datadb.proximoMtto.toLocaleDateString('es-CO')
+    datadb.fechaReporte = datadb.fechaReporte.toISOString().substring(0, 10)   
+    if(datadb.fechaCierre == null || datadb.fechaCierre ==''){
+        datadb.fechaCierre = ''
+    } else{
+        datadb.fechaCierre = datadb.fechaCierre.toLocaleString('es-CO')
+    }
+    
+    datadb.proximoMtto = datadb.proximoMtto.toISOString().substring(0, 10)
 
     // determinamos el tipo de  activo
     if (datadb.tipo_activo_id === 1) {
@@ -174,7 +174,7 @@ const reporteData = async id => {
 
         // creamos un buffer de las imagenes en un array que se pude insertar  dirrectamente en el PDF del reporte
         const bodyImagenes = datadb.img_reporte.map(imagen => {
-            const imageData = fs.readFileSync(path + 'Reporte\\' + imagen);
+            const imageData = fs.readFileSync(path + 'Reporte\\'+ datadb.idReporte + '\\' + imagen);
             const buffer = `data:${mime.lookup(imagen)};base64,${Buffer.from(imageData).toString('base64')}`
             return {
                 image: buffer,
