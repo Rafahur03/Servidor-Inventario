@@ -54,6 +54,9 @@ const validarDatoReporte = async (datos, token) => {
 
     if (validarPalabras(datos.costoMp)) return { msg: 'El campo costo de materiales no puede contener palabras como Select, From ect..' }
 
+    if(datos.costoMo < 0) return { msg: 'El campo costo de mano de obra no puede ser menor a 0'}
+    if(datos.costoMp < 0) return { msg: 'El campo costo de mano de obra no puede ser menor a 0'}
+    
     const config = await dataConfReporte()
     if (config.msg) return { msg: 'no se pudieron validar correctamente los datos intentalo más tarde' }
 

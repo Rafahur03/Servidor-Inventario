@@ -39,14 +39,52 @@ const consultarReporteUno = async (id) => {
     try {
         const pool = await conectardb()
         const resultado = await pool.query(`
-            SELECT * FROM repotesMtto
-            WHERE id ='${id}'
+            SELECT rm.id AS idReporte, rm.id_activo AS idActivo, rm.solicitud_id AS idSolicitud, rm.tipoMtoo_id AS tipoMttoId,
+                rm.proveedor_id AS proveedorMttoId,	rm.usuario_idaprovado AS recibidoConformeId, rm.fechareporte AS fechaReporte,
+                rm.usuario_idReporte AS usuarioReporteId, rm.costo_mo AS costoMo, rm.costo_mp AS costoMp, TRIM(pro.nit) AS nit,
+                rm.proximoMtto, TRIM(rm.hallazgos) AS hallazgos, TRIM(rm.reporte) AS reporte, TRIM(rm.recomendaciones) AS recomendaciones,
+                TRIM(rm.img_reporte) AS imgReporte, TRIM(la.nombre) AS nombre, la.estado_id AS estadoActivoId, TRIM(ma.marca) AS marca,
+                TRIM(la.serie) AS serie, TRIM(la.modelo) as modelo, TRIM(la.ubicacion) AS ubicacion, TRIM(ess.estado) AS estadoSolicitud,
+                CONCAT(TRIM(ca.siglas) , TRIM(la.consecutivo_interno)) AS codigo, TRIM(pr.proceso) AS proceso, TRIM(ta.tipo_activo) AS tipoActivo,
+                TRIM(ar.area) AS area, TRIM(es.estado) AS estadoActivo, so.fecha_solicitud AS fechaSolicitud, TRIM(tm.tipoMtto) AS tipoMtto,
+                CONCAT(TRIM(pro.razon_social),'--' ,TRIM(pro.nombre_comercial),'--', TRIM(pro.nit)) as proveedor, so.id_estado AS estadoSolicitudId,
+                CONCAT (TRIM(us.nombre), SPACE(1) ,TRIM(us.nombre_1), SPACE(1) ,TRIM(us.apellido), SPACE(1) ,TRIM(us.apellido_1)) AS usuarioRecibido,
+                CONCAT (TRIM(usr.nombre), SPACE(1) ,TRIM(usr.nombre_1), SPACE(1) ,TRIM(usr.apellido), SPACE(1) ,TRIM(usr.apellido_1)) AS usuarioReporte,
+                TRIM(la.url_img) AS imgActivo, rm.repIntExte, TRIM(so.solicitud) AS solicitud		
+                FROM repotesMtto rm
+                INNER JOIN listado_activos la
+                ON la.id = rm.id_activo
+                INNER JOIN marca_activos ma
+                ON ma.id = la.marca_id
+                INNER JOIN clasificacion_activos ca
+                ON ca.id = la.clasificacion_id
+                INNER JOIN procesos pr
+                ON pr.id = la.proceso_id
+                INNER JOIN tipo_activo ta
+                ON ta.id = la.tipo_activo_id
+                INNER JOIN areas ar
+                ON ar.id = la.area_id
+                INNER JOIN estados es
+                ON es.id = la.estado_id
+                INNER JOIN solicitudes_mtto so
+                ON so.id = rm.solicitud_id
+                INNER JOIN tipo_mantenimeintos tm
+                ON tm.id = rm.tipoMtoo_id
+                INNER JOIN proveedores pro
+                ON pro.id = rm.proveedor_id
+                INNER JOIN usuarios AS us
+                ON us.id = rm.usuario_idaprovado
+                INNER JOIN usuarios AS usr
+                ON usr.id = rm.usuario_idReporte
+                INNER JOIN estado_solicitudes ess
+                ON ess.id = so.id_estado
+            WHERE rm.id ='${id}'
         `)
         cerrarConexion(pool)
         return (resultado.recordset[0])
     } catch (error) {
         console.error(error);
-        return { msg: 'Ha ocurido un error al intentar consultar los dato' }
+        return { msg: 'Ha ocurido un error al intentar consultar los datos del reporte' }
     }
 }
 
@@ -164,6 +202,23 @@ const actualizarImagenesReporte = async (data) => {
     }
 }
 
+const actualizarSoporteReporte = async (data) => {
+
+    try {
+        const pool = await conectardb()
+        const resultado = await pool.query(`
+            UPDATE repotesMtto
+                SET repIntExte='${data.repIntExte}'
+            WHERE id = '${data.id}'
+        `)
+        cerrarConexion(pool)
+        return (resultado.rowsAffected)
+    } catch (error) {
+        console.error(error);
+        return { msg: 'Ha ocurido un error al intentar eliminar el activo' }
+    }
+}
+
 const dataConfReporte = async () => {
 
     try {
@@ -191,6 +246,6 @@ export {
     consultarReportesActivo,
     dataConfReporte,
     actualizarImagenesReporte,
-    
+    actualizarSoporteReporte   
 
 }

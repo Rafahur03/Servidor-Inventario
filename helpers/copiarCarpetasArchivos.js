@@ -425,18 +425,24 @@ const bufferSoportespdf = (soportes, data) => {
 	return bufferpdf
 }
 
-const bufferSoportepdf = async (soportes, data) => {
+const bufferSoportepdf = async (soportes, data, reporte = null) => {
 	try {
+
 		const pathActivo = `${path}${data.siglas}\\${data.codigo}\\`
-		const imagePath = pathActivo + soportes
-		const buffer = fs.readFileSync(imagePath);
-		const bufferpdf = `data:${mime.lookup(soportes)};base64,${buffer.toString('base64')}`
+		let soportePath
+		if (reporte === null) {
+			soportePath = pathActivo + soportes
+		} else {
+			soportePath = pathActivo + `${soportes}-${data.codigo}-${reporte}.pdf`
+		}
+
+		const buffer = fs.readFileSync(soportePath);
+		const bufferpdf = `data:application/pdf;base64,${buffer.toString('base64')}`
 		return bufferpdf
 
 	} catch (error) {
 		return { msg: 'no se pudo devolver el buffer' }
 	}
-
 }
 
 const guadarReporteFinal = async (bufferPdf, data, id) => {

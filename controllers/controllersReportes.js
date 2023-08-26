@@ -14,6 +14,7 @@ import {
     bufferReporte,
     guardarImagenesBase64,
     guardarDocumentoBase64,
+    bufferSoportepdf
 } from "../helpers/copiarCarpetasArchivos.js"
 
 import {
@@ -22,7 +23,8 @@ import {
     guardarReporte,
     actualizarReporte,
     dataConfReporte,
-    actualizarImagenesReporte
+    actualizarImagenesReporte,
+    actualizarSoporteReporte
 } from "../db/sqlReportes.js"
 
 
@@ -37,37 +39,41 @@ const consultarReportesTodos = async (req, res) => {
     res.json(listadoReportes)
 }
 
-const consultarReporte = async (req, res) => {
+const consultarReporte = async (req, res) => { 
     const id = req.body.id
+    if (parseInt(id) == NaN) return res.json({ msg: 'Debe ingresar un id valido' })
+    const { sessionid, permisos, Id_proveedores } = req
+    const arrPermisos = JSON.parse(permisos)
     const reporte = await consultarReporteUno(id)
-    if (reporte.msg) {
-        return res.json(reporte)
-    }
+    
+    if (reporte.msg) return res.json(reporte)
+    const dataBd = await consultarCodigoInterno(reporte.idActivo)
+    if (dataBd.msg) return res.json(dataBd)
 
     // normalizamos las fecha a la  hora local del pc
-    reporte.fechareporte.setMinutes(reporte.fechareporte.getMinutes() + reporte.fechareporte.getTimezoneOffset())
-    reporte.fechareporte = reporte.fechareporte.toLocaleDateString('es-CO')
-    reporte.fechaCreacion = reporte.fechaCreacion.toLocaleString('es-CO')
-    reporte.fechaCierre = reporte.fechaCierre.toLocaleString('es-CO')
-
-    if (reporte.proximoMtto !== null) {
-        reporte.proximoMtto.setMinutes(reporte.proximoMtto.getMinutes() + reporte.proximoMtto.getTimezoneOffset())
-        reporte.proximoMtto = reporte.proximoMtto.toLocaleDateString('es-CO')
-    }
+    reporte.fechaReporte = reporte.fechaReporte.toISOString().substring(0, 10)
+    reporte.proximoMtto = reporte.proximoMtto.toISOString().substring(0, 10)
+    reporte.fechaSolicitud = reporte.fechaSolicitud.toISOString().substring(0, 10)
+    reporte.imgActivo = reporte.imgActivo.split(',')
+    // cargamos la imagenes 
+    reporte.imagenesActivo = await bufferimagenes(reporte.imgActivo, dataBd)
 
     // rcuerda crear el buffer de imagenes 
-    if (reporte.img_reporte !== null && reporte.img_reporte !== '') {
-        reporte.img_reporte = reporte.img_reporte.split(',')
-        reporte.img_reporte = bufferimagenes(reporte.img_reporte, reporte, 2)
+    if (reporte.imgReporte !== null && reporte.imgReporte !== '') {
+        reporte.imgReporte = reporte.imgReporte.split(',')
+        dataBd.idReporte = reporte.idReporte
+        reporte.imagenesReporte = await bufferimagenes(reporte.imgReporte, dataBd, 2)
     } else {
-        reporte.img_reporte = ''
+        reporte.imgReporte = ''
     }
 
-    reporte.pdfReporte = await crearPdfMake(id, 'Reporte')
+    if (reporte.repIntExte === 'Ext') {
+        reporte.soporte = await bufferSoportepdf('Rep', dataBd, reporte.idReporte)
+    }
 
-    res.json({
+    res.json(
         reporte
-    })
+    )
 
 
 }
@@ -202,18 +208,29 @@ const crearReporte = async (req, res) => {
         }
         const guardarDocumento = guardarDocumentoBase64(datos, dataBd, 2)
         if (guardarDocumento.msg) return res.json({ msg: 'No fue posible guardar el Soporte en pdf, favor verifique y actualice el reporte.', reporte: guardado })
+        const datosreporte = {
+            id:guardado,
+            repIntExte:'Ext'
+        }
+        const actualizarReporteBd = await actualizarSoporteReporte(datosreporte)
+        if (actualizarReporteBd.msg) return res.json({ msg: 'No fue posible guardar el Soporte en pdf en la Base de datos verifique y actualice el reporte', reporte: guardado })
     } else {
         const pdfmake = await crearPdfMake(guardado, 'Reporte');
 
         const datos = {
-            file: 'data:application/pdf;base64,'+ pdfmake,
+            file: 'data:application/pdf;base64,' + pdfmake,
             documento: 'Rep',
             idReporte: guardado
         }
 
         const guardarDocumento = await guardarDocumentoBase64(datos, dataBd, 2)
-  
         if (guardarDocumento.msg) return res.json({ msg: 'No fue posible guardar el Soporte en pdf make, favor verifique y actualice el reporte.', reporte: guardado })
+        const datosreporte = {
+            id:guardado,
+            repIntExte:'Int'
+        }
+        const actualizarReporteBd = await actualizarSoporteReporte(datosreporte)
+        if (actualizarReporteBd.msg) return res.json({ msg: 'No fue posible guardar el Soporte en pdf Make en la Base de datos verifique y actualice el reporte', reporte: guardado })
     }
 
     res.json({
