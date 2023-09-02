@@ -34,6 +34,25 @@ const consultarReportes = async () => {
     }
 }
 
+const consultarReportevalidacion = async (id) => {
+
+    try {
+        const pool = await conectardb()
+        const resultado = await pool.query(`
+            SELECT rm.id AS idReporte, rm.id_activo AS idActivo, rm.solicitud_id AS idSolicitud, so.id_estado AS estadoSolicitudId, TRIM(rm.img_reporte) AS imgReporte, rm.usuario_idReporte AS usuarioReporteId, so.fecha_solicitud AS fechaSolicitud
+                FROM repotesMtto rm
+                INNER JOIN solicitudes_mtto so
+                ON so.id = rm.solicitud_id
+            WHERE rm.id ='${id}'
+        `)
+        cerrarConexion(pool)
+        return (resultado.recordset[0])
+    } catch (error) {
+        console.error(error);
+        return { msg: 'No fue posible validar la informaciondel reporte, Ha ocurido un error al intentar consultar los datos del reporte' }
+    }
+}
+
 const consultarReporteUno = async (id) => {
 
     try {
@@ -131,30 +150,45 @@ const actualizarReporte = async (data) => {
         let resultado
         if (data.id_estado === 3) {
             resultado = await pool.query(`
-            UPDATE repotesMtto
-                SET tipoMtoo_id = '${data.tipoMtoo_id}' , fechareporte = '${data.fechareporte}', costo_mo = '${data.costo_mo}', costo_mp = '${data.costo_mp}', proveedor_id = '${data.proveedor_id}', usuario_idaprovado = '${data.usuario_idaprovado}', hallazgos = '${data.hallazgos}', reporte = '${data.reporte}', recomendaciones = '${data.recomendaciones}', img_reporte = '${data.img_reporte}', fechaCierre = '${data.fechaCierre}'
-             WHERE id =  '${data.id}'            
-        `)
+                UPDATE repotesMtto
+                SET costo_mo = '${data.costoMo}', costo_mp = '${data.costoMp}', fechareporte = '${data.fechaReporte}',
+                    proximoMtto = '${data.fechaproximoMtto}', hallazgos = '${data.hallazgos}', proveedor_id = '${data.provedorMttoId}',
+                    usuario_idaprovado = '${data.recibidoConformeId}', recomendaciones = '${data.recomendaciones}', reporte = '${data.reporte}',
+                    tipoMtoo_id = '${data.tipoMantenimientoId}', usuario_idReporte = '${data.usuario_idReporte}', fechaCierre = '${data.fechaCierre}'
+                WHERE id = '${data.idReporte}'
+                
+                UPDATE solicitudes_mtto 
+                    SET id_estado = '${data.estadoSolicitudId}'
+                WHERE id = '${data.idSolicitud}'
+                
+                UPDATE listado_activos
+                    SET fecha_proximo_mtto = '${data.fechaproximoMtto}', estado_id = '${data.estadoActivoId}'
+                WHERE id = '${data.idActivo}'             
+            `)
         } else {
             resultado = await pool.query(`
-            UPDATE repotesMtto
-                SET tipoMtoo_id = '${data.tipoMtoo_id}' , fechareporte = '${data.fechareporte}', costo_mo = '${data.costo_mo}', costo_mp = '${data.costo_mp}', proveedor_id = '${data.proveedor_id}', usuario_idaprovado = '${data.usuario_idaprovado}', hallazgos = '${data.hallazgos}', reporte = '${data.reporte}', recomendaciones = '${data.recomendaciones}', img_reporte = '${data.img_reporte}'
-             WHERE id =  '${data.id}'        
-        `)
+                UPDATE repotesMtto
+                SET costo_mo = '${data.costoMo}', costo_mp = '${data.costoMp}', fechareporte = '${data.fechaReporte}',
+                    proximoMtto = '${data.fechaproximoMtto}', hallazgos = '${data.hallazgos}', proveedor_id = '${data.provedorMttoId}',
+                    usuario_idaprovado = '${data.recibidoConformeId}', recomendaciones = '${data.recomendaciones}', reporte = '${data.reporte}',
+                    tipoMtoo_id = '${data.tipoMantenimientoId}', usuario_idReporte = '${data.usuario_idReporte}'
+                WHERE id = '${data.idReporte}'
+                
+                UPDATE solicitudes_mtto 
+                    SET id_estado = '${data.estadoSolicitudId}'
+                WHERE id = '${data.idSolicitud}'
+                
+                UPDATE listado_activos
+                    SET fecha_proximo_mtto = '${data.fechaproximoMtto}', estado_id = '${data.estadoActivoId}'
+                WHERE id = '${data.idActivo}'        
+            `)
 
         }
-
-
-        await pool.query(`
-            UPDATE solicitudes_mtto
-                SET id_estado = '${data.id_estado}'
-            WHERE id = '${data.solicitud_id}'
-        `)
         cerrarConexion(pool)
         return (resultado.rowsAffected)
     } catch (error) {
         console.error(error);
-        return { msg: 'Ha ocurido un error al intentar guardar el reporte, verifique si se guardo en caso contrario intentelo nuevamente' }
+        return { msg: 'Ha ocurido un error al intentar actualizar el reporte, verifique si se guardo en caso contrario intentelo nuevamente' }
     }
 }
 const consultarReportesActivo = async (id) => {
@@ -183,7 +217,6 @@ const consultarReportesActivo = async (id) => {
         return { msg: 'Ha ocurido un error al intentar guardar los datos intentalo mas tarde' }
     }
 }
-
 const actualizarImagenesReporte = async (data) => {
 
     try {
@@ -201,7 +234,6 @@ const actualizarImagenesReporte = async (data) => {
         return { msg: 'Ha ocurido un error al intentar eliminar el activo' }
     }
 }
-
 const actualizarSoporteReporte = async (data) => {
 
     try {
@@ -218,7 +250,6 @@ const actualizarSoporteReporte = async (data) => {
         return { msg: 'Ha ocurido un error al intentar eliminar el activo' }
     }
 }
-
 const dataConfReporte = async () => {
 
     try {
@@ -246,6 +277,7 @@ export {
     consultarReportesActivo,
     dataConfReporte,
     actualizarImagenesReporte,
-    actualizarSoporteReporte   
+    actualizarSoporteReporte,
+    consultarReportevalidacion 
 
 }

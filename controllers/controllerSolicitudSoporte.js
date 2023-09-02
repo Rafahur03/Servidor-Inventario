@@ -325,6 +325,8 @@ const guardarImagenSolicitud = async (req, res) => {
     const guardarImagen = await guardarImagenesBase64(imagen, dataActivo, 1);
     if (guardarImagen.msg) return res.json(guardarImagen)
 
+    
+    if(imagenes[0]==='') imagenes.shift()
     imagenes.push(guardarImagen);
 
     const datos = {

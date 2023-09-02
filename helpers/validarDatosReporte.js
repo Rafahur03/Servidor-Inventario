@@ -1,8 +1,8 @@
 import { dataConfReporte } from "../db/sqlReportes.js"
 
-const validarDatoReporte = async (datos, token) => {
+const validarDatoReporte = async (datos) => {
 
-    if (datos.solicitud != datos.idSolicitud) return { msg: 'No fue posible validar la solicitud' }
+    if(!datos.reporteId) if (datos.solicitud != datos.idSolicitud) return { msg: 'No fue posible validar la solicitud' }
 
     if (validarVacios(datos.estadoActivoId)) return { msg: 'El campo estado activo no puede estar vacio' }
 
@@ -154,7 +154,7 @@ const validarDatoReporte = async (datos, token) => {
 const validarId = (datos) => {
     if (!datos.includes('-')) return true
     const id = parseInt(datos.split('-')[1])
-    if (id == NaN) return true
+    if (isNaN(id)) return true
     return false
 }
 

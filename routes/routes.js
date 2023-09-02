@@ -33,7 +33,14 @@ import { consultarReportesTodos,
     crearReporte,
     modificarReporte,
     descargarListaMtto,
-    consultarListasCofigReporte } from '../controllers/controllersReportes.js'
+    consultarListasCofigReporte,
+    eliminarReporte,
+    eliminarImagenReporte,
+    eliminarSoporteExtReporte,
+    guardarImagenReporte,
+    guardarSoporteExtReporte,
+    descargarReporteExterno,
+    descargarReporte } from '../controllers/controllersReportes.js'
 
 import { consultarconfig,
     actualizarConfig,
@@ -111,11 +118,25 @@ router.post('/consultarReporte', checkAuth, consultarReporte)
 
 router.post('/crearReporte', checkAuth, crearReporte)
 
-router.post('/modificarReporte', checkAuth, modificarReporte)
+router.post('/editarReporte', checkAuth, modificarReporte)
 
 router.post('/descargarListaMtto', checkAuth, descargarListaMtto)
 
 router.get('/consultarListasCofigReporte', checkAuth, consultarListasCofigReporte)
+
+router.delete('/eliminarReporte', checkAuth, eliminarReporte)
+
+router.delete('/eliminarImagenReporte', checkAuth, eliminarImagenReporte)
+
+router.delete('/eliminarSoporteExtReporte', checkAuth, eliminarSoporteExtReporte)
+
+router.post('/guardarImagenReporte', checkAuth, guardarImagenReporte)
+
+router.post('/guardarSoporteExtReporte', checkAuth, guardarSoporteExtReporte)
+
+router.post('/descargarReporte', checkAuth, descargarReporte)
+
+router.post('/descargarReporteExterno', checkAuth, descargarReporteExterno)
 
 // router configuraciones
 router.post('/consultarconfig', checkAuth, consultarconfig)

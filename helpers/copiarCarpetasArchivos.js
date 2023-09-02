@@ -191,7 +191,6 @@ const bufferimagenes = async (url_img, data, destino) => {
 
 		return [await bufferNoImage()]
 	}
-
 	let pathActivo
 	switch (destino) {
 		case 1:
@@ -207,13 +206,22 @@ const bufferimagenes = async (url_img, data, destino) => {
 			break
 	}
 
-	const imageBuffers = url_img.map(imageName => {
-		const imagePath = pathActivo + imageName
-		const buffer = fs.readFileSync(imagePath);
-		const bufferCompleto = `data:${mime.lookup(imageName)};base64,${buffer.toString('base64')}`
-		return bufferCompleto
-	});
-	return imageBuffers
+	try {
+		const imageBuffers = url_img.map(imageName => {
+			const imagePath = pathActivo + imageName
+			const buffer = fs.readFileSync(imagePath);
+			const bufferCompleto = `data:${mime.lookup(imageName)};base64,${buffer.toString('base64')}`
+			return bufferCompleto
+		});
+		return imageBuffers
+		
+	} catch (error) {
+		console.error(`Ha ocurrido un error: ${error.message}`);
+		return { msg: 'no fue posible obtener las imagenes' }
+		
+	}
+
+	
 }
 
 const bufferimagen = async (url_img, data, destino) => {
@@ -251,7 +259,7 @@ const eliminarImagenes = async (file, data, destino) => {
 		switch (destino) {
 			case 1:
 				pathActivo = `${path}${data.siglas}\\${data.codigo}\\Solicitud\\${data.idSolicitud}\\`
-				break
+				break 
 
 			case 2:
 				pathActivo = `${path}${data.siglas}\\${data.codigo}\\Reporte\\${data.idReporte}\\`
@@ -465,6 +473,30 @@ const bufferReporte = (data, id) => {
 }
 
 
+const eliminarReporteExterno = async (data) => {
+	function getRandomInt(max) {
+		return Math.floor(Math.random() * max);
+	}
+
+	try {
+
+		const pathReporte = `${path}\\${data.siglas}\\${data.codigo}\\Reporte\\${data.reporte}`
+		try {
+			await fspromises.access(pathReporte, fspromises.constants.F_OK);
+		} catch (error) {
+			await fspromises.mkdir(pathReporte);
+		}
+		
+		//Cambiar ubicacion y nombre del archivo
+		await fspromises.rename(`${path}\\${data.siglas}\\${data.codigo}\\Rep-${data.codigo}-${data.reporte}.pdf`, `${pathReporte}\\E-Rep-${data.codigo}-${data.reporte}-${getRandomInt(50)}.pdf`);
+		return true
+
+	} catch (error) {
+		console.error(`Ha ocurrido un error: ${error.message}`);
+		return { msg: 'No fue posible eliminar el archivo del directorio' }
+	}
+}
+
 
 export {
 	copiarYCambiarNombre,
@@ -481,5 +513,6 @@ export {
 	elimnarSoportePdf,
 	guadarReporteFinal,
 	bufferReporte,
-	guardarDocumentoBase64 //nuevo
+	guardarDocumentoBase64,
+	eliminarReporteExterno //nuevo
 }
