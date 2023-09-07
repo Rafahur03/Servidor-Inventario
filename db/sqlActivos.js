@@ -133,6 +133,45 @@ const consultarActivoSolicitud = async (id) => {
     }
 }
 
+const consultarActivoReportePrev = async (id) => {
+
+    try {
+        const pool = await conectardb()
+        const resultado = await pool.query(`
+            SELECT  la.id, CONCAT(TRIM(ca.siglas),la.consecutivo_interno) AS codigo, TRIM(la.nombre) AS nombre, TRIM(ma.marca) AS marca,
+                TRIM(la.modelo) AS modelo, TRIM(la.serie) AS serie, TRIM(ar.area) AS area, TRIM(la.ubicacion) AS ubicacion,
+                TRIM(es.estado) AS estado, la.url_img, TRIM(pr.proceso) AS proceso, TRIM(ta.tipo_activo) AS tipoActivo, la.fecha_proximo_mtto AS proximoMto, la.estado_id AS estadoActivoId
+                FROM listado_activos la
+                INNER JOIN clasificacion_activos ca
+                ON ca.id = la.clasificacion_id
+                INNER JOIN marca_activos ma
+                ON ma.id = la.marca_id
+                INNER JOIN areas ar
+                ON ar.id = la.area_id
+                INNER JOIN estados es
+                ON es.id = la.estado_id
+                INNER JOIN usuarios us
+                ON us.id = la.usuario_id
+                INNER JOIN tipo_activo ta
+                ON ta.id = la.tipo_activo_id
+                INNER JOIN procesos pr
+                ON pr.id = la.proceso_id
+            WHERE la.id ='${id}'
+
+            SELECT id, TRIM(estado) AS estado FROM estados WHERE id <> 3 
+            SELECT id, CONCAT(TRIM(nombre), SPACE(1), TRIM(nombre_1), SPACE(1), TRIM(apellido), SPACE(1), TRIM(apellido_1)) AS usuario FROM usuarios
+            SELECT id, TRIM(nombre_comercial) AS nombre, TRIM(razon_social) AS razonSocial, TRIM(nit) AS nit FROM proveedores
+            SELECT id, TRIM(estado) AS estadoSolicitud FROM estado_solicitudes WHERE id < 4 
+        `)
+        cerrarConexion(pool)
+        return (resultado.recordsets)
+
+    } catch (error) {
+        console.error(error);
+        return { msg: 'Ha ocurido un error al intentar consultar los dato' }
+    }
+}
+
 const guardarNuevoActivo = async (data) => {
     const pool = await conectardb()
 
@@ -456,5 +495,6 @@ export {
     actualizarSoportes,
     consultarActivoSolicitud,
     actualizarEstadoActivo,
-    actualizarEstadoyFechaActivo
+    actualizarEstadoyFechaActivo,
+    consultarActivoReportePrev
 }

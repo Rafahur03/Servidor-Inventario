@@ -15,7 +15,8 @@ import {
     descargarDocumento,
     guardarDocumento,
     descargarHojaDeVida,
-    consultarDatosActivoSolicitud
+    consultarDatosActivoSolicitud,
+    consultarDatosActivoReportePrev
 } from '../controllers/controllersActivos.js'
 
 import { consultarSolicitudTodos,
@@ -40,7 +41,8 @@ import { consultarReportesTodos,
     guardarImagenReporte,
     guardarSoporteExtReporte,
     descargarReporteExterno,
-    descargarReporte } from '../controllers/controllersReportes.js'
+    descargarReporte,
+    guardarReportePrev } from '../controllers/controllersReportes.js'
 
 import { consultarconfig,
     actualizarConfig,
@@ -90,6 +92,8 @@ router.post('/descargarHojaDeVida', checkAuth, descargarHojaDeVida)
 
 router.post('/consultarDatosActivoSolicitud', checkAuth, consultarDatosActivoSolicitud)
 
+router.post('/consultarDatosActivoReportePrev', checkAuth, consultarDatosActivoReportePrev)
+
 // ruta de solicitudes de soporte 
 
 router.get('/consultarSolicitudTodos', checkAuth, consultarSolicitudTodos)
@@ -117,6 +121,8 @@ router.get('/consultarReportesTodos', checkAuth, consultarReportesTodos)
 router.post('/consultarReporte', checkAuth, consultarReporte)
 
 router.post('/crearReporte', checkAuth, crearReporte)
+
+router.post('/guardarReportePrev', checkAuth, guardarReportePrev)
 
 router.post('/editarReporte', checkAuth, modificarReporte)
 

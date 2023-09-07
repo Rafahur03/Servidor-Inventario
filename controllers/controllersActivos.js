@@ -34,7 +34,7 @@ import {
     actualizarClasificacion,
     eliminarActivoDb,
     guardarSoportes,
-    actualizarComponentes,
+    consultarActivoReportePrev,
     actualizarSoportes,
     consultarActivoSolicitud
 } from "../db/sqlActivos.js"
@@ -578,7 +578,28 @@ const consultarDatosActivoSolicitud = async (req, res) => {
         activo.BufferImagenes = Imagenes
     }
     res.json(activo)
-}   
+} 
+
+const consultarDatosActivoReportePrev = async (req, res) => {
+    const id = req.body.id
+
+    const consulta = await consultarActivoReportePrev(id)
+    const activo = consulta[0][0]
+    activo.listaEstados= consulta[1]
+    activo.listaUsuarios= consulta[2]
+    activo.listaProveedores= consulta[3]
+    activo.listadoEstadosSolicitud= consulta[4]
+    const dataBd = await consultarCodigoInterno(id)
+
+    if(activo.proximoMto != null || activo.proximoMto != '') activo.proximoMto =  activo.proximoMto.toISOString().substring(0, 10)
+    if (activo.url_img !== null && activo.url_img.trim() !== '') {
+        activo.url_img = activo.url_img.split(',')
+        const Imagenes = await bufferimagenes(activo.url_img, dataBd)
+        activo.BufferImagenes = Imagenes
+    }
+
+    res.json(activo)
+} 
 
 export {
 
@@ -595,6 +616,7 @@ export {
     descargarDocumento,
     guardarDocumento,
     descargarHojaDeVida,
-    consultarDatosActivoSolicitud
+    consultarDatosActivoSolicitud,
+    consultarDatosActivoReportePrev
     
 }

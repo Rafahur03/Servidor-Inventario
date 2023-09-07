@@ -1,5 +1,5 @@
 import formidable from "formidable"
-import { validarDatoReporte } from "../helpers/validarDatosReporte.js"
+import { validarDatoReporte, validarDatosReportePrev } from "../helpers/validarDatosReporte.js"
 // validar cambio de funcion import { validarFiles } from "../helpers/validarFiles.js"
 import { consultarCodigoInterno, actualizarEstadoyFechaActivo } from "../db/sqlActivos.js"
 import { consultaValidarSolicitudReporte } from "../db/sqlSolicitudes.js"
@@ -16,7 +16,8 @@ import {
     guardarDocumentoBase64,
     bufferSoportepdf,
     eliminarReporteExterno,
-    eliminarImagenesSoliRepor
+    eliminarImagenesSoliRepor,
+    guadarReporteEliminadoBd
 } from "../helpers/copiarCarpetasArchivos.js"
 import { listaNuevoReporte } from "../db/sqlConfig.js"
 
@@ -28,7 +29,10 @@ import {
     dataConfReporte,
     actualizarImagenesReporte,
     actualizarSoporteReporte,
-    consultarReportevalidacion
+    consultarReportevalidacion,
+    eliminarReporteBd,
+    crearReportePrev
+
 } from "../db/sqlReportes.js"
 
 
@@ -49,7 +53,6 @@ const consultarReporte = async (req, res) => {
     const { sessionid, permisos, Id_proveedores } = req
     const arrPermisos = JSON.parse(permisos)
     const reporte = await consultarReporteUno(id)
-
     if (reporte.msg) return res.json(reporte)
     const dataBd = await consultarCodigoInterno(reporte.idActivo)
     if (dataBd.msg) return res.json(dataBd)
@@ -258,6 +261,149 @@ const crearReporte = async (req, res) => {
 
 }
 
+const guardarReportePrev = async (req, res) => {
+
+    // validar permisos para crear activos
+    const { sessionid, permisos, Id_proveedores } = req
+
+    const arrPermisos = JSON.parse(permisos)
+    const proveedores = JSON.parse(Id_proveedores)
+
+
+    if (arrPermisos.indexOf(6) === -1) return res.json({ msg: 'Usted no tiene permisos para crear crear reportes de mantenimiento' })
+
+    const data = req.body.datos
+
+    const activo = data.activo.split('-')[1]
+    if (activo !== data.idActivo.split('-')[1]) return res.json({ msg: 'el activo no pudo verificarse para crear el reporte' })
+
+    // validar que la solicitud exista y que no este cerrada o eliminada
+
+    const dataBd = await consultarCodigoInterno(activo)
+    if (dataBd.msg) return res.json({ msg: 'No fue posible validar los datos del activo' })
+
+    if (dataBd.codigo !== data.codigo) return res.json({ msg: 'los datos del activo no correspondel al ID del actico' })
+
+    // validamos que todos los datos sean correctos para ingresarlos a la bd
+    const validarDatos = await validarDatosReportePrev(data)
+    if (validarDatos.msg) return res.json(validarDatos)
+
+    data.provedorMttoId = parseInt(data.provedorMttoId.split('-')[1])
+    if (proveedores.indexOf(data.provedorMttoId) === -1) return res.json({ msg: 'Usted no esta asociado al proveedor de mantenimientos seleccionado, favor seleccione uno al cual este asociado.' })
+
+    let imagenes = null
+    if (data.imagenes.length > 0) {
+        for (let imagen of data.imagenes) {
+            const validacionImagen = validarImagenes(imagen)
+            if (validacionImagen.msg) return res.json(validacionImagen)
+        }
+        imagenes = data.imagenes
+        delete data.imagenes
+    }
+
+    if (data.soportePDF != null) {
+        const validarDocumento = validarDocumentos(data.soportePDF)
+        if (validarDocumento.msg) return res.json(validarDocumento)
+    }
+
+    const estadoActivoId = data.estadoActivoId.split('-')[1]
+    const estadoSolicitudId = data.estadoSolicitudId.split('-')[1]
+    const recibidoConformeId = data.recibidoConformeId.split('-')[1]
+
+    
+    const datosReporte = {
+        id_activo: activo,
+        id_usuario: recibidoConformeId,
+        id_estado: estadoSolicitudId,
+        fecha_solicitud: data.fechaSolicitud,
+        solicitud: 'Mantenimeinto Preventivo Act-' + activo,
+        tipoMantenimientoId: 1,
+        fechaReporte: data.fechaReporte,
+        costoMo: data.costoMo,
+        costoMp: data.costoMp,
+        provedorMttoId: data.provedorMttoId,
+        usuario_idReporte: sessionid,
+        recibidoConformeId,
+        hallazgos: data.hallazgos,
+        reporte: data.reporte,
+        recomendaciones: data.recomendaciones,
+        fechaCreacion: new Date(Date.now()).toISOString().substring(0, 19).replace('T', ' ') ,
+        fechaproximoMtto:data.fechaproximoMtto,
+        estadoActivoId
+    }
+
+    if (estadoSolicitudId == 3) datosReporte.fechaCierre = new Date(Date.now()).toISOString().substring(0, 19).replace('T', ' ')
+
+    const guardado = await crearReportePrev(datosReporte)
+    if (guardado.msg) {
+        return res.json('no fue posible crear el reporte.')
+    }
+
+    // guardamos las imagenes en la carpeta del reporte del activo y actualizamos los nombres en la base de datos
+    dataBd.idReporte = guardado
+
+    if (imagenes !== null) {
+        const nombreImagenes = []
+        for (const imagen of imagenes) {
+            const guardarImagen = await guardarImagenesBase64(imagen, dataBd, 2);
+            if (!guardarImagen.msg) nombreImagenes.push(guardarImagen);
+        }
+        // guardar imagenes y actualizar en la base de datos.
+
+        if (nombreImagenes.length > 0) {
+            const datos = {
+                id: guardado,
+                img_reporte: nombreImagenes.toString()
+            }
+            const guardadoImagenes = await actualizarImagenesReporte(datos)
+            if (guardadoImagenes.msg) return res.json({ msg: 'no fue posible guardar las imagenes en la base de datos verifique los datos guardados y actualicelos', reporte: guardado })
+            data.img_reporte = nombreImagenes
+        }
+    }
+
+    // guardamos el pdf de soporte externo en la cartpeta del activo 
+
+    if (data.soportePDF != null) {
+        const datos = {
+            file: data.soportePDF,
+            documento: 'Rep',
+            idReporte: guardado
+        }
+        const guardarDocumento = guardarDocumentoBase64(datos, dataBd, 2)
+        if (guardarDocumento.msg) return res.json({ msg: 'No fue posible guardar el Soporte en pdf, favor verifique y actualice el reporte.', reporte: guardado })
+        const datosreporte = {
+            id: guardado,
+            repIntExte: 'Ext'
+        }
+        const actualizarReporteBd = await actualizarSoporteReporte(datosreporte)
+        if (actualizarReporteBd.msg) return res.json({ msg: 'No fue posible guardar el Soporte en pdf en la Base de datos verifique y actualice el reporte', reporte: guardado })
+    
+    } else {
+        const pdfmake = await crearPdfMake(guardado, 'Reporte');
+
+        const datos = {
+            file: 'data:application/pdf;base64,' + pdfmake,
+            documento: 'Rep',
+            idReporte: guardado
+        }
+
+        const guardarDocumento = await guardarDocumentoBase64(datos, dataBd, 2)
+        if (guardarDocumento.msg) return res.json({ msg: 'No fue posible guardar el Soporte en pdf make, favor verifique y actualice el reporte.', reporte: guardado })
+        const datosreporte = {
+            id: guardado,
+            repIntExte: 'Int'
+        }
+        
+        const actualizarReporteBd = await actualizarSoporteReporte(datosreporte)
+        if (actualizarReporteBd.msg) return res.json({ msg: 'No fue posible guardar el Soporte en pdf Make en la Base de datos verifique y actualice el reporte', reporte: guardado })
+    }
+
+    res.json({
+        reporte: guardado
+    })
+
+}
+
 const modificarReporte = async (req, res) => {
 
     // validar permisos para crear activos
@@ -321,6 +467,24 @@ const modificarReporte = async (req, res) => {
     const guardado = await actualizarReporte(data)
     if (guardado.msg) return res.json(guardado)
 
+    const dataBd = await consultarCodigoInterno(data.idActivo)
+    if (dataBd.msg) return res.json({ msg: ' no fue posible terminar de guardar los datos del reporte verifique los datos guardados y actualicelos' })
+
+    // guardamos las imagenes en la carpeta del reporte del activo y actualizamos los nombres en la base de datos
+    dataBd.idReporte = data.idReporte
+
+    if (reporteBd.repIntExte == 'Int') {
+        const pdfmake = await crearPdfMake(data.idReporte, 'Reporte');
+
+        const datos = {
+            file: 'data:application/pdf;base64,' + pdfmake,
+            documento: 'Rep',
+            idReporte: data.idReporte
+        }
+
+        const guardarDocumento = await guardarDocumentoBase64(datos, dataBd, 2)
+        if (guardarDocumento.msg) return res.json({ msg: 'No fue posible guardar el Soporte en pdf make, favor verifique y actualice el reporte.', reporte: guardado })
+    }
 
     res.json({
         idReporte: reporteBd.idReporte,
@@ -434,6 +598,8 @@ const eliminarSoporteExtReporte = async (req, res) => {
     const guardarDocumento = await guardarDocumentoBase64(data, dataBd, 2)
     if (guardarDocumento.msg) return res.json({ msg: 'No fue posible guardar el Soporte en pdf make, favor verifique y actualice el reporte.', reporte: guardado })
 
+
+
     res.json({ exito: 'El documento se elimino y actualizo correctamente' })
 }
 
@@ -535,8 +701,41 @@ const guardarSoporteExtReporte = async (req, res) => {
 }
 
 const eliminarReporte = async (req, res) => {
+    const { sessionid } = req
+    const { datos } = req.body
+    const reporte = datos.reporte.split('-')[1]
+    const activo = datos.idActivo.split('-')[1]
+    const solicitud = datos.idSolicitud
 
-    res.json({ msg: 'eliminar reporte desde el servidor' })
+    if (isNaN(parseInt(reporte)) || isNaN(parseInt(activo)) || isNaN(parseInt(solicitud))) return res.json({ msg: 'Debe seleccionar un reporte valido' })
+
+    const reporteBd = await consultarReportevalidacion(reporte)
+    if (reporteBd.msg) return reporteBd.msg
+
+    if (reporteBd.estadoSolicitudId == 3 && reporteBd.estadoSolicitudId == 4) return res.json({ msg: 'EL reporte ya fue cerrado o eliminado.' })
+
+    if (sessionid !== 1) if (reporteBd.usuarioReporteId !== sessionid) return res.json({ msg: 'Usted no tiene permiso eliminar este reporte' })
+
+    if (activo != reporteBd.idActivo || solicitud != reporteBd.idSolicitud) return res.json({ msg: ' error de validacion, Los datos no corresponden al reporte.' })
+
+    const dataBd = await consultarCodigoInterno(reporteBd.idActivo)
+    if (dataBd.msg) return res.json({ msg: 'No fue posible eliminar el reporte intentelo mas tarde' })
+
+    dataBd.reporte = reporteBd.idReporte
+
+    const eliminarReporte = await eliminarReporteExterno(dataBd)
+    if (eliminarReporte.msg) return res.json({ msg: 'No fue posible eliminar el reporte intentalo más tarde' })
+
+    const pdfmake = await crearPdfMake(reporteBd.idReporte, 'Reporte');
+    const asegurarInfoBd = await guadarReporteEliminadoBd(pdfmake, dataBd)
+    if (asegurarInfoBd.msg) return res.json({ msg: 'No fue posible el reporte intentelo más tarde' })
+
+    const eliminar = await eliminarReporteBd(reporteBd.idReporte, reporteBd.idSolicitud)
+    if (eliminar.msg) return res.json(eliminar.msg)
+
+    res.json({ exito: 'reporte eliminado correctamente' })
+
+
 }
 const descargarReporte = async (req, res) => {
 
@@ -600,5 +799,6 @@ export {
     guardarImagenReporte,
     guardarSoporteExtReporte,
     descargarReporteExterno,
-    descargarReporte
+    descargarReporte,
+    guardarReportePrev
 }

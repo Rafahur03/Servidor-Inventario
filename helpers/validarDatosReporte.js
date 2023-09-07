@@ -151,6 +151,142 @@ const validarDatoReporte = async (datos) => {
 
 }
 
+const validarDatosReportePrev = async (datos) => {
+
+    if (datos.activo != datos.idActivo) return { msg: 'No fue posible validar el activo' }
+
+    if (validarVacios(datos.estadoActivoId)) return { msg: 'El campo estado activo no puede estar vacio' }
+
+    if (validarId(datos.estadoActivoId)) return { msg: 'Debe escoger un elemento de la lista en el campo Estado Activo' }
+
+    if (validarVacios(datos.provedorMttoId)) return { msg: 'El campo proveedor de manteniento no puede estar vacio' }
+
+    if (validarId(datos.provedorMttoId)) return { msg: 'Debe escoger un elemento de la lista en el campo proveedor de manteniento' }
+
+    if (validarVacios(datos.recibidoConformeId)) return { msg: 'El campo recibido conforme no puede estar vacio' }
+
+    if (validarId(datos.recibidoConformeId)) return { msg: 'Debe escoger un elemento de la lista en el campo recibido conforme' }
+
+    if (validarVacios(datos.estadoSolicitudId)) return { msg: 'El campo Estado solicitud no puede estar vacio' }
+
+    if (validarId(datos.estadoSolicitudId)) return { msg: 'Debe escoger un elemento de la lista en el campo Estado solicitud' }
+
+    if (validarVacios(datos.hallazgos)) return { msg: 'El campo Hallazgo es obligatorio' }
+
+    if (validarCaracteres(datos.hallazgos)) return { msg: 'El campo Hallazgo no puede contener caracteres como {}, () []' }
+
+    if (validarPalabras(datos.hallazgos)) return { msg: 'El campo Hallazgo no puede contener palabras como Select, From ect..' }
+
+    if (validarVacios(datos.reporte)) return { msg: 'El campo reporte es obligatorio' }
+
+    if (validarCaracteres(datos.reporte)) return { msg: 'El campo reporte no puede contener caracteres como {}, () []' }
+
+    if (validarPalabras(datos.reporte)) return { msg: 'El campo reporte no puede contener palabras como Select, From ect..' }
+
+    if (validarVacios(datos.recomendaciones)) return { msg: 'El campo recomendaciones es obligatorio' }
+
+    if (validarCaracteres(datos.recomendaciones)) return { msg: 'El campo recomendaciones no puede contener caracteres como {}, () []' }
+
+    if (validarPalabras(datos.recomendaciones)) return { msg: 'El campo recomendaciones no puede contener palabras como Select, From ect..' }
+
+    if (validarVacios(datos.costoMo)) return { msg: 'El campo costo de mano de obra es obligatorio' }
+
+    if (validarCaracteres(datos.costoMo)) return { msg: 'El campo costo de mano de obra no puede contener caracteres como {}, () []' }
+
+    if (validarPalabras(datos.costoMo)) return { msg: 'El campo costo de mano de obra no puede contener palabras como Select, From ect..' }
+
+    if (validarVacios(datos.costoMp)) return { msg: 'El campo costo de materiales es obligatorio' }
+
+    if (validarCaracteres(datos.costoMp)) return { msg: 'El campo costo de materiales no puede contener caracteres como {}, () []' }
+
+    if (validarPalabras(datos.costoMp)) return { msg: 'El campo costo de materiales no puede contener palabras como Select, From ect..' }
+
+    if(datos.costoMo < 0) return { msg: 'El campo costo de mano de obra no puede ser menor que 0'}
+    if(datos.costoMp < 0) return { msg: 'El campo costo de mano de obra no puede ser menor que 0'}
+    
+    const config = await dataConfReporte()
+    if (config.msg) return { msg: 'no se pudieron validar correctamente los datos intentalo más tarde' }
+
+    const estadoActivoId = datos.estadoActivoId.split('-')[1]
+    const estadoSolicitudId = datos.estadoSolicitudId.split('-')[1]
+    const provedorMttoId = datos.provedorMttoId.split('-')[1]
+    const recibidoConformeId = datos.recibidoConformeId.split('-')[1]
+
+    for (let key in config[0]) {
+        let encontrado = null
+        if (config[0][key].id == estadoActivoId) if (config[0][key].estado !== datos.estadoActivo) {
+            encontrado = 1
+            return { msg: 'Debe escoger un estado del activo del listado' }
+        }
+        if (encontrado !== null) break
+        if (config[0].length === key + 1) return { msg: 'Debe escoger un estado del activo del listado' }
+
+    }
+
+    for (let key in config[2]) {
+        let encontrado = null
+        if (config[2][key].id == estadoSolicitudId) if (config[2][key].estado !== datos.estadoSolicitud) {
+            encontrado = 1
+            return { msg: 'Debe escoger un estado de solicitud del listado' }
+
+        }
+        if (encontrado !== null) break
+        if (config[2].length === key + 1) return { msg: 'Debe escoger un estado de solicitud del listado' }
+    }
+
+
+    for (let key in config[3]) {
+        let encontrado = null
+        if (config[3][key].id == provedorMttoId) {
+            if (datos.provedorMtto.includes('--')) {
+                const razonSocial = datos.provedorMtto.split('--')[0].trim()
+                if (config[3][key].razon_social !== razonSocial) {
+                    encontrado = 1
+                    return { msg: 'Debe escoger un proveedor de mantenimiento del listado' }
+
+                }
+            } else {
+                if (config[3][key].razon_social !== datos.provedorMtto) {
+                    encontrado = 1
+                    return { msg: 'Debe escoger proveedor de mantenimiento del listado' }
+
+                }
+            }
+        }
+        if (encontrado !== null) break
+        if (config[3].length === key + 1) return { msg: 'Debe escoger un proveedor de mantenimiento del listado' }
+    }
+
+    for (let key in config[4]) {
+        let encontrado = null
+        if (config[4][key].id == recibidoConformeId) if (config[4][key].nombre !== datos.recibidoConforme) {
+            encontrado = 1
+            return { msg: 'Debe escoger un responsable del recibido conforme del listado' }
+
+        }
+        if (encontrado !== null) break
+        if (config[4].length === key + 1) return { msg: 'Debe escoger un responsable del recibido conforme del listado' }
+    }
+
+    const fecha = new Date
+
+    if (datos.fechaReporte.length === 0) return { titulo: 'ERROR', mensaje: 'La fecha de reporte no puede estar vacia' }
+
+    if (datos.fechaproximoMtto === 0) return { titulo: 'ERROR', mensaje: 'La fecha del Proximo mantenimeinto no puede estar vacio' }
+
+    if (datos.fechaSolicitud.length === 0) return { titulo: 'ERROR', mensaje: 'La fecha de solicitud no puede estar vacia' }
+
+    if (datos.fechaReporte > fecha.toJSON().slice(0, 10)) return { titulo: 'ERROR', mensaje: 'La fecha del reporte no puede ser mayor al dia de hoy' }
+
+    if (datos.fechaReporte < datos.fechaSolicitud) return { titulo: 'ERROR', mensaje: 'La fecha del reporte no puede ser menor a la fecha de solicitud' }
+
+    if (datos.fechaproximoMtto < datos.fechaReporte) return { titulo: 'ERROR', mensaje: 'La fecha del proximo mantenimeinto no puede ser menor a la fecha de reporte'}
+
+
+    return true
+
+}
+
 const validarId = (datos) => {
     if (!datos.includes('-')) return true
     const id = parseInt(datos.split('-')[1])
@@ -182,5 +318,6 @@ const validarPalabras = dato => {
 }
 
 export  {
-    validarDatoReporte
+    validarDatoReporte,
+    validarDatosReportePrev
 }

@@ -130,9 +130,9 @@ const crearSolicitud = async (req, res) => {
                 id: guardado,
                 img_solicitud: nombreImagenes.toString()
             }
-            const guardadoImagenes = await actualizarImagenesSolicitud(datos)
 
-            if (!guardadoImagenes.msg) return res.json({ msg: 'no fue posible guardar las imagenes en la base de datos'})
+            const guardadoImagenes = await actualizarImagenesSolicitud(datos)
+            if (guardadoImagenes.msg) return res.json({ msg: 'no fue posible guardar las imagenes en la base de datos'})
         }
 
     }
@@ -147,7 +147,7 @@ const crearSolicitud = async (req, res) => {
     }
 
     res.json({
-        data
+        id:guardado
     })
 
 }

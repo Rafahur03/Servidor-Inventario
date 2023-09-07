@@ -37,6 +37,7 @@ const copiarYCambiarNombre = async (data) => {
 		return { msg: 'error al guardar las imagenes' }
 	}
 }
+
 const guardarImagenesBase64 = async (imagen, data, destino) => {
 
 	function getRandomInt(max) {
@@ -98,6 +99,7 @@ const guardarImagenesBase64 = async (imagen, data, destino) => {
 		};
 	}
 }
+
 const guardarImagenesNuevoActivo = async (files, data, destino) => {
 
 	function getRandomInt(max) {
@@ -460,7 +462,20 @@ const guadarReporteFinal = async (bufferPdf, data, id) => {
 		await fspromises.writeFile(pathReporte, buf)
 		return 1
 	} catch (error) {
-		comsole.log(error)
+		console.log(error)
+		return 0
+	}
+
+}
+
+const guadarReporteEliminadoBd = async (bufferPdf, data) => {
+	const pathReporte = path + data.siglas + '\\' + data.codigo + '\\Reporte\\' + data.idReporte + '\\reporteEliminado-'+ data.idReporte +'.pdf'
+	try {
+		var buf = Buffer.from(bufferPdf, 'base64')
+		await fspromises.writeFile(pathReporte, buf)
+		return 1
+	} catch (error) {
+		console.log(error)
 		return 0
 	}
 
@@ -472,12 +487,11 @@ const bufferReporte = (data, id) => {
 	return `data:application/pdf;base64,${buffer.toString('base64')}`
 }
 
-
 const eliminarReporteExterno = async (data) => {
 	function getRandomInt(max) {
 		return Math.floor(Math.random() * max);
 	}
-
+	
 	try {
 
 		const pathReporte = `${path}\\${data.siglas}\\${data.codigo}\\Reporte\\${data.reporte}`
@@ -514,5 +528,6 @@ export {
 	guadarReporteFinal,
 	bufferReporte,
 	guardarDocumentoBase64,
-	eliminarReporteExterno //nuevo
+	eliminarReporteExterno, //nuevo
+	guadarReporteEliminadoBd
 }
