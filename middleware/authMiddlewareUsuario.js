@@ -25,15 +25,17 @@ const checkAuth = async(req, res, next) => {
             res.json({msg: 'Sesion expirada debe iniciar sesion nuevamente'})
             return
         }
-        console.log
+      
         if(dataToken.id !== tokenExisteBD.id){
             res.json({msg: 'Lo sentimos token ivalido inicie sesion nuevamente'})
             return
         }
 
         req.sessionid = tokenExisteBD.id
-        req.permisos= tokenExisteBD.permisos
-        req.Id_proveedores = tokenExisteBD.Id_proveedores
+        const permisos = tokenExisteBD.permisos.split(',')
+        req.permisos = permisos.map(elemento => parseInt(elemento.trim(), 10))
+        const proveedores= tokenExisteBD.id_proveedores.split(',')
+        req.Id_proveedores = proveedores.map(elemento => parseInt(elemento.trim(), 10))
         return  next()  
       
     }

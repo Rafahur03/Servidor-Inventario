@@ -1,5 +1,5 @@
 import express from 'express';
-import { iniciaSesion, crearUsuario, actualizaUsuario } from '../controllers/controllersUsuarios.js';
+import { iniciaSesion, crearUsuario, actualizaUsuario, consultarUsuario } from '../controllers/controllersUsuarios.js';
 import {checkAuth} from '../middleware/authMiddlewareUsuario.js';
 import {
     consultarActivosTodos,
@@ -61,6 +61,9 @@ router.post('/', iniciaSesion)
 router.post('/crearUsuario', checkAuth, crearUsuario)
 
 router.post('/actualizaPerfil', checkAuth, actualizaUsuario)
+
+router.post('/consultarUsuario', checkAuth, consultarUsuario)
+
 
 // ruta de manejo de activos
 

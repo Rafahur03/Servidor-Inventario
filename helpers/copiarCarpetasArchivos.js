@@ -69,6 +69,9 @@ const guardarImagenesBase64 = async (imagen, data, destino) => {
 			case 2:
 				pathActivo = `${path}${data.siglas}\\${data.codigo}\\Reporte\\${data.idReporte}\\`;
 				break;
+			case 3:
+				pathActivo = `${path}\\Usuarios\\`;
+				break;
 			default:
 				pathActivo = `${path}${data.siglas}\\${data.codigo}\\`;
 				break;
@@ -216,14 +219,14 @@ const bufferimagenes = async (url_img, data, destino) => {
 			return bufferCompleto
 		});
 		return imageBuffers
-		
+
 	} catch (error) {
 		console.error(`Ha ocurrido un error: ${error.message}`);
 		return { msg: 'no fue posible obtener las imagenes' }
-		
+
 	}
 
-	
+
 }
 
 const bufferimagen = async (url_img, data, destino) => {
@@ -242,7 +245,9 @@ const bufferimagen = async (url_img, data, destino) => {
 		case 2:
 			pathActivo = `${path}${data.siglas}\\${data.codigo}\\Reporte\\`
 			break
-
+		case 3:
+			pathActivo = `${path}\\Usuarios\\`;
+			break;
 		default:
 			pathActivo = `${path}${data.siglas}\\${data.codigo}\\`
 			break
@@ -261,7 +266,7 @@ const eliminarImagenes = async (file, data, destino) => {
 		switch (destino) {
 			case 1:
 				pathActivo = `${path}${data.siglas}\\${data.codigo}\\Solicitud\\${data.idSolicitud}\\`
-				break 
+				break
 
 			case 2:
 				pathActivo = `${path}${data.siglas}\\${data.codigo}\\Reporte\\${data.idReporte}\\`
@@ -469,7 +474,7 @@ const guadarReporteFinal = async (bufferPdf, data, id) => {
 }
 
 const guadarReporteEliminadoBd = async (bufferPdf, data) => {
-	const pathReporte = path + data.siglas + '\\' + data.codigo + '\\Reporte\\' + data.idReporte + '\\reporteEliminado-'+ data.idReporte +'.pdf'
+	const pathReporte = path + data.siglas + '\\' + data.codigo + '\\Reporte\\' + data.idReporte + '\\reporteEliminado-' + data.idReporte + '.pdf'
 	try {
 		var buf = Buffer.from(bufferPdf, 'base64')
 		await fspromises.writeFile(pathReporte, buf)
@@ -491,7 +496,7 @@ const eliminarReporteExterno = async (data) => {
 	function getRandomInt(max) {
 		return Math.floor(Math.random() * max);
 	}
-	
+
 	try {
 
 		const pathReporte = `${path}\\${data.siglas}\\${data.codigo}\\Reporte\\${data.reporte}`
@@ -500,7 +505,7 @@ const eliminarReporteExterno = async (data) => {
 		} catch (error) {
 			await fspromises.mkdir(pathReporte);
 		}
-		
+
 		//Cambiar ubicacion y nombre del archivo
 		await fspromises.rename(`${path}\\${data.siglas}\\${data.codigo}\\Rep-${data.codigo}-${data.reporte}.pdf`, `${pathReporte}\\E-Rep-${data.codigo}-${data.reporte}-${getRandomInt(50)}.pdf`);
 		return true

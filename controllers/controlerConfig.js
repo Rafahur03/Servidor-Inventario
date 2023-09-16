@@ -101,7 +101,7 @@ const actualizarConfig = async (req, res) => {
     const { permisos } = req
 
     const arrPermisos = JSON.parse(permisos)
-    if (arrPermisos.indexOf(9) === -1) {
+    if (arrPermisos.indexOf(8) === -1) {
         return res.json({ msg: 'Usted no tiene permisos para consultar esta información' })
     }
 

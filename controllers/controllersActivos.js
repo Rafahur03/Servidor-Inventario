@@ -443,7 +443,7 @@ const eliminarImagenActivo = async (req, res) => {
   
 
     res.json({
-        elimnada
+        eliminada
     })
 }
 

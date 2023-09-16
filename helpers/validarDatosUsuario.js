@@ -2,163 +2,176 @@ import { validarExisteUsuario } from "../db/sqlUsuarios.js"
 
 const regularEmail = /^(([^<>()[\]\.,;:\s@\"]+(\.[^<>()[\]\.,;:\s@\"]+)*)|(\".+\"))@(([^<>()[\]\.,;:\s@\"]+\.)+[^<>()[\]\.,;:\s@\"]{2,})$/i
 const regularNumber = /^[0-9]+$/
-const regularNombre = /^[a-zA-Z]*$/g
+const regularNombre = /^[a-zA-ZáéíóúüÁÉÍÓÚÜñÑ\s']*$/u
 
 const validarDatosUsuarios = async (datos, validarPassword = true) => {
 
-    const {
-        id,
-        numero_id,
-        email,
-        tipo_id,
-        nombre,
-        nombre_1,
-        apellido,
-        apellido_1,
-        password,
-        confirmarPassword,
-        estado,
-        createby,
-        Id_proveedores} = datos
+       // validar email
+    const emailLowerCase = datos.email.toLowerCase()
 
-    const emailLowerCase = email.toLowerCase()
-    if (!regularEmail.test(emailLowerCase)) {
-        return { msg: 'El Email Invalido'}
-    }
+    if (!regularEmail.test(emailLowerCase)) return { msg: 'El Email es Invalido' }
 
-    if (!regularNumber.test(numero_id)) {
-        return {msg: 'Numero de documento invalid'}
-    }
+    if (validarVacios(datos.email)) return { msg: 'El campo Email no puede estar vacio' }
 
-    const validacion = await validarExisteUsuario(numero_id, emailLowerCase)
+    if (validarCaracteres(datos.email)) return { msg: 'El campo Email no puede contener caracteres como [], {}. <>, (), ect..' }
+
+    if (validarPalabras(datos.email)) return { msg: 'El campo Email no puede contener palabaras como Select, from, Insert, ect..' }
+
+    const regex = /^[^@]+@[^@]+\.[a-zA-Z]+$/;
+    if (!regex.test(datos.email)) return { msg: 'El Email es Invalido' }
+
+    // validar documento 
+
+    if (!regularNumber.test(datos.numeroDocumento)) return { msg: 'Numero de documento invalido' }
+    if (validarVacios(datos.numeroDocumento)) return { msg: 'El campo numero de documento no puede estar vacio' }
+
+    if (parseInt(datos.numeroDocumento) == NaN) return { msg: 'El campo numero de documento solo puede contener letras' }
+
+    const validacion = await validarExisteUsuario(datos.numeroDocumento, emailLowerCase)
 
     if (validacion.msg) {
         return validacion
     }
-    
-    if (validacion[0][0] && validacion[1][0]) { 
 
-        if(typeof id === 'undefined') {
-            return{ msg: 'El numero de identificacion y el email estan asociados a otro usuario'}
-        }
-
-        if (validacion[0][0].id !== id & validacion[1][0].id !== id){
-            return{ msg: 'El numero de identificacion y el email que intenta actualizar estan asociados a otro usuario'}
-        } 
-    }
-
+    if (validacion[0][0] && validacion[1][0]) {
+        console.log('aqui 1')
+        
+        return { msg: 'El numero de identificacion y el email estan asociados a otro usuario' }
+    }   
     if (validacion[0][0]) {
-
-        if(typeof id === 'undefined') {
-            return{ msg: 'El numero de identificacion estan asociados a otro usuario'}
-        }
-
-        if(validacion[0][0].id !== id){
-            return{ msg: 'El numero de identificacion que intenta actualizar esta asociado a otro usuario'}
-        }
+        console.log('aqui 2')
+        return { msg: 'El numero de identificacion estan asociados a otro usuario' }
     }
-
-    if (validacion[1][0]) {
-        if(typeof id === 'undefined') {
-            return{ msg: 'El email estan asociados a otro usuario'}
-        }
-
-        if(validacion[0][0].id !== id){
-            return{ msg: 'El email que intenta actualizar esta asociado a otro usuario'}
-        }
-    }
-   
-    if (nombre.trim() == "") {
-        return{ msg: 'El primer nombre es obligatorio'}
-    }
-   
-    if (!regularNombre.test(nombre.trim())) {
-        return{ msg: 'El primer nombre solo puede contener letras'}
-    }
-
-    if (nombre_1.trim() !== "") {
-        if (regularNombre.test(nombre_1.trim())) {
-            return{ msg: 'El segundo nombre solo puede contener letras'}
-        }
-    }
-   
-    if (apellido.trim() == "") {
-        return{ msg: 'El primer apellido es obligatorio'}
-    }
-
-    if (!regularNombre.test(apellido.trim())) {
-        return{ msg: 'El primer apellido solo puede contener letras'}
-    }
-
-    if (apellido_1.trim() == "") {
-        return{ msg: 'El segundo apellido es obligatorio'}
-    }
-
-    if (regularNombre.test(apellido_1.trim())) {
-        return{ msg: 'El segundo apellido solo puede contener letras'}
-    }
-
-    if (tipo_id == "") {
-        return{ msg: 'Debe seleccionar un tipo de documento'}
-    }
-
-    if (estado == "") {
-        return{ msg: 'Debe seleccionar un estado'}
-    }
-
-    if(validarPassword){
-        if(!password){
-            return{ msg: 'debe ingresar una contraseña'}
-        }       
+    if (validacion[1][0]){ 
         
-        if (password.trim() == "") {
-            return{ msg: 'La contraseña es obligatoria'}
+        console.log('aqui 3')
+        return { msg: 'El Email estan asociados a otro usuario' }}
+
+    if (validarVacios(datos.tipoId) || validarCaracteres(datos.tipoId) || validarPalabras(datos.tipoId) || datos.tipoId.length > 2) return { msg: 'Debe escoger un tipo de identificacion del listado' }
+
+    if (validarVacios(datos.primerNombre)) return { msg: 'El campo Primer Nombre no puede estar vacio' }
+
+    if (validarCaracteres(datos.primerNombre)) return { msg: 'El campo Primer Nombre no puede contener caracteres como [], {}. <>, (), ect..' }
+
+    if (validarPalabras(datos.primerNombre)) return { msg: 'El campo Primer Nombre no puede contener palabaras como Select, from, Insert, ect..' }
+
+    if (!regularNombre.test(datos.primerNombre.trim())) return { msg: 'El Campo Primer Nombre solo puede contener letras' }
+
+    if (validarCaracteres(datos.segundoNombre)) return { msg: 'El campo segundo Nombre no puede contener caracteres como [], {}. <>, (), ect..' }
+
+    if (validarPalabras(datos.segundoNombre)) return { msg: 'El campo segundo Nombre no puede contener palabaras como Select, from, Insert, ect..' }
+
+    if (datos.segundoNombre.length > 0) {
+        if (datos.segundoNombre.trim().length > 0) {
+            if (!regularNombre.test(datos.primerNombre.trim())) return { msg: 'El Campo Primer Nombre solo puede contener letras' }
+        }
+    }
+
+    if (validarVacios(datos.primerApellido)) return { msg: 'El campo Primer Apellido no puede estar vacio' }
+
+    if (validarCaracteres(datos.primerApellido)) return { msg: 'El campo Primer Apellido no puede contener caracteres como [], {}. <>, (), ect..' }
+
+    if (validarPalabras(datos.primerApellido)) return { msg: 'El campo Primer Apellido no puede contener palabaras como Select, from, Insert, ect..' }
+
+    if (!regularNombre.test(datos.primerApellido.trim())) return { msg: 'El Campo Primer Nombre solo puede contener letras' }
+
+    if (validarVacios(datos.segundoApellido)) return { msg: 'El campo Segundo Apellido no puede estar vacio' }
+
+    if (validarCaracteres(datos.segundoApellido)) return { msg: 'El campo Segundo Apellido no puede contener caracteres como [], {}. <>, (), ect..' }
+
+    if (validarPalabras(datos.segundoApellido)) return { msg: 'El campo Segundo Apellido no puede contener palabaras como Select, from, Insert, ect..' }
+
+    if (!regularNombre.test(datos.segundoApellido.trim())) return { msg: 'El Campo Primer Nombre solo puede contener letras' }
+
+    if (validarPassword) {
+
+        if (!datos.contraseña) {
+            return { msg: 'debe ingresar una contraseña' }
         }
 
-        if (password.trim().length < 6) {
-            return{ msg: 'La contraseña debe tener almenos 5 caracteres'}
+        if (!datos.confirmarContraseña) {
+            return { msg: 'El campo confirmar Comtraseña es obligatorio' }
         }
 
-        if(!password){
-            return{ msg: 'debe ingresar una contraseña'}
-        } 
+        if (validarVacios(datos.contraseña)) return { msg: 'El campo Contraseña no puede estar vacio' }
 
-        if(!confirmarPassword){
-            return{ msg: 'debe confirmar la contraseña'}
-        }  
-        
-        if (confirmarPassword.trim().length < 6) {
-            return{ msg: 'La contraseña debe tener almenos 5 caracteres'}
+        if (datos.contraseña.includes(' ')) return { msg: 'El campo Contraseña no puede contener espacios' }
+
+        if (datos.contraseña.length < 6) {
+            return { msg: 'La contraseña debe tener almenos 5 caracteres' }
         }
 
-        if (confirmarPassword.trim() == "") {
-            return{ msg: 'Debe confirmar la contraseña'}
-        }
+        if (datos.contraseña !== datos.confirmarContraseña) return { msg: 'Las contraseñas no conciden' }
+
+    }
+
+    if (typeof datos.usuarios !== "boolean") return { msg: 'Debe Selecionar un estado de la opcion permisos para el menu Usuarios' }
+
+    if (typeof datos.activos !== "boolean") return { msg: 'Debe Selecionar un estado de la opcion permisos para el menu Activos' }
+
+    if (typeof datos.solicitudes !== "boolean") return { msg: 'Debe Selecionar un estado de la opcion permisos para el menu Solicitudes' }
+
+    if (typeof datos.reportes !== "boolean") return { msg: 'Debe Selecionar un estado de la opcion permisos para el menu Reportes' }
+
+    if (typeof datos.confguraciones !== "boolean") return { msg: 'Debe Selecionar un estado de la opcion permisos para el menu Configuraciones' }
     
-        if (password !== confirmarPassword) {
-            return{ msg: 'Las contraseñas no coinciden'}
-        }
-        
+    if (typeof datos.clasificacion !== "boolean") return { msg: 'Debe Selecioar un estado de la opcion permisos para el menu Cambiar clasificacion activos' }
 
-    }
-        
-    if (!Id_proveedores[0]) {
-        return{ msg: 'Debe seleccionar al menos un Proveedor'}
-    }
+    if (datos.proveedores.length == 0) return modalMensaje({ titulo: 'ERROR', mensaje: 'El usuario debe estar asociado al menos un porveedor' })
+    
+    const validarproveedor = datos.proveedores.map(item => {
+        if (validarId(item)) return true
+        return false
+    })
 
-    return{ msg:'validado'}
+    if (validarproveedor.some(elemento => elemento === true)) return { msg: 'todos los proveedores deben ser escogidos del listado' }
+
+    if (!datos.firma) return { msg: 'Debe cargar obligatoriamente una firma' }
+
+    return true
 
 }
 
-const validarUsuarioCreado = async (usuario)=>{
+const validarVacios = dato => {
+    if (dato.includes('')) {
+        if (dato.trim() == '') return true
+    } else {
+        if (dato == '') return true
+    }
+    return false
+}
+
+const validarCaracteres = dato => {
+    if (dato.includes('{') || dato.includes('}') || dato.includes('(') || dato.includes(')') || dato.includes('[') || dato.includes(']') || dato.includes('<') || dato.includes('>')) {
+        return true
+    }
+    return false
+}
+
+const validarPalabras = dato => {
+    if (dato.includes('select') || dato.includes('Select') || dato.includes('SELECT') || dato.includes('FROM') || dato.includes('From') || dato.includes('from') || dato.includes('insert') || dato.includes('Insert') || dato.includes('INSERT')) {
+        return true
+    }
+    return false
+}
+
+const validarId = (datos) => {
+    if (!datos.includes('-')) return true
+    const id = parseInt(datos.split('-')[1])
+    if (id == NaN) return true
+    return false
+}
+
+
+const validarUsuarioCreado = async (usuario) => {
     if (regularEmail.test(usuario)) {
         const validacion = await validarExisteUsuario("", usuario)
         if (validacion.msg) {
             return validacion
         }
 
-        if(validacion[1][0].estado != 1) {
-            return{ msg: 'El usuario esta inactivo'}
+        if (validacion[1][0].estado != 1) {
+            return { msg: 'El usuario esta inactivo' }
         }
         return validacion[1][0]
     }
@@ -169,14 +182,16 @@ const validarUsuarioCreado = async (usuario)=>{
             return validacion
         }
 
-        if(validacion[0][0].estado != 1) {
-            return{ msg: 'El usuario esta inactivo'}
+        if (validacion[0][0].estado != 1) {
+            return { msg: 'El usuario esta inactivo' }
         }
         return validacion[0][0]
     }
-    
-     return{ msg: 'debe ingresar un email o un numero de id para poder iniciar sesion'}
+
+    return { msg: 'debe ingresar un email o un numero de id para poder iniciar sesion' }
 }
 
-export {validarDatosUsuarios,
-    validarUsuarioCreado}
+export {
+    validarDatosUsuarios,
+    validarUsuarioCreado
+}
