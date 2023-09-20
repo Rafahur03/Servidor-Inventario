@@ -59,16 +59,15 @@ const consultarSolicitud = async (req, res) => {
 
     solicitud.editar = false
     solicitud.reporte = false
-    const arrPermisos = JSON.parse(permisos)
-
+   
     if (solicitud.idUsuario == sessionid) {
         solicitud.editar = true
     }else{
-        if (arrPermisos.indexOf(5) !== -1) solicitud.editar = true
+        if (permisos.indexOf(5) !== -1) solicitud.editar = true
     }
     
     if(solicitud.idReporte !== null) solicitud.editar = false
-    if(arrPermisos.indexOf(6) !== -1) solicitud.reporte = true
+    if(permisos.indexOf(6) !== -1) solicitud.reporte = true
     res.json(
         solicitud
     )
@@ -110,11 +109,9 @@ const crearSolicitud = async (req, res) => {
     delete data.descripcion
 
     const guardado = await guardarSolicitud(data)
-    if (guardado.msg) {
-        return res.json(guardado)
-    }
+    if (guardado.msg) return res.json(guardado)
+    
     dataBd.idSolicitud = guardado
-
 
     if (imagenes !== null) {
 
@@ -124,17 +121,14 @@ const crearSolicitud = async (req, res) => {
             if (!guardarImagen.msg) nombreImagenes.push(guardarImagen);
         }
         // guardar imagenes y actualizar en la base de datos.
-
         if (nombreImagenes.length > 0) {
             const datos = {
                 id: guardado,
                 img_solicitud: nombreImagenes.toString()
             }
-
             const guardadoImagenes = await actualizarImagenesSolicitud(datos)
             if (guardadoImagenes.msg) return res.json({ msg: 'no fue posible guardar las imagenes en la base de datos'})
         }
-
     }
 
     data.id = guardado
@@ -160,36 +154,25 @@ const editarSolicitud = async (req, res) => {
     const solicitud = data.solicitud.split('-')[1]
     if (solicitud != data.idSolicitud) return res.json({ msg: 'No se puede procesar la solicitud, Error en el ID de la solicitud' })
 
-
     // VALIDAR QUE EL CODIGO PERTENESCA AL ACTIVO
     const dataBd = await consultarSolicitudUno(data.idSolicitud)
 
     if (dataBd.msg) return { msg: 'No se pudo validar la informacion intente mas tarde' }
     if (data.idActivo === dataBd.id_activo) return res.json({ msg: 'La solicitud no corresponde al activo verifique la informacion' })
 
-
     if (dataBd.id_estado !== 1) return res.json({ msg: 'No se puede Actualizar la solictud, ya ha sido gestionada su estado es diferente de Abierto' })
-
 
     if (dataBd.idReporte !== null) return res.json({ msg: 'No se puede Actualizar la solictud, ya ha sido gestionada y tiene un reporte creado ' })
 
-    if (dataBd.idUsuario !== sessionid) {
-        const arrPermisos = JSON.parse(permisos)
-        if (arrPermisos.indexOf(5) === -1) {
-            return res.json({ msg: 'Usted no tiene permisos para editar solicitudes' })
-        } 
-    }
-
+    if (dataBd.idUsuario !== sessionid) if (permisos.indexOf(5) === -1)  return res.json({ msg: 'Usted no tiene permisos para editar solicitudes' })
+    
     const validarDatos = validarDatoSolicitud(data)
 
-    if (validarDatos.msg) {
-        return res.json(validarDatos)
-    }
+    if (validarDatos.msg) return res.json(validarDatos)
 
     const actualizar = await actualizarSolicitud(data)
-    if (actualizar.msg) {
-        return res.json(actualizar)
-    }
+    if (actualizar.msg) return res.json(actualizar)
+    
 
     res.json({
         exito: 'Activo actualizado correctamente'
@@ -203,30 +186,21 @@ const eliminarSolicitud = async (req, res) => {
     const solicitud = data.solicitud.split('-')[1]
     if (solicitud != data.idSolicitud) return res.json({ msg: 'No se puede procesar la solicitud, Error en el ID de la solicitud' })
 
-
     // VALIDAR QUE EL CODIGO PERTENESCA AL ACTIVO
     const dataBd = await consultarSolicitudUno(data.idSolicitud)
 
     if (dataBd.msg) return { msg: 'No se pudo validar la informacion intente mas tarde' }
     if (data.idActivo === dataBd.id_activo) return res.json({ msg: 'La solicitud no corresponde al activo verifique la informacion' })
 
-
     if (dataBd.id_estado !== 1) return res.json({ msg: 'No se puede eliminar la solictud, ya ha sido gestionada su estado es diferente de Abierto' })
-
 
     if (dataBd.idReporte !== null) return res.json({ msg: 'No se puede eliminar la solictud, ya ha sido gestionada y tiene un reporte creado ' })
 
-    if (dataBd.idUsuario !== sessionid) {
-        const arrPermisos = JSON.parse(permisos)
-        if (arrPermisos.indexOf(5) === -1) {
-            return res.json({ msg: 'Usted no tiene permisos para editar solicitudes' })
-        } 
-    }
-
+    if (dataBd.idUsuario !== sessionid) if (permisos.indexOf(5) === -1)  return res.json({ msg: 'Usted no tiene permisos para editar solicitudes' })
+         
     const actualizar = await eliminarSolicitudDb(dataBd.id)
-    if (actualizar.msg) {
-        return res.json(actualizar)
-    }
+    if (actualizar.msg)  return res.json(actualizar)
+    
 
     res.json({
         exito: 'Eliminado Correctamente',
@@ -247,19 +221,12 @@ const eliminarImagenSolicitud = async (req, res) => {
     if (dataBd.msg) return { msg: 'No se pudo validar la informacion intente mas tarde' }
     if (data.idActivo === dataBd.id_activo) return res.json({ msg: 'La solicitud no corresponde al activo verifique la informacion' })
 
-
     if (dataBd.id_estado !== 1) return res.json({ msg: 'No se puede eliminar la Imagen, la solicitud ya ha sido gestionada su estado es diferente de Abierto' })
-
 
     if (dataBd.idReporte !== null) return res.json({ msg: 'No se puede eliminar la Imagen, la solicitud ya ha sido gestionada y tiene un reporte creado ' })
 
-    if (dataBd.idUsuario !== sessionid) {
-        const arrPermisos = JSON.parse(permisos)
-        if (arrPermisos.indexOf(5) === -1) {
-            return res.json({ msg: 'Usted no tiene permisos para editar solicitudes' })
-        } 
-    }
-
+    if (dataBd.idUsuario !== sessionid) if (permisos.indexOf(5) === -1) return res.json({ msg: 'Usted no tiene permisos para editar solicitudes' })
+         
     const imagenes = dataBd.img_solicitud.split(',')
     const imagen = data.imagen
     const nuevaImagen = imagenes.filter((item) => item !== imagen)
@@ -270,10 +237,8 @@ const eliminarImagenSolicitud = async (req, res) => {
         id: dataBd.id
     }
     const actualizar = await actualizarImagenesSolicitud(datos)
-    if (actualizar.msg) {
-        return res.json(actualizar)
-    }
-
+    if (actualizar.msg) return res.json(actualizar)
+    
     const dataActivo = await consultarCodigoInterno(dataBd.id_activo)
     dataActivo.idSolicitud = dataBd.id
     // elimina la imagen del bd
@@ -306,8 +271,7 @@ const guardarImagenSolicitud = async (req, res) => {
     if (dataBd.idReporte !== null) return res.json({ msg: 'No se puede cargar la Imagen, la solicitud ya ha sido gestionada y tiene un reporte creado ' })
 
     if (dataBd.idUsuario !== sessionid) {
-        const arrPermisos = JSON.parse(permisos)
-        if (arrPermisos.indexOf(5) === -1) {
+        if (permisos.indexOf(5) === -1) {
             return res.json({ msg: 'Usted no tiene permisos para editar solicitudes' })
         } 
     }
@@ -363,23 +327,20 @@ const descargarSolicitud = async (req, res) => {
 }
 
 const consultarSolicitudReporte = async (req, res) => {
-    const { sessionid, permisos } = req
-    const arrPermisos = JSON.parse(permisos)
-    if(arrPermisos.indexOf(6) === -1) return res.json({msg: 'Usted no tiene permisos para crear reportes'})
+    const { permisos } = req
+
+    if(permisos.indexOf(6) === -1) return res.json({msg: 'Usted no tiene permisos para crear reportes'})
     const id = req.body.id
 
     const solicitud = await consultarSolicitureporte(id)
     if(solicitud.msg)return res.json({msg: 'Ha ocurido un error consultando los datos intentelo mas tarde'})
 
-    if (solicitud.msg) {
-        return res.json(solicitud)
-    }
-
+    if (solicitud.msg) return res.json(solicitud)
+    
     const dataBd = await consultarCodigoInterno(solicitud.id_activo)
     if(dataBd.msg)return res.json({msg: 'Ha ocurido un error consultando los datos intentelo mas tarde'})
     
     //valos por aqui
-    
     solicitud.imagenes_Activo = solicitud.imagenes_Activo.split(',')
     const imagenesActivo = await bufferimagenes(solicitud.imagenes_Activo, dataBd)
     solicitud.imagenesActivo = imagenesActivo
@@ -392,7 +353,6 @@ const consultarSolicitudReporte = async (req, res) => {
     res.json(
         solicitud
     )
-
 
 }
 

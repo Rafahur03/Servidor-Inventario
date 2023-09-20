@@ -50,8 +50,7 @@ const consultarReportesTodos = async (req, res) => {
 const consultarReporte = async (req, res) => {
     const id = req.body.id
     if (parseInt(id) == NaN) return res.json({ msg: 'Debe ingresar un id valido' })
-    const { sessionid, permisos, Id_proveedores } = req
-    const arrPermisos = JSON.parse(permisos)
+    const { sessionid } = req
     const reporte = await consultarReporteUno(id)
     if (reporte.msg) return res.json(reporte)
     const dataBd = await consultarCodigoInterno(reporte.idActivo)
@@ -103,10 +102,7 @@ const crearReporte = async (req, res) => {
     // validar permisos para crear activos
     const { sessionid, permisos, Id_proveedores } = req
 
-    const arrPermisos = JSON.parse(permisos)
-    const proveedores = JSON.parse(Id_proveedores)
-
-    if (arrPermisos.indexOf(6) === -1) return res.json({ msg: 'Usted no tiene permisos para crear crear reportes de mantenimiento' })
+    if (permisos.indexOf(6) === -1) return res.json({ msg: 'Usted no tiene permisos para crear crear reportes de mantenimiento' })
 
     const data = req.body.datos
 
@@ -118,17 +114,12 @@ const crearReporte = async (req, res) => {
     const dataSolicitud = await consultaValidarSolicitudReporte(idSolicitud)
     if (dataSolicitud.msg) return res.json(dataSolicitud)
 
-    if (dataSolicitud.idReporte != null) {
-        return res.json({ msg: 'la solicitud ya tiene un reporte creado' })
-    }
+    if (dataSolicitud.idReporte != null) return res.json({ msg: 'la solicitud ya tiene un reporte creado' })
 
-    if (dataSolicitud.estadoSolicitud == 3) {
-        return res.json({ msg: 'la solicitud esta en estado cerrada y no puede modificarse' })
-    }
+    if (dataSolicitud.estadoSolicitud == 3)  return res.json({ msg: 'la solicitud esta en estado cerrada y no puede modificarse' })
 
-    if (dataSolicitud.estadoSolicitud == 4) {
-        return res.json({ msg: 'la solicitu no existe o fue eliminada' })
-    }
+    if (dataSolicitud.estadoSolicitud == 4)return res.json({ msg: 'la solicitu no existe o fue eliminada' })
+    
     // validamos que todos los datos sean correctos para ingresarlos a la bd
     const validarDatos = await validarDatoReporte(data)
     if (validarDatos.msg) return res.json(validarDatos)
@@ -138,7 +129,7 @@ const crearReporte = async (req, res) => {
     data.id_activo = dataSolicitud.id_activo
 
     data.provedorMttoId = parseInt(data.provedorMttoId.split('-')[1])
-    if (proveedores.indexOf(data.provedorMttoId) === -1) return res.json({ msg: 'Usted no esta asociado al proveedor de mantenimientos seleccionado, favor seleccione uno al cual este asociado.' })
+    if (Id_proveedores.indexOf(data.provedorMttoId) === -1) return res.json({ msg: 'Usted no esta asociado al proveedor de mantenimientos seleccionado, favor seleccione uno al cual este asociado.' })
 
     const fechaSolicitud = dataSolicitud.fecha_solicitud.toISOString().substring(0, 10)
 
@@ -266,11 +257,7 @@ const guardarReportePrev = async (req, res) => {
     // validar permisos para crear activos
     const { sessionid, permisos, Id_proveedores } = req
 
-    const arrPermisos = JSON.parse(permisos)
-    const proveedores = JSON.parse(Id_proveedores)
-
-
-    if (arrPermisos.indexOf(6) === -1) return res.json({ msg: 'Usted no tiene permisos para crear crear reportes de mantenimiento' })
+    if (permisos.indexOf(6) === -1) return res.json({ msg: 'Usted no tiene permisos para crear crear reportes de mantenimiento' })
 
     const data = req.body.datos
 
@@ -289,7 +276,7 @@ const guardarReportePrev = async (req, res) => {
     if (validarDatos.msg) return res.json(validarDatos)
 
     data.provedorMttoId = parseInt(data.provedorMttoId.split('-')[1])
-    if (proveedores.indexOf(data.provedorMttoId) === -1) return res.json({ msg: 'Usted no esta asociado al proveedor de mantenimientos seleccionado, favor seleccione uno al cual este asociado.' })
+    if (Id_proveedores.indexOf(data.provedorMttoId) === -1) return res.json({ msg: 'Usted no esta asociado al proveedor de mantenimientos seleccionado, favor seleccione uno al cual este asociado.' })
 
     let imagenes = null
     if (data.imagenes.length > 0) {
@@ -409,8 +396,6 @@ const modificarReporte = async (req, res) => {
     // validar permisos para crear activos
     const { sessionid, Id_proveedores } = req
 
-    const proveedores = JSON.parse(Id_proveedores)
-
     const data = req.body.datos
     const reporte = data.reporteId.split('-')[1]
     const activo = data.codigo.split('-')[1]
@@ -433,7 +418,7 @@ const modificarReporte = async (req, res) => {
     if (validarDatos.msg) return res.json(validarDatos)
 
     data.provedorMttoId = parseInt(data.provedorMttoId.split('-')[1])
-    if (sessionid != 1) if (proveedores.indexOf(data.provedorMttoId) === -1) return res.json({ msg: 'Usted no esta asociado al proveedor de mantenimientos seleccionado, favor seleccione uno al cual este asociado.' })
+    if (sessionid != 1) if (Id_proveedores.indexOf(data.provedorMttoId) === -1) return res.json({ msg: 'Usted no esta asociado al proveedor de mantenimientos seleccionado, favor seleccione uno al cual este asociado.' })
 
     const fechaSolicitud = reporteBd.fechaSolicitud.toISOString().substring(0, 10)
 

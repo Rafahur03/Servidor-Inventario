@@ -26,10 +26,8 @@ const consultarconfig = async (req, res) => {
 const crearConfig = async (req, res) => {
     const { permisos } = req
 
-    const arrPermisos = JSON.parse(permisos)
-    if (arrPermisos.indexOf(8) === -1) {
-        return res.json({ msg: 'Usted no tiene permisos para crear configuraciones' })
-    }
+    if (permisos.indexOf(8) === -1) return res.json({ msg: 'Usted no tiene permisos para crear configuraciones' })
+    
 
     const { config, data } = req.body
 
@@ -37,10 +35,7 @@ const crearConfig = async (req, res) => {
     let query
 
     const validar = validarDatosConfigNuevo(data)
-    if (validar.msg) {
-        return res.json(validar)
-    }
-
+    if (validar.msg) return res.json(validar)
 
     switch (config) {
         case 1:
@@ -100,10 +95,7 @@ const crearConfig = async (req, res) => {
 const actualizarConfig = async (req, res) => {
     const { permisos } = req
 
-    const arrPermisos = JSON.parse(permisos)
-    if (arrPermisos.indexOf(8) === -1) {
-        return res.json({ msg: 'Usted no tiene permisos para consultar esta información' })
-    }
+    if (permisos.indexOf(8) === -1) return res.json({ msg: 'Usted no tiene permisos para consultar esta información' })
 
     const { config, data } = req.body
 

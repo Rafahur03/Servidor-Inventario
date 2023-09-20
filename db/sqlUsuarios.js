@@ -96,17 +96,7 @@ const actualizarUsuario = async (data) => {
     try {
         const pool = await conectardb()
 
-        if (data.password) {
-            const resultado = await pool.query(`UPDATE usuarios
-                SET numero_id='${data.numero_id}', tipo_id ='${data.tipo_id}', nombre='${data.nombre}', nombre_1= '${data.nombre_1}', apellido='${data.apellido}', apellido_1='${data.apellido_1}', email='${data.email}',password='${data.password}', estado='${data.estado}', Id_proveedores='${data.Id_proveedores}',permisos='${data.permisos}'
-                WHERE id='${data.id}'`)
-            cerrarConexion(pool)
-            return resultado.rowsAffected[0]
-        }
-
-        const resultado = await pool.query(`UPDATE usuarios
-            SET numero_id= '${data.numero_id}', tipo_id ='${data.tipo_id}', nombre='${data.nombre}', nombre_1= '${data.nombre_1}', apellido='${data.apellido}', apellido_1='${data.apellido_1}', email='${data.email}', estado='${data.estado}', Id_proveedores='${data.Id_proveedores}', permisos='${data.permisos}'
-            WHERE id='${data.id}'`)
+        const resultado = await pool.query(data)
         cerrarConexion(pool)
         return resultado.rowsAffected[0]
     } catch (error) {

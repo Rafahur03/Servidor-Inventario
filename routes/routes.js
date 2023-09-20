@@ -1,5 +1,14 @@
 import express from 'express';
-import { iniciaSesion, crearUsuario, actualizaUsuario, consultarUsuario } from '../controllers/controllersUsuarios.js';
+import { iniciaSesion,
+     crearUsuario,
+      actualizaUsuario,
+       consultarUsuario,
+       cambiarFirma,
+       guardarProveedorUsuario,
+       eliminarProveedorUsuario,
+       cambiarContraseña 
+    } from '../controllers/controllersUsuarios.js';
+
 import {checkAuth} from '../middleware/authMiddlewareUsuario.js';
 import {
     consultarActivosTodos,
@@ -16,7 +25,8 @@ import {
     guardarDocumento,
     descargarHojaDeVida,
     consultarDatosActivoSolicitud,
-    consultarDatosActivoReportePrev
+    consultarDatosActivoReportePrev,
+    consultarActivoCambiarClasificacion
 } from '../controllers/controllersActivos.js'
 
 import { consultarSolicitudTodos,
@@ -64,6 +74,14 @@ router.post('/actualizaPerfil', checkAuth, actualizaUsuario)
 
 router.post('/consultarUsuario', checkAuth, consultarUsuario)
 
+router.post('/cambiarFirma', checkAuth, cambiarFirma)
+
+router.post('/guardarProveedorUsuario', checkAuth, guardarProveedorUsuario)
+
+router.post('/cambiarClave', checkAuth, cambiarContraseña)
+
+router.delete('/eliminarProveedorUsuario', checkAuth, eliminarProveedorUsuario)
+
 
 // ruta de manejo de activos
 
@@ -72,6 +90,8 @@ router.get('/consultarActivosTodos', checkAuth, consultarActivosTodos)
 router.get('/consultarListasConfActivos', checkAuth, consultarListasConfActivos)
 
 router.post('/consultarActivo', checkAuth, consultarActivo)
+
+router.post('/consultarActivoCambiarClasificacion', checkAuth, consultarActivoCambiarClasificacion)
 
 router.post('/crearActivos', checkAuth, crearActivo)
 

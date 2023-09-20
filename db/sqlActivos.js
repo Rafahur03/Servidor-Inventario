@@ -311,7 +311,7 @@ const consultarCodigoInterno = async (id) => {
         const pool = await conectardb()
 
         const resultado = await pool.query(`
-            SELECT CONCAT( RTRIM(ca. siglas), la.consecutivo_interno) AS codigo, la.url_img, RTRIM(ca.siglas) AS siglas, la.soportes, la.reportes, la.estado_id
+            SELECT CONCAT( RTRIM(ca. siglas), la.consecutivo_interno) AS codigo, la.url_img, RTRIM(ca.siglas) AS siglas, TRIM(la.soportes) AS soportes, TRIM(la.reportes) AS reportes, la.estado_id
                 FROM listado_activos la
                 INNER JOIN clasificacion_activos ca
                     on la.clasificacion_id =ca.id
@@ -331,7 +331,7 @@ const consultarCalsificacionActivoMod = async (idactivo, idclasificacion) => {
         const pool = await conectardb()
 
         const resultado = await pool.query(`
-            SELECT la.clasificacion_id AS clasificacionActual, TRIM(ca.siglas) AS siglaActual, CONCAT(TRIM(ca.siglas), la.consecutivo_interno) as codigoActual
+            SELECT la.clasificacion_id AS clasificacionActual, TRIM(ca.siglas) AS siglaActual, CONCAT(TRIM(ca.siglas), la.consecutivo_interno) as codigoActual, TRIM(la.url_img) AS url_img, TRIM(la.soportes) AS soportes
                 FROM listado_activos la
                 INNER JOIN clasificacion_activos ca
                 ON la.clasificacion_id = ca.id
@@ -476,7 +476,43 @@ const actualizarEstadoActivo = async (data) => {
     }
 }
 
+const consultarCambiarClasificacion = async id => {
 
+    try {
+        const pool = await conectardb()
+        const resultado = await pool.query(`
+            SELECT la.id, TRIM(la.nombre) AS nombre, TRIM(la.modelo) AS modelo, TRIM(la.serie) AS serie, TRIM(la.ubicacion) AS ubicacion,
+                TRIM(ma.marca) AS marca, CONCAT(TRIM(ca.siglas), TRIM(la.consecutivo_interno)) AS codigo, TRIM(pr.proceso) AS proceso,
+                TRIM(ta.tipo_activo) AS tipoActivo, TRIM(a.area) AS area, TRIM(es.estado) AS estado, TRIM(la.url_img) AS url_img, TRIM(ca.siglas) AS siglas,
+                CONCAT(TRIM(us.nombre), SPACE(1), TRIM(us.nombre_1), SPACE(1), TRIM(us.apellido), SPACE(1), TRIM(us.apellido_1)) AS usuario
+                FROM listado_activos la
+                INNER JOIN marca_activos ma
+                ON ma.id = la.marca_id
+                INNER JOIN clasificacion_activos ca
+                ON ca.id = la.clasificacion_id
+                INNER jOIN procesos pr
+                ON pr.id = la.proceso_id
+                INNER JOIN tipo_activo ta
+                On ta.id = la.tipo_activo_id
+                INNER JOIN areas a
+                ON a.id = la.area_id
+                INNER JOIN usuarios us
+                ON us.id = la.usuario_id
+                INNER JOIN estados es
+                ON es.id = la.estado_id
+            WHERE la.id = ${id}
+
+            SELECT id, CONCAT(TRIM(siglas), ' -- ', TRIM(nombre)) AS clasificacion
+            FROM clasificacion_activos
+        WHERE estado = 1
+        `)
+        cerrarConexion(pool)
+        return (resultado.recordsets)
+    } catch (error) {
+        console.error(error);
+        return { msg: 'Ha ocurido un error al intentar guardar los datos intentalo mas tarde' }
+    }
+}
 
 
 export {
@@ -496,5 +532,6 @@ export {
     consultarActivoSolicitud,
     actualizarEstadoActivo,
     actualizarEstadoyFechaActivo,
-    consultarActivoReportePrev
+    consultarActivoReportePrev,
+    consultarCambiarClasificacion
 }

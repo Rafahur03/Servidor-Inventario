@@ -36,7 +36,8 @@ import {
     guardarSoportes,
     consultarActivoReportePrev,
     actualizarSoportes,
-    consultarActivoSolicitud
+    consultarActivoSolicitud,
+    consultarCambiarClasificacion
 } from "../db/sqlActivos.js"
 
 import { consultarComponentes } from "../db/sqlComponentes.js"
@@ -54,11 +55,14 @@ const consultarListasConfActivos = async (req, res) => {
 }
 
 const consultarActivo = async (req, res) => {
+    const { permisos } = req
     const id = req.body.id
-
     const activo = await consultarActivoUno(id)
+    if(activo.msg) return res.json({msg: 'No fue Posible consultar los datos del activo'})
     const componentes = await consultarComponentes(id)
+    if(componentes.msg) return res.json({msg: 'No fue Posible consultar los datos del activo'})
     const reportes = await consultarReportesActivo(id)
+    if(reportes.msg) return res.json({msg: 'No fue Posible consultar los datos del activo'})
 
     reportes.forEach(element => {
         if (element.proximoMtto != null) {
@@ -77,6 +81,7 @@ const consultarActivo = async (req, res) => {
     if (activo.url_img !== null && activo.url_img.trim() !== '') {
         activo.url_img = activo.url_img.split(',')
         const Imagenes = await bufferimagenes(activo.url_img, activo)
+        if(Imagenes.msg) return res.json({msg: 'No fue Posible consultar los datos del activo'})
         activo.BufferImagenes = Imagenes
     }
 
@@ -85,13 +90,16 @@ const consultarActivo = async (req, res) => {
         if (activo.soportes.length > 0) {
             activo.soportes = JSON.parse(activo.soportes)
             const soportes = bufferSoportespdf(activo.soportes, activo)
+            if(soportes.msg) return res.json({msg: 'No fue Posible consultar los datos del activo'})
             activo.Buffersoportes = soportes
-        }
+        } 
     }
 
     const hojadevida = await crearPdfMake(id, 'Activo')
+    if(hojadevida.msg) return res.json({msg: 'No fue Posible consultar los datos del activo'})
     activo.hojadevida = hojadevida
-
+    if (permisos.indexOf(3) !== -1) activo.editar = true
+    if (permisos.indexOf(4) !== -1) activo.cambiarClasificacion = true
     res.json(
         {
             activo,
@@ -101,14 +109,36 @@ const consultarActivo = async (req, res) => {
     )
 }
 
+const consultarActivoCambiarClasificacion = async (req, res) => {
+
+    const { permisos } = req
+    if (permisos.indexOf(4) === -1) res.json({msg: 'Usted no tiene permisos para cambiar clasificacion de activos'})
+    const id = req.body.id
+
+    const datos = await consultarCambiarClasificacion(id)
+    if(datos.msg) return res.json({msg: 'No fue Posible consultar los datos del activo'})
+    
+    const activo = datos[0][0]
+    activo.listaCladificacion = datos[1]
+
+    if (activo.url_img !== null && activo.url_img !== '') {
+        activo.url_img = activo.url_img.split(',')
+        const Imagenes = await bufferimagenes(activo.url_img, activo)
+        if(Imagenes.msg) return res.json({msg: 'No fue Posible consultar los datos del activo'})
+        activo.BufferImagenes = Imagenes
+    }
+
+    delete activo.siglas
+    
+    res.json(activo)
+}
+
+
 const crearActivo = async (req, res) => {
 
     // validar permisos para crear activos
     const { sessionid, permisos } = req
-    const arrPermisos = JSON.parse(permisos)
-    if (arrPermisos.indexOf(3) === -1) {
-        return res.json({ msg: 'Usted no tiene permisos para crear Activos' })
-    }
+    if (permisos.indexOf(3) === -1) return res.json({ msg: 'Usted no tiene permisos para crear Activos' })
 
     // extrae los datos del req y valida que esten normalizados para ingreso a la bd
     const { datos } = req.body
@@ -179,12 +209,12 @@ const crearActivo = async (req, res) => {
                 documento: key
             }
             const nuevoDocumento = await guardarDocumentoBase64(data, nuevoActivo)
-            if (!nuevoDocumento.msg) nombreDocumentos[key] = nuevoDocumento     
+            if (!nuevoDocumento.msg) nombreDocumentos[key] = nuevoDocumento
         }
     }
 
     // guardar los nombres de los documentos en la base de datos
-  
+
     if (Object.keys(nombreDocumentos).length > 0) {
         const nuevosoportes = JSON.stringify(nombreDocumentos)
         const soportesBd = await actualizarSoportes(nuevosoportes, nuevoActivo.id)
@@ -203,8 +233,7 @@ const actualizarActivo = async (req, res) => {
 
     // valida los permisos
     const { permisos } = req
-    const arrPermisos = JSON.parse(permisos)
-    if (arrPermisos.indexOf(3) === -1) return res.json({ msg: 'Usted no tiene permisos para Actualizar Activos' })
+    if (permisos.indexOf(3) === -1) return res.json({ msg: 'Usted no tiene permisos para Actualizar Activos' })
     // extrae los datos del req 
 
     const datos = req.body.datos
@@ -240,27 +269,34 @@ const actualizarActivo = async (req, res) => {
 const cambiarClasificacion = async (req, res) => {
 
     // verifica si tiene permios para camiar la clasificacion
-    const { sessionid, permisos } = req
-    const arrPermisos = JSON.parse(permisos)
-    if (arrPermisos.indexOf(4) === -1) {
-        return res.json({ msg: 'Usted no tiene permisos para Actualizar Activos' })
-    }
+    const { permisos } = req
+    if (permisos.indexOf(4) === -1) return res.json({ msg: 'Usted no tiene permisos para Actualizar Activos' })
+    
+    const {data} = req.body
 
-    const data = req.body
+    if(parseInt(data.id) === NaN) return  res.json({msg: 'El ID del activo no es valido'})
+    const siglas = data.siglas.split('-')[1]
+    if(parseInt(siglas === NaN)) return  res.json({msg: 'La clasificacion No es valida, debe escoger una clasificacion del listado'})
 
     // consulta y verifica que la calsificacion actual sea diferente a la nueva
-    const datosDb = await consultarCalsificacionActivoMod(data.id, data.nuevaClasificacion)
-    const clasificacionActual = datosDb[0][0]
+    const datosDb = await consultarCalsificacionActivoMod(data.id, siglas)
 
-    if (clasificacionActual.clasificacionActual === data.nuevaClasificacion) {
-        return res.json({ msg: 'El activo pertenea la clasificacion seleccionada' })
-    }
+    const clasificacionActual = datosDb[0][0]
+    const clasificacionNueva = datosDb[1][0]
+    const nuevoConsecutivo = datosDb[2][0]
+
+    console.log(clasificacionActual, clasificacionNueva , nuevoConsecutivo)
+
+    return res.json({msg: 'La clasificacion No es valida, debe escoger una clasificacion del listado'})
+    if (clasificacionActual.codigoActual !== data.codigo) return res.json({ msg: 'los datos enviados no corresponden al ID del Activo' })
 
     // verificar que exista la clasificacion
-    if (!datosDb[1][0]) {
-        return res.json({ msg: 'Debe seleccionar una clasificacion del listado' })
-    }
-    const clasificacionNueva = datosDb[1][0].existe
+    if (datosDb[1] < 1) return res.json({ msg: 'Debe seleccionar una clasificacion del listado' })
+    
+    if (clasificacionActual.clasificacionActual === siglas)  return res.json({ msg: 'El activo pertenece a la clasificacion seleccionada' })
+    
+
+    //const clasificacionNueva = datosDb[1][0].existe
 
     // Busca el codigo del ultimo activo de la clasificacion y lo incrementa en 1
     const consecutivo = datosDb[2][0].consecutivo_interno
@@ -269,14 +305,9 @@ const cambiarClasificacion = async (req, res) => {
 
     // actualiza los datos de la nueva clasificacion en la bd
     const actualizado = actualizarClasificacion(data.id, clasificacionNueva, consecutivo_interno)
-    if (actualizado.msg) {
-        return res.json(actualizado);
-    }
-
-    // consulta el nuevo codigo interno del activo y las nuevas siglas 
+    if (actualizado.msg) return res.json(actualizado);
+    
     const nuevoCodigoInterno = await consultarCodigoInterno(data.id)
-    console.log(nuevoCodigoInterno)
-    // copiar la carpeta, renombrarla y copiar los archivos
 
     const datafile = {
         siglaAntigua: clasificacionActual.siglaActual,
@@ -287,9 +318,7 @@ const cambiarClasificacion = async (req, res) => {
 
     // cambiar path de carpteta y nombre de los archivos 
     const cambioNombreCarpetas = await copiarYCambiarNombre(datafile)
-    if (cambioNombreCarpetas.msg) {
-        return res.json(cambioNombreCarpetas)
-    }
+    if (cambioNombreCarpetas.msg) return res.json(cambioNombreCarpetas)
     // cambiar nombre de los datos almacenados en la BD
 
     const { url_img, soportes } = nuevoCodigoInterno
@@ -306,6 +335,8 @@ const cambiarClasificacion = async (req, res) => {
             console.log(error.url_img)
         }
     }
+
+
     if (soportes !== null || soportes !== '') {
         const nuevoSoportes = soportes.replaceAll(datafile.codigoAntiguo, datafile.codigoNuevo)
         const actualizarSoportes = await guardarSoportes(nuevoSoportes, data.id)
@@ -319,9 +350,9 @@ const cambiarClasificacion = async (req, res) => {
 }
 
 const eliminarActivo = async (req, res) => {
-    const { sessionid, permisos } = req
-    const arrPermisos = JSON.parse(permisos)
-    if (arrPermisos.indexOf(4) === -1) {
+    const { permisos } = req
+
+    if (permisos.indexOf(4) === -1) {
         return res.json({ msg: 'Usted no tiene permisos para eliminar Activos' })
     }
 
@@ -351,8 +382,8 @@ const eliminarActivo = async (req, res) => {
 const guardarImagenActivo = async (req, res) => {
 
     const { permisos } = req
-    const arrPermisos = JSON.parse(permisos)
-    if (arrPermisos.indexOf(3) === -1) {
+
+    if (permisos.indexOf(3) === -1) {
         return res.json({ msg: 'Usted no tiene permisos para Actualizar Activos' })
     }
 
@@ -413,8 +444,7 @@ const guardarImagenActivo = async (req, res) => {
 const eliminarImagenActivo = async (req, res) => {
 
     const { permisos } = req
-    const arrPermisos = JSON.parse(permisos)
-    if (arrPermisos.indexOf(3) === -1) {
+    if (permisos.indexOf(3) === -1) {
         return res.json({ msg: 'Usted no tiene permisos para Actualizar Activos' })
     }
 
@@ -431,16 +461,16 @@ const eliminarImagenActivo = async (req, res) => {
 
     const imageneDb = dataBd.url_img.trim().split(',')
     if (imageneDb.length === 1) return res.json({ msg: 'El activo solo tiene una imagen no puede eliminarla sin antes guardar otras imagenes' })
-    
+
     // elimina la imagen de la base de datos
     const nuevaImagen = imageneDb.filter((item) => item !== data.imagen)
     const guardadoExitoso = await guardarImagenes(nuevaImagen.toString(), data.id)
     if (guardadoExitoso.msg) return res.json({ msg: 'la imagen no pudo ser eliminada de la base de datos' })
-    
+
     //elimiar imagen de la carpeta
     const eliminada = await eliminarImagenes(data.imagen, dataBd)
     if (eliminada.msg) return res.json({ msg: 'No fue posible eliminar la imagen del directorio' })
-  
+
 
     res.json({
         eliminada
@@ -450,8 +480,7 @@ const eliminarImagenActivo = async (req, res) => {
 const eliminarDocumento = async (req, res) => {
 
     const { permisos } = req
-    const arrPermisos = JSON.parse(permisos)
-    if (arrPermisos.indexOf(3) === -1) {
+    if (permisos.indexOf(3) === -1) {
         return res.json({ msg: 'Usted no tiene permisos para eliminar Documentos de Activos' })
     }
 
@@ -505,8 +534,7 @@ const guardarDocumento = async (req, res) => {
 
 
     const { permisos } = req
-    const arrPermisos = JSON.parse(permisos)
-    if (arrPermisos.indexOf(3) === -1) {
+    if (permisos.indexOf(3) === -1) {
         return res.json({ msg: 'Usted no tiene permisos para Actualizar Activos' })
     }
 
@@ -525,10 +553,13 @@ const guardarDocumento = async (req, res) => {
     const validar = validarDocumentos(data.file)
     if (validar.msg) return res.json(validar)
 
-    const soportes = JSON.parse(dataBd.soportes)
-    let documentoeliminar = null
-    if (soportes[data.documento]) documentoeliminar = soportes[data.documento]
 
+    let documentoeliminar = null
+    let soportes = {}
+    if (dataBd.soportes !== null && dataBd.soportes !== '') {
+        soportes = JSON.parse(dataBd.soportes)
+        if (soportes[data.documento]) documentoeliminar = soportes[data.documento]
+    }
     // guardar documento en el dicrectorio
     const nuevoDocumento = await guardarDocumentoBase64(data, dataBd)
     if (nuevoDocumento.msg) return res.json(nuevoDocumento)
@@ -536,8 +567,8 @@ const guardarDocumento = async (req, res) => {
     soportes[data.documento] = nuevoDocumento
     const nuevosoportes = JSON.stringify(soportes)
     const actualizarDB = await actualizarSoportes(nuevosoportes, data.id)
-
     if (actualizarDB.msg) return res.json(actualizarDB)
+
     if (documentoeliminar !== null) await elimnarSoportePdf(documentoeliminar, dataBd)
 
     const bufferSoporte = await bufferSoportepdf(nuevoDocumento, dataBd)
@@ -578,20 +609,20 @@ const consultarDatosActivoSolicitud = async (req, res) => {
         activo.BufferImagenes = Imagenes
     }
     res.json(activo)
-} 
+}
 
 const consultarDatosActivoReportePrev = async (req, res) => {
     const id = req.body.id
 
     const consulta = await consultarActivoReportePrev(id)
     const activo = consulta[0][0]
-    activo.listaEstados= consulta[1]
-    activo.listaUsuarios= consulta[2]
-    activo.listaProveedores= consulta[3]
-    activo.listadoEstadosSolicitud= consulta[4]
+    activo.listaEstados = consulta[1]
+    activo.listaUsuarios = consulta[2]
+    activo.listaProveedores = consulta[3]
+    activo.listadoEstadosSolicitud = consulta[4]
     const dataBd = await consultarCodigoInterno(id)
 
-    if(activo.proximoMto != null || activo.proximoMto != '') activo.proximoMto =  activo.proximoMto.toISOString().substring(0, 10)
+    if (activo.proximoMto != null || activo.proximoMto != '') activo.proximoMto = activo.proximoMto.toISOString().substring(0, 10)
     if (activo.url_img !== null && activo.url_img.trim() !== '') {
         activo.url_img = activo.url_img.split(',')
         const Imagenes = await bufferimagenes(activo.url_img, dataBd)
@@ -599,7 +630,7 @@ const consultarDatosActivoReportePrev = async (req, res) => {
     }
 
     res.json(activo)
-} 
+}
 
 export {
 
@@ -617,6 +648,7 @@ export {
     guardarDocumento,
     descargarHojaDeVida,
     consultarDatosActivoSolicitud,
-    consultarDatosActivoReportePrev
-    
+    consultarDatosActivoReportePrev,
+    consultarActivoCambiarClasificacion
+
 }

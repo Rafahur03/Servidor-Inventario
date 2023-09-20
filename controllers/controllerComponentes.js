@@ -9,34 +9,25 @@ const eliminarComponente = async (req, res) => {
     try {
 
         const { permisos } = req
-        const arrPermisos = JSON.parse(permisos)
-        if (arrPermisos.indexOf(3) === -1) {
-            return res.json({ msg: 'Usted no tiene permisos para Actualizar Componente' })
-        }
 
+        if (permisos.indexOf(3) === -1) return res.json({ msg: 'Usted no tiene permisos para Actualizar Componente' })
+        
         const data = req.body.data
 
-        if (data == '' || data == null || data == undefined) {
-            return res.json({ msg: 'Debe seleccionar un componente valido para eliminar' })
-        }
-
-        if (data.idActivo == '' || data.idActivo == null || data.idActivo == undefined) {
-            return res.json({ msg: 'No se reconoce el ID del activo' })
-        }
-
-        if (data.idComponente == '' || data.idComponente == null || data.idComponente == undefined) {
-            return res.json({ msg: 'No se reconoce el ID del componente' })
-        }
+        if (data == '' || data == null || data == undefined) return res.json({ msg: 'Debe seleccionar un componente valido para eliminar' })
+        
+        if (data.idActivo == '' || data.idActivo == null || data.idActivo == undefined) return res.json({ msg: 'No se reconoce el ID del activo' })
+        
+        if (data.idComponente == '' || data.idComponente == null || data.idComponente == undefined)  return res.json({ msg: 'No se reconoce el ID del componente' })
+        
         const componentes = await consultarComponentes(data.idActivo)
         if (componentes.map(element => { return element.id == data.idComponente }).indexOf(true) == -1) {
             return res.json({ msg: 'El Componente no pertenece al activo' })
         }
         const eliminar = await eliminarComponenteDb(data.idComponente)
 
-        if (eliminar.msg) {
-            res.json(eliminar)
-        }
-
+        if (eliminar.msg) return res.json(eliminar)
+        
         res.json('Componente Eliminado corectamnete')
 
     } catch (error) {
@@ -48,30 +39,23 @@ const eliminarComponente = async (req, res) => {
 
 const guardarComponente = async (req, res) => {
     try {
-
         const { permisos } = req
-        const arrPermisos = JSON.parse(permisos)
-        if (arrPermisos.indexOf(3) === -1) {
-            return res.json({ msg: 'Usted no tiene permisos para Actualizar Componente' })
-        }
-
+        if (permisos.indexOf(3) === -1)  return res.json({ msg: 'Usted no tiene permisos para Actualizar Componente' })
+        
         const data = req.body.data
         console.log(req.body)
         
-        if (data == '' || data == null || data == undefined) {
-            return res.json({ msg: 'Los datos no pueden enviarse vacios' })
-        }
+        if (data == '' || data == null || data == undefined)  return res.json({ msg: 'Los datos no pueden enviarse vacios' })
 
-        if (data.idActivo == '' || data.idActivo == null || data.idActivo == undefined) {
-            return res.json({ msg: 'No se reconoce el ID del activo' })
-        }
-
+        if (data.idActivo == '' || data.idActivo == null || data.idActivo == undefined) return res.json({ msg: 'No se reconoce el ID del activo' })
+        
         const validacion = await validarDatosComponente(data.componente)
 
         if (validacion.msg) return res.json(validacion)
 
         const crear = await crearComponente(data.componente, data.idActivo)
-        console.log(crear)
+
+        if(crear.msg) return res.json({msg: 'No fue posible asociar el componente al activo intentalo mas tarde'})
 
         res.json(crear)
 
