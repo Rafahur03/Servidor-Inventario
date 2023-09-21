@@ -187,7 +187,7 @@ const guardarNuevoActivo = async (data) => {
 
         const aumento = parseInt(consecutivo.recordset[0].consecutivo_interno) + 1
         data.consecutivo_interno = aumento.toString().padStart(4, 0)
-   
+
         const resultado = await pool.query(`
             INSERT INTO listado_activos (clasificacion_id, 
                 consecutivo_interno,
@@ -217,7 +217,7 @@ const guardarNuevoActivo = async (data) => {
             SELECT IDENT_CURRENT('listado_activos') AS id
         `)
         const id = resultado.recordset[0].id
-      
+
         const newActivo = await pool.query(`
             SELECT la.id, RTRIM(ca.siglas) AS siglas, CONCAT( RTRIM(ca. siglas), la.consecutivo_interno) AS codigo
                 FROM listado_activos la
@@ -354,21 +354,25 @@ const consultarCalsificacionActivoMod = async (idactivo, idclasificacion) => {
     }
 }
 
-const actualizarClasificacion = async (idactivo, idclasificacion, consecutivo_interno) => {
+const actualizarClasificacion = async data => {
 
     try {
+        let consulta = "UPDATE listado_activos \n SET clasificacion_id = " + data.idClasificacion + ", consecutivo_interno = '" + data.consecutivo
+
+        if (data.nuevaUrl) consulta = consulta + "', url_img = '" + data.nuevaUrl
+
+        if (data.nuevoSoportes) consulta = consulta + "' ,soportes = '" + data.nuevoSoportes
+
+        consulta = consulta + "' \n WHERE id= " + data.id
+
         const pool = await conectardb()
 
-        const resultado = await pool.query(`
-            UPDATE listado_activos
-                SET clasificacion_id = '${idclasificacion}', consecutivo_interno = '${consecutivo_interno}'
-            WHERE id= '${idactivo}'
-        `)
+        const resultado = await pool.query(consulta)
         cerrarConexion(pool)
-        return (resultado.recordsets)
+        return (resultado.rowsAffected)
     } catch (error) {
         console.error(error);
-        return { msg: 'Ha ocurido un error al intentar consultar los datos intentalo mas tarde' }
+        return { msg: 'Ha ocurido un error al intentar modificar los datos del activo' }
     }
 }
 

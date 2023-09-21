@@ -57,12 +57,14 @@ const consultarListasConfActivos = async (req, res) => {
 const consultarActivo = async (req, res) => {
     const { permisos } = req
     const id = req.body.id
+    
     const activo = await consultarActivoUno(id)
-    if(activo.msg) return res.json({msg: 'No fue Posible consultar los datos del activo'})
+    if(activo == undefined) return res.json({ msg: 'No fue Posible consultar los datos del activo' })
+    if (activo.msg) return res.json({ msg: 'No fue Posible consultar los datos del activo' })
     const componentes = await consultarComponentes(id)
-    if(componentes.msg) return res.json({msg: 'No fue Posible consultar los datos del activo'})
+    if (componentes.msg) return res.json({ msg: 'No fue Posible consultar los datos del activo' })
     const reportes = await consultarReportesActivo(id)
-    if(reportes.msg) return res.json({msg: 'No fue Posible consultar los datos del activo'})
+    if (reportes.msg) return res.json({ msg: 'No fue Posible consultar los datos del activo' })
 
     reportes.forEach(element => {
         if (element.proximoMtto != null) {
@@ -81,7 +83,7 @@ const consultarActivo = async (req, res) => {
     if (activo.url_img !== null && activo.url_img.trim() !== '') {
         activo.url_img = activo.url_img.split(',')
         const Imagenes = await bufferimagenes(activo.url_img, activo)
-        if(Imagenes.msg) return res.json({msg: 'No fue Posible consultar los datos del activo'})
+        if (Imagenes.msg) return res.json({ msg: 'No fue Posible consultar los datos del activo' })
         activo.BufferImagenes = Imagenes
     }
 
@@ -90,13 +92,13 @@ const consultarActivo = async (req, res) => {
         if (activo.soportes.length > 0) {
             activo.soportes = JSON.parse(activo.soportes)
             const soportes = bufferSoportespdf(activo.soportes, activo)
-            if(soportes.msg) return res.json({msg: 'No fue Posible consultar los datos del activo'})
+            if (soportes.msg) return res.json({ msg: 'No fue Posible consultar los datos del activo' })
             activo.Buffersoportes = soportes
-        } 
+        }
     }
 
     const hojadevida = await crearPdfMake(id, 'Activo')
-    if(hojadevida.msg) return res.json({msg: 'No fue Posible consultar los datos del activo'})
+    if (hojadevida.msg) return res.json({ msg: 'No fue Posible consultar los datos del activo' })
     activo.hojadevida = hojadevida
     if (permisos.indexOf(3) !== -1) activo.editar = true
     if (permisos.indexOf(4) !== -1) activo.cambiarClasificacion = true
@@ -112,27 +114,27 @@ const consultarActivo = async (req, res) => {
 const consultarActivoCambiarClasificacion = async (req, res) => {
 
     const { permisos } = req
-    if (permisos.indexOf(4) === -1) res.json({msg: 'Usted no tiene permisos para cambiar clasificacion de activos'})
+    if (permisos.indexOf(4) === -1) return res.json({ msg: 'Usted no tiene permisos para cambiar clasificacion de activos' })
     const id = req.body.id
 
     const datos = await consultarCambiarClasificacion(id)
-    if(datos.msg) return res.json({msg: 'No fue Posible consultar los datos del activo'})
     
+    if (datos.msg || datos[0].length == 0) return res.json({ msg: 'No fue Posible consultar los datos del activo' })
+
     const activo = datos[0][0]
     activo.listaCladificacion = datos[1]
 
     if (activo.url_img !== null && activo.url_img !== '') {
         activo.url_img = activo.url_img.split(',')
         const Imagenes = await bufferimagenes(activo.url_img, activo)
-        if(Imagenes.msg) return res.json({msg: 'No fue Posible consultar los datos del activo'})
+        if (Imagenes.msg) return res.json({ msg: 'No fue Posible consultar los datos del activo' })
         activo.BufferImagenes = Imagenes
     }
 
     delete activo.siglas
-    
+
     res.json(activo)
 }
-
 
 const crearActivo = async (req, res) => {
 
@@ -271,12 +273,12 @@ const cambiarClasificacion = async (req, res) => {
     // verifica si tiene permios para camiar la clasificacion
     const { permisos } = req
     if (permisos.indexOf(4) === -1) return res.json({ msg: 'Usted no tiene permisos para Actualizar Activos' })
-    
-    const {data} = req.body
 
-    if(parseInt(data.id) === NaN) return  res.json({msg: 'El ID del activo no es valido'})
+    const { data } = req.body
+
+    if (parseInt(data.id) === NaN) return res.json({ msg: 'El ID del activo no es valido' })
     const siglas = data.siglas.split('-')[1]
-    if(parseInt(siglas === NaN)) return  res.json({msg: 'La clasificacion No es valida, debe escoger una clasificacion del listado'})
+    if (parseInt(siglas === NaN)) return res.json({ msg: 'La clasificacion No es valida, debe escoger una clasificacion del listado' })
 
     // consulta y verifica que la calsificacion actual sea diferente a la nueva
     const datosDb = await consultarCalsificacionActivoMod(data.id, siglas)
@@ -285,68 +287,47 @@ const cambiarClasificacion = async (req, res) => {
     const clasificacionNueva = datosDb[1][0]
     const nuevoConsecutivo = datosDb[2][0]
 
-    console.log(clasificacionActual, clasificacionNueva , nuevoConsecutivo)
-
-    return res.json({msg: 'La clasificacion No es valida, debe escoger una clasificacion del listado'})
     if (clasificacionActual.codigoActual !== data.codigo) return res.json({ msg: 'los datos enviados no corresponden al ID del Activo' })
 
     // verificar que exista la clasificacion
-    if (datosDb[1] < 1) return res.json({ msg: 'Debe seleccionar una clasificacion del listado' })
-    
-    if (clasificacionActual.clasificacionActual === siglas)  return res.json({ msg: 'El activo pertenece a la clasificacion seleccionada' })
-    
+    if (clasificacionNueva == undefined) return res.json({ msg: 'Debe seleccionar una clasificacion del listado' })
+
+    if (clasificacionActual.clasificacionActual === siglas) return res.json({ msg: 'El activo pertenece a la clasificacion seleccionada' })
+
 
     //const clasificacionNueva = datosDb[1][0].existe
 
     // Busca el codigo del ultimo activo de la clasificacion y lo incrementa en 1
-    const consecutivo = datosDb[2][0].consecutivo_interno
+    const consecutivo = nuevoConsecutivo.consecutivo_interno
     const aumento = parseInt(consecutivo) + 1
     const consecutivo_interno = aumento.toString().padStart(4, 0)
 
-    // actualiza los datos de la nueva clasificacion en la bd
-    const actualizado = actualizarClasificacion(data.id, clasificacionNueva, consecutivo_interno)
-    if (actualizado.msg) return res.json(actualizado);
-    
-    const nuevoCodigoInterno = await consultarCodigoInterno(data.id)
-
     const datafile = {
         siglaAntigua: clasificacionActual.siglaActual,
-        siglaNueva: nuevoCodigoInterno.siglas,
+        siglaNueva: clasificacionNueva.siglasNueva,
         codigoAntiguo: clasificacionActual.codigoActual,
-        codigoNuevo: nuevoCodigoInterno.codigo
+        codigoNuevo: clasificacionNueva.siglasNueva + consecutivo_interno,
+        consecutivo: consecutivo_interno
     }
 
-    // cambiar path de carpteta y nombre de los archivos 
+    //cambiar path de carpteta y nombre de los archivos 
     const cambioNombreCarpetas = await copiarYCambiarNombre(datafile)
     if (cambioNombreCarpetas.msg) return res.json(cambioNombreCarpetas)
-    // cambiar nombre de los datos almacenados en la BD
 
-    const { url_img, soportes } = nuevoCodigoInterno
+   // cambiar nombre de los datos almacenados en la BD
+    const { soportes, url_img  } = clasificacionActual
 
-    let error = {}
-    if (url_img !== null || url_img !== '') {
-        console.log('aqui')
-        // actualizar la nombre d elas imagenes en la BD
-        const nuevaUrl = url_img.replaceAll(datafile.codigoAntiguo, datafile.codigoNuevo)
-        console.log(nuevaUrl, datafile.codigoAntiguo, datafile.codigoNuevo)
-        const actualizarUrl_Ima = await guardarImagenes(nuevaUrl, data.id)
-        if (actualizarUrl_Ima.msg) {
-            error.url_img = actualizarUrl_Ima
-            console.log(error.url_img)
-        }
-    }
+    if (url_img !== null && url_img !== '') datafile.nuevaUrl = url_img.replaceAll(datafile.codigoAntiguo, datafile.codigoNuevo)
+    
+    if (soportes !== null && soportes !== '') datafile.nuevoSoportes = soportes.replaceAll(datafile.codigoAntiguo, datafile.codigoNuevo)
 
+    datafile.id = data.id
+    datafile.idClasificacion = clasificacionNueva.existe
 
-    if (soportes !== null || soportes !== '') {
-        const nuevoSoportes = soportes.replaceAll(datafile.codigoAntiguo, datafile.codigoNuevo)
-        const actualizarSoportes = await guardarSoportes(nuevoSoportes, data.id)
-        if (actualizarSoportes.msg) {
-            error.actualizarSoportes = actualizarSoportes
-        }
-    }
+    const actualizado = actualizarClasificacion(datafile)
+    if (actualizado.msg) return res.json({msg:'no fue posible actualizar los datos en la base de datos '})
 
-    res.json({ codigoInterno: nuevoCodigoInterno.codigo })
-
+    res.json({id:datafile.id, exito:'Casificacion cambiada correctamente'})
 }
 
 const eliminarActivo = async (req, res) => {
@@ -601,6 +582,7 @@ const consultarDatosActivoSolicitud = async (req, res) => {
     const id = req.body.id
 
     const activo = await consultarActivoSolicitud(id)
+    if(activo == undefined) return res.json({ msg: 'No fue Posible consultar los datos del activo' })
     const dataBd = await consultarCodigoInterno(id)
 
     if (activo.url_img !== null && activo.url_img.trim() !== '') {
@@ -615,6 +597,7 @@ const consultarDatosActivoReportePrev = async (req, res) => {
     const id = req.body.id
 
     const consulta = await consultarActivoReportePrev(id)
+    if(activo == undefined) return res.json({ msg: 'No fue Posible consultar los datos del activo' })
     const activo = consulta[0][0]
     activo.listaEstados = consulta[1]
     activo.listaUsuarios = consulta[2]
