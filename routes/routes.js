@@ -56,7 +56,8 @@ import { consultarReportesTodos,
 
 import { consultarconfig,
     actualizarConfig,
-    crearConfig } from '../controllers/controlerConfig.js';
+    crearConfig,
+    consultarTodasTablasConfig } from '../controllers/controlerConfig.js';
 
 import { eliminarComponente, guardarComponente  } from '../controllers/controllerComponentes.js';
 
@@ -174,7 +175,11 @@ router.post('/actualizarConfig', checkAuth, actualizarConfig)
 
 router.post('/crearConfig', checkAuth, crearConfig)
 
+router.get('/consultarTodasTablasConfig', checkAuth, consultarTodasTablasConfig)
+
 router.post('/probarfechas', probarfechas)
+
+
 
 
 // ruta componente 

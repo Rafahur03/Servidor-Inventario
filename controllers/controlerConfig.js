@@ -1,5 +1,5 @@
 import { config } from "dotenv"
-import { consultaconfi, actualizarConfigDb, guardarConfig } from "../db/sqlConfig.js"
+import { consultaconfi, actualizarConfigDb, guardarConfig, consultarTodasTablas } from "../db/sqlConfig.js"
 import { validarDatosConfigActualizar, validarDatosConfigNuevo } from "../helpers/validarDatosConfig.js"
 
 
@@ -27,7 +27,7 @@ const crearConfig = async (req, res) => {
     const { permisos } = req
 
     if (permisos.indexOf(8) === -1) return res.json({ msg: 'Usted no tiene permisos para crear configuraciones' })
-    
+
 
     const { config, data } = req.body
 
@@ -151,8 +151,33 @@ const actualizarConfig = async (req, res) => {
 
 }
 
-export {
+const consultarTodasTablasConfig = async (req, res) => {
+    const { permisos } = req
+    if (permisos.indexOf(8) === -1) { }
+
+    const listado = await consultarTodasTablas()
+    if (listado.length === 0) return res.json({ msg: 'No fue posible consultar las tablas de configuracion' })
+    if (listado.msg) return res.json(listado)
+    const configuraciones = {
+        areas:listado[0],
+        marcas:listado[1],
+        tipoActivos:listado[2],
+        componentes:listado[3],
+        frecuencia:listado[4],
+        procesos:listado[5],
+        clasificacionActivos:listado[6],
+        proveedores:listado[7],
+        estado:listado[8]
+    }
+
+    if(permisos.indexOf(8) !== -1) configuraciones.editar = true
+
+    res.json(configuraciones)
+}
+
+export {    
     consultarconfig,
     actualizarConfig,
-    crearConfig
+    crearConfig,
+    consultarTodasTablasConfig
 }
