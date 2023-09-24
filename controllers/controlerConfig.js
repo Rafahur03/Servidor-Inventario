@@ -170,8 +170,16 @@ const consultarTodasTablasConfig = async (req, res) => {
         estado:listado[8]
     }
 
-    if(permisos.indexOf(8) !== -1) configuraciones.editar = true
-
+    if(permisos.indexOf(8) !== -1) {
+        configuraciones.editar = true
+        configuraciones.proveedores = configuraciones.proveedores.map(elemet =>{
+            return {
+                id:elemet.id,
+                nombre: elemet.nombre + '--' + elemet.estadoId
+            }
+        })
+    }
+    
     res.json(configuraciones)
 }
 

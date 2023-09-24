@@ -88,7 +88,7 @@ const consultarTodasTablas = async (query) => {
             SELECT cla.id, TRIM(cla.nombre) AS nombre, TRIM(cla.siglas) AS sigla, TRIM(es.estado) AS estado, CONCAT('Es-', cla.estado) AS estadoId FROM clasificacion_activos cla
             INNER JOIN estados es
             ON es.id = cla.estado
-            SELECT prov.id, CONCAT('Pro-', prov.id, '--', TRIM(prov.nombre_comercial), '--', TRIM(prov.razon_social), '--', TRIM(prov.nit), '--', prov.dv, '--', TRIM(prov.contacto), '--', TRIM(prov.telefonos), '--', TRIM(prov.direccion), '--', TRIM(prov.descripcion)) AS nombre, TRIM(es.estado) AS estado, CONCAT('Es-', prov.estado) AS estadoId  FROM proveedores prov
+            SELECT prov.id, CONCAT('Pro-', prov.id, '--', TRIM(prov.nombre_comercial), '--', TRIM(prov.razon_social), '--',	TRIM(prov.nit), '--', prov.dv, '--', TRIM(prov.contacto), '--', TRIM(prov.telefonos), '--', TRIM(prov.direccion), '--', TRIM(prov.descripcion), '--',TRIM(es.estado)) AS nombre,CONCAT('Es-', prov.estado) AS estadoId  FROM proveedores prov
             INNER JOIN estados es
             ON es.id = prov.estado
             SELECT id, TRIM(estado) AS estado FROM estados WHERE id <> 3
