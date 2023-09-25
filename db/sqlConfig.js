@@ -101,11 +101,26 @@ const consultarTodasTablas = async (query) => {
     }
 }
 
+const consultarConfuno = async (query) => {
+    try {
+        const pool = await conectardb()
+        const resultado = await pool.query(query)
+        cerrarConexion(pool)
+        return (resultado.recordset[0])
+
+    } catch (error) {
+        console.error(error);
+        return { msg: 'Ha ocurido un error al intentar cargar los datos de configuracion' }
+    }
+
+}
+
 
 export {
     consultaconfi,
     actualizarConfigDb,
     guardarConfig,
     listaNuevoReporte,
-    consultarTodasTablas
+    consultarTodasTablas,
+    consultarConfuno
 }
