@@ -430,7 +430,6 @@ const consultarTodasTablasConfig = async (req, res) => {
     res.json(configuraciones)
 }
 
-
 const validarId = (datos) => {
     if (!datos.includes('-')) return true
     const id = parseInt(datos.split('-')[1])

@@ -80,7 +80,7 @@ const consultarActivo = async (req, res) => {
         activo.fecha_proximo_mtto = activo.fecha_proximo_mtto.toISOString().substring(0, 10)
     }
 
-    if (activo.url_img !== null && activo.url_img.trim() !== '') {
+    if (activo.url_img !== null && activo.url_img !== '') {
         activo.url_img = activo.url_img.split(',')
         const Imagenes = await bufferimagenes(activo.url_img, activo)
         if (Imagenes.msg) return res.json({ msg: 'No fue Posible consultar los datos del activo' })
@@ -246,13 +246,12 @@ const actualizarActivo = async (req, res) => {
     if (dataBd.msg) return res.json({ msg: 'En estos momentos no es posible validar la informaciona  actualizar intetelo más tarde' })
 
     if (dataBd.codigo !== datos.codigoInterno) return res.json({ msg: 'El Id del activo no corresponde al codigo interno no se puede actualizar los datos' })
-
     const validacion = await validarDatosActivo(datos)
-    if (validacion.msg) return validacion.msg
-
-    const actualizacion = actualizarActivoDb(validacion)
-    if (actualizacion.msg) return actualizacion.msg
+    if (validacion.msg) return res.json(validacion)
+    const actualizacion = await actualizarActivoDb(validacion)
+    if (actualizacion.msg) return res.json(actualizacion)
     const activo = await consultarActivoUno(id)
+    if (activo.msg) return res.json({msg: 'el activo se a actualziado correctamente, pero no se pudo devolver la informacion de la actualziacion recargue la pagina'})
     activo.fecha_compra = activo.fecha_compra.toISOString().substring(0, 10)
     activo.vencimiento_garantia = activo.vencimiento_garantia.toISOString().substring(0, 10)
     activo.fecha_creacion = activo.fecha_creacion.toISOString().substring(0, 10)
@@ -338,8 +337,6 @@ const eliminarActivo = async (req, res) => {
     }
 
     const data = req.body
-
-    console.log(data)
 
     const datadb = await consultarCodigoInterno(data.id)
     if (datadb.codigo !== data.codigo) {
