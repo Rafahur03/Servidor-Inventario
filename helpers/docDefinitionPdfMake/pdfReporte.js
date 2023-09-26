@@ -7,7 +7,7 @@ const ddReporte = async (data) => {
     // playground requires you to assign document definition to a variable called dd
     const dd = {
         pageSize: 'LETTER',
-        pageMargins: [40, 83, 40, 40],
+        pageMargins: [20, 83, 40, 40],
         content: [
 
             {
@@ -336,6 +336,7 @@ const ddReporte = async (data) => {
         },
 
     }
+ 
     return dd
 }
 export { ddReporte }

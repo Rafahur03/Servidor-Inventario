@@ -48,14 +48,15 @@ const consultarReportesTodos = async (req, res) => {
 }
 
 const consultarReporte = async (req, res) => {
-    const id = req.body.id
-    if (parseInt(id) == NaN) return res.json({ msg: 'Debe ingresar un id valido' })
+    const id = parseInt(req.body.id)
+    
+    if (id == NaN) return res.json({ msg: 'Debe ingresar un id valido' })
     const { sessionid } = req
     const reporte = await consultarReporteUno(id)
     if (reporte.msg) return res.json(reporte)
     const dataBd = await consultarCodigoInterno(reporte.idActivo)
     if (dataBd.msg) return res.json(dataBd)
-
+  
     // normalizamos las fecha a la  hora local del pc
     reporte.fechaReporte = reporte.fechaReporte.toISOString().substring(0, 10)
     if( reporte.proximoMtto !== null) reporte.proximoMtto = reporte.proximoMtto.toISOString().substring(0, 10)
@@ -70,13 +71,13 @@ const consultarReporte = async (req, res) => {
         dataBd.idReporte = reporte.idReporte
         reporte.imagenesReporte = await bufferimagenes(reporte.imgReporte, dataBd, 2)
     } else {
-        reporte.imgReporte = ''
+        reporte.imgReporte = null
     }
-
+ 
     if (reporte.repIntExte === 'Ext') {
         reporte.soporte = await bufferSoportepdf('Rep', dataBd, reporte.idReporte)
     }
-
+ 
     if (reporte.usuarioReporteId == sessionid) {
         if (reporte.estadoSolicitudId != 3 && reporte.estadoSolicitudId != 4) reporte.editar = true
 
@@ -88,7 +89,10 @@ const consultarReporte = async (req, res) => {
     }
 
     const listado = await listaNuevoReporte()
+    if(listado.msg) return (res.json({msg: ' No se fue posible consultar todos los datos del reporte'}))
     reporte.listados = listado
+    
+
 
     res.json(
         reporte
@@ -246,7 +250,8 @@ const crearReporte = async (req, res) => {
     }
 
     res.json({
-        reporte: guardado
+        reporte: guardado,
+        exito: 'Reporte Guardado correctamente'
     })
 
 

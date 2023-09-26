@@ -167,7 +167,7 @@ const reporteData = async id => {
         datadb.url_img = await bufferNoImage()
     }
 
-    if (datadb.img_reporte != null && datadb.img_reporte != '') {
+    if (datadb.img_reporte !== null && datadb.img_reporte !== '') {
         // selecciona mos solo 4 imagenes de las cargadas en en el durante la creaccion del reporte 
         datadb.img_reporte = datadb.img_reporte.split(',')
         if (datadb.img_reporte.length > 4) datadb.img_reporte = datadb.img_reporte.slice(0, 4)
@@ -183,7 +183,11 @@ const reporteData = async id => {
 
             }
         })
+
         datadb.img_reporte = bodyImagenes
+        
+    }else{
+        datadb.img_reporte= []
     }
 
 
@@ -222,8 +226,7 @@ const reporteData = async id => {
 
         )
     }
-
-    datadb.logo = await bufferLogo()
+     datadb.logo = await bufferLogo()
     return datadb
 
 }

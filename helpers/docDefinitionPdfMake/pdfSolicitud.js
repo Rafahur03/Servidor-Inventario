@@ -4,6 +4,7 @@ import pdfMake from 'pdfmake/build/pdfmake.js'
 import vfsFonts from 'pdfmake/build/vfs_fonts.js'
 
 const ddSolicitud = async data => {
+	
 	pdfMake.vfs = vfsFonts.pdfMake.vfs;
 	const dd = {
 		pageSize: 'LETTER',
@@ -202,7 +203,6 @@ const ddSolicitud = async data => {
 		},
 
 	}
-
 	return dd
 }
 
