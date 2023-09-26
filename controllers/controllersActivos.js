@@ -581,11 +581,13 @@ const consultarDatosActivoSolicitud = async (req, res) => {
     const activo = await consultarActivoSolicitud(id)
     if(activo == undefined) return res.json({ msg: 'No fue Posible consultar los datos del activo' })
     const dataBd = await consultarCodigoInterno(id)
-
+        
     if (activo.url_img !== null && activo.url_img.trim() !== '') {
         activo.url_img = activo.url_img.split(',')
         const Imagenes = await bufferimagenes(activo.url_img, dataBd)
         activo.BufferImagenes = Imagenes
+    }else{
+        activo.url_img = null
     }
     res.json(activo)
 }
@@ -603,11 +605,13 @@ const consultarDatosActivoReportePrev = async (req, res) => {
     activo.listadoEstadosSolicitud = consulta[4]
     const dataBd = await consultarCodigoInterno(id)
 
-    if (activo.proximoMto != null || activo.proximoMto != '') activo.proximoMto = activo.proximoMto.toISOString().substring(0, 10)
+    if (activo.proximoMto !== null && activo.proximoMto != '') activo.proximoMto = activo.proximoMto.toISOString().substring(0, 10)
     if (activo.url_img !== null && activo.url_img.trim() !== '') {
         activo.url_img = activo.url_img.split(',')
         const Imagenes = await bufferimagenes(activo.url_img, dataBd)
         activo.BufferImagenes = Imagenes
+    }else{
+        activo.url_img = null
     }
 
     res.json(activo)
