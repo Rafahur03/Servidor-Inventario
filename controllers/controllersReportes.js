@@ -58,7 +58,7 @@ const consultarReporte = async (req, res) => {
 
     // normalizamos las fecha a la  hora local del pc
     reporte.fechaReporte = reporte.fechaReporte.toISOString().substring(0, 10)
-    reporte.proximoMtto = reporte.proximoMtto.toISOString().substring(0, 10)
+    if( reporte.proximoMtto !== null) reporte.proximoMtto = reporte.proximoMtto.toISOString().substring(0, 10)
     reporte.fechaSolicitud = reporte.fechaSolicitud.toISOString().substring(0, 10)
     reporte.imgActivo = reporte.imgActivo.split(',')
     // cargamos la imagenes 

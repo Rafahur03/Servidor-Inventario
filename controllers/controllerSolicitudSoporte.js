@@ -50,6 +50,8 @@ const consultarSolicitud = async (req, res) => {
         dataBd.idSolicitud = solicitud.id
         const imagenesSolicitud = await bufferimagenes(solicitud.img_solicitud, dataBd, 1)
         solicitud.imagenesSolicitud = imagenesSolicitud
+    }else{
+        solicitud.img_solicitud = null
     }
 
     solicitud.imagenes_Activo = solicitud.imagenes_Activo.split(',')
@@ -334,21 +336,19 @@ const consultarSolicitudReporte = async (req, res) => {
 
     const solicitud = await consultarSolicitureporte(id)
     if(solicitud.msg)return res.json({msg: 'Ha ocurido un error consultando los datos intentelo mas tarde'})
-
     if (solicitud.msg) return res.json(solicitud)
     
     const dataBd = await consultarCodigoInterno(solicitud.id_activo)
     if(dataBd.msg)return res.json({msg: 'Ha ocurido un error consultando los datos intentelo mas tarde'})
-    
     //valos por aqui
     solicitud.imagenes_Activo = solicitud.imagenes_Activo.split(',')
     const imagenesActivo = await bufferimagenes(solicitud.imagenes_Activo, dataBd)
     solicitud.imagenesActivo = imagenesActivo
     solicitud.fecha_solicitud = solicitud.fecha_solicitud.toISOString().substring(0, 10)
-
     const listado = await listaNuevoReporte()
+    
     if(listado.msg)return res.json({msg: 'Ha ocurido un error consultando los datos intentelo mas tarde'})
-    solicitud.listados = listado    
+     solicitud.listados = listado    
 
     res.json(
         solicitud

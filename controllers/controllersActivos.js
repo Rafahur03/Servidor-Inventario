@@ -594,8 +594,9 @@ const consultarDatosActivoReportePrev = async (req, res) => {
     const id = req.body.id
 
     const consulta = await consultarActivoReportePrev(id)
-    if(activo == undefined) return res.json({ msg: 'No fue Posible consultar los datos del activo' })
     const activo = consulta[0][0]
+    if(activo == undefined) return res.json({ msg: 'No fue Posible consultar los datos del activo' })
+    
     activo.listaEstados = consulta[1]
     activo.listaUsuarios = consulta[2]
     activo.listaProveedores = consulta[3]

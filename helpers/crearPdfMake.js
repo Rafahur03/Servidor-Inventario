@@ -224,7 +224,6 @@ const reporteData = async id => {
     }
 
     datadb.logo = await bufferLogo()
-
     return datadb
 
 }

@@ -150,8 +150,8 @@ const ddReporte = async (data) => {
 
                         ],
                         [
-                            { text: 'Proveedor:', bold: true },
-                            { colSpan: 4, text: data.proveedor },
+                            { text: 'Proveedor Mtto:', bold: true },
+                            { colSpan: 4, text: data.proveedorReporte },
                             '',
                             '',
                             '',
