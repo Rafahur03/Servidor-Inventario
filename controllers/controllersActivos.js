@@ -358,7 +358,6 @@ const eliminarActivo = async (req, res) => {
 }
 
 const guardarImagenActivo = async (req, res) => {
-
     const { permisos } = req
 
     if (permisos.indexOf(3) === -1) {
@@ -428,7 +427,6 @@ const eliminarImagenActivo = async (req, res) => {
 
     // extrae los datos del req 
     const { data } = req.body
-
     //validar que el id corresponde al codigo interno del equipo
     const dataBd = await consultarCodigoInterno(data.id)
     if (dataBd.msg) return request.json({ msg: 'En estos momentos no es posible validar la información  actualizar intetelo más tarde' })
@@ -451,7 +449,7 @@ const eliminarImagenActivo = async (req, res) => {
 
 
     res.json({
-        eliminada
+        exito: 'imagen eliminada correctamente'
     })
 }
 

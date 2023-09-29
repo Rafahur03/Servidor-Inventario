@@ -15,7 +15,7 @@ const validarDatosActivo = async (datos, crear = null) => {
 
         } else {
 
-            if (key !== 'descripcionActivo' && key !== 'recomendacionActivo' && key !== 'observacionActivo') {
+            if (key !== 'descripcionActivo' && key !== 'recomendacionActivo' && key !== 'observacionActivo' && key !== 'proximoMtto') {
 
                 if (validarVacios(datos[key])) return { msg: 'El campo ' + key.replace('Activo', '') + ' no puede estar vacio' }
 
@@ -46,7 +46,7 @@ const validarDatosActivo = async (datos, crear = null) => {
     let estado_id
     let clasificacion_id = null
 
-    if (crear !== null){
+    if (crear !== null) {
         clasificacion_id = datos.clasificacionId.split('-')[1]
         for (let key in config[0]) {
             let encontrado = null
@@ -150,14 +150,13 @@ const validarDatosActivo = async (datos, crear = null) => {
 
 
     if (crear == null) {
-         estado_id = datos.estadoId.split('-')[1]
+        estado_id = parseInt(datos.estadoId.split('-')[1])
 
         for (let key in config[6]) {
             let encontrado = null
-            if (config[6][key].id == estado_id) if(config[6][key].estado !== datos.estadoActivo) {
+            if (config[6][key].id == estado_id) if (config[6][key].estado !== datos.estadoActivo) {
                 encontrado = 1
                 return { msg: 'Debe escoger un estado del listado' }
-
             }
             if (encontrado !== null) break
             if (config[6].length === key + 1) return { msg: 'Debe escoger un estado del listado' }
@@ -202,15 +201,17 @@ const validarDatosActivo = async (datos, crear = null) => {
     const timestamp = Date.now();
     const fechaActual = new Date(timestamp).toISOString().substring(0, 10)
 
-    if (datos.ingresoActivo == '') return{ msg: 'El campo fecha de ingreso es obligatorio' }
-    if (datos.fechaCompra == '') return{ msg: 'El campo fecha de compra es obligatorio' }
-    if (datos.garantiaActivo == '') return{ msg: 'El campo fecha de vencimiento de la garantia es obligatorio' }
-    if (datos.proximoMtto == '') return{ msg: 'El campo fecha de proximo mantenimiento es obligatorio' }
+    if (datos.ingresoActivo == '') return { msg: 'El campo fecha de ingreso es obligatorio' }
+    if (datos.fechaCompra == '') return { msg: 'El campo fecha de compra es obligatorio' }
+    if (datos.garantiaActivo == '') return { msg: 'El campo fecha de vencimiento de la garantia es obligatorio' }
+    if (estado_id !== 2) {
+        if (datos.proximoMtto == '') return { msg: 'El campo fecha de proximo mantenimiento es obligatorio' }
+        if (datos.proximoMtto < fechaActual) return { msg: 'la fecha del proximo mantenimeinto no puede ser inferior a el dia de hoy' }
+    }
+    if (crear !== null) if (datos.ingresoActivo !== fechaActual) return { msg: 'La fecha de ingreso no puede ser diferente del dia de hoy' }
+    if (datos.fechaCompra > fechaActual) return { msg: 'La fecha de compra no puede ser superior al dia de hoy' }
+    if (datos.garantiaActivo < datos.fechaCompra) return { msg: 'la fecha de vencimiento de la garantia no puede ser menor a la fecha de compra' }
 
-    if (crear !== null) if (datos.ingresoActivo !== fechaActual) return{ msg: 'La fecha de ingreso no puede ser diferente del dia de hoy' }
-    if (datos.fechaCompra > fechaActual) return{ msg: 'La fecha de compra no puede ser superior al dia de hoy' }
-    if (datos.garantiaActivo < datos.fechaCompra) return{ msg: 'la fecha de vencimiento de la garantia no puede ser menor a la fecha de compra' }
-    if (datos.proximoMtto < fechaActual) return{ msg: 'la fecha del proximo mantenimeinto no puede ser inferior a el dia de hoy' }
 
     return {
         id,

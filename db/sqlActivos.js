@@ -11,7 +11,7 @@ const dataConfActivo = async () => {
             SELECT id, TRIM(area) AS area FROM areas WHERE estado !=3
             SELECT id, TRIM(nombre_comercial) AS nombre_comercial, TRIM(razon_social) AS razon_social, TRIM(nit) AS nit FROM proveedores WHERE estado !=3
             SELECT id, TRIM(tipo_activo) AS tipoActivo FROM tipo_activo WHERE estado !=3
-            SELECT id, TRIM(estado) AS estado FROM estados
+            SELECT id, TRIM(estado) AS estado FROM estados WHERE id !=3
             SELECT id, CONCAT(TRIM(nombre),SPACE(1), TRIM(nombre_1),SPACE(1), TRIM(apellido), SPACE(1), TRIM(apellido_1)) AS nombre FROM usuarios WHERE estado !=3
             SELECT id, TRIM(frecuencia) AS frecuencia, dias FROM frecuencia_Mtto WHERE estado !=3
             SELECT id, TRIM(estado) AS estado FROM estado_solicitudes

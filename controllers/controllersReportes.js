@@ -105,6 +105,7 @@ const crearReporte = async (req, res) => {
 
     // validar permisos para crear activos
     const { sessionid, permisos, Id_proveedores } = req
+    console.log(sessionid)
 
     if (permisos.indexOf(6) === -1) return res.json({ msg: 'Usted no tiene permisos para crear crear reportes de mantenimiento' })
 
@@ -177,6 +178,7 @@ const crearReporte = async (req, res) => {
     data.idSolicitud = idSolicitud
 
     // guardamos los datos del reporte en la base de  datos
+    console.log(data)
     const guardado = await guardarReporte(data)
     if (guardado.msg) return res.json(guardado)
     // consulta los datos del activo
