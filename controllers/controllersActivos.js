@@ -498,7 +498,7 @@ const descargarDocumento = async (req, res) => {
 
     //elimiar soporte
     const nombre = soportes[data.documento]
-    const buffedocumento = bufferSoportepdf(nombre, dataBd)
+    const buffedocumento = await bufferSoportepdf(nombre, dataBd)
 
     res.json({
         buffer: buffedocumento,
@@ -548,6 +548,7 @@ const guardarDocumento = async (req, res) => {
     if (documentoeliminar !== null) await elimnarSoportePdf(documentoeliminar, dataBd)
 
     const bufferSoporte = await bufferSoportepdf(nuevoDocumento, dataBd)
+
     if (bufferSoporte.msg) return res.json(actualizarDB)
 
     res.json({

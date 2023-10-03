@@ -377,7 +377,7 @@ const guardarDocumentoBase64 = async (datos, data, destino) => {
 	const imgBase64 = file.split(',')[1]
 	const decodedData = Buffer.from(imgBase64, 'base64');
 	const sizeInBytes = decodedData.length
-	if (sizeInBytes > 3145728) return { msg: 'Solo se aceptan documentos de menos de 3 Mb' }
+	if (sizeInBytes > 6291456) return { msg: 'Solo se aceptan documentos de tamaño menor de 6 Mb' }
 
 	try {
 		const extencion = mime.extension(mimeType)

@@ -356,12 +356,14 @@ const listadoReporteData = async id => {
         datadb.nombre = datos[0].nombre
 
         datadb.body = datos.map((element, index) => {
-            element.fechaReporte.setMinutes(element.fechaReporte.getMinutes() + element.fechaReporte.getTimezoneOffset())
-            element.fechaReporte = element.fechaReporte.toLocaleDateString('es-CO')
-            element.fechaProximo.setMinutes(element.fechaProximo.getMinutes() + element.fechaProximo.getTimezoneOffset())
-            element.fechaProximo = element.fechaProximo.toLocaleDateString('es-CO')
+            element.fechaReporte= element.fechaReporte.toISOString().substring(0, 10)
+            if(element.fechaProximo == undefined){
+                element.fechaProximo=''
+            }else{
+                element.fechaProximo = element.fechaProximo.toISOString().substring(0, 10)
+            }
             return [
-                { text: index + 1 },
+                { text: index + 1 },    
                 { text: element.id },
                 { text: element.fechaReporte },
                 { text: element.hallazgos },
