@@ -6,8 +6,8 @@ import router from "./routes/routes.js";
 dotenv.config();
 const app = express();
 
-app.use(express.raw({limit: '10mb'}))
-app.use(bodyParser.json({ limit: '10mb'}));
+app.use(express.raw({limit: '20mb'}))
+app.use(bodyParser.json({ limit: '20mb'}));
 app.use(express.json())
 
 conectardb();

@@ -23,10 +23,6 @@ const validarDatosActivo = async (datos, crear = null) => {
 
                 if (validarPalabras(datos[key])) return { msg: 'El campo ' + key.replace('Activo', '') + ' no puede contener palabras reservadas como Select, from, insert ect.' }
 
-            } else {
-                if (validarCaracteres(datos[key])) return { msg: 'El campo ' + key.replace('Activo', '') + ' no puede contener caracteres como <>, {} o []' }
-
-                if (validarPalabras(datos[key])) return { msg: 'El campo ' + key.replace('Activo', '') + ' no puede contener palabras reservadas como Select, from, insert ect.' }
             }
 
         }

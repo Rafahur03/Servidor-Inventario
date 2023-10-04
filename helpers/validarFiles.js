@@ -22,7 +22,7 @@ const validarDocumentos = docuemnto =>{
     const imgBase64 = docuemnto.split(',')[1]
     const decodedData = Buffer.from(imgBase64, 'base64');
     const sizeInBytes = decodedData.length
-    if (sizeInBytes > 6291456) return { msg: 'Solo se aceptan documentos de tamaño menor de 6 Mb' }
+    if (sizeInBytes > 15000000) return { msg: 'Solo se aceptan documentos de tamaño menor de 15Mb' }
 
     return true
 }
