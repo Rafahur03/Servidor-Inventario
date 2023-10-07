@@ -57,9 +57,9 @@ const consultarListasConfActivos = async (req, res) => {
 const consultarActivo = async (req, res) => {
     const { permisos } = req
     const id = req.body.id
-    
+
     const activo = await consultarActivoUno(id)
-    if(activo == undefined) return res.json({ msg: 'No fue Posible consultar los datos del activo' })
+    if (activo == undefined) return res.json({ msg: 'No fue Posible consultar los datos del activo' })
     if (activo.msg) return res.json({ msg: 'No fue Posible consultar los datos del activo' })
     const componentes = await consultarComponentes(id)
     if (componentes.msg) return res.json({ msg: 'No fue Posible consultar los datos del activo' })
@@ -118,7 +118,7 @@ const consultarActivoCambiarClasificacion = async (req, res) => {
     const id = req.body.id
 
     const datos = await consultarCambiarClasificacion(id)
-    
+
     if (datos.msg || datos[0].length == 0) return res.json({ msg: 'No fue Posible consultar los datos del activo' })
 
     const activo = datos[0][0]
@@ -155,16 +155,16 @@ const crearActivo = async (req, res) => {
 
     // validar datos del activo
     const validacion = await validarDatosActivo(campos, 'crear')
-    if (validacion.msg) return validacion.msg
+    if (validacion.msg) return res.json(validacion)
 
     // validar imagenes del activo
     if (imagenes.length > 0) {
         for (let imagen of imagenes) {
             const validacionImagen = validarImagenes(imagen)
-            if (validacionImagen.msg) return validacionImagen
+            if (validacionImagen.msg) return res.json(validacionImagen)
         }
     } else {
-        return { msg: 'El activo debe tener almenos una Imagen' }
+        return res.json({ msg: 'El activo debe tener almenos una Imagen' })
     }
 
     const documentosKey = Object.keys(documentos)
@@ -172,7 +172,7 @@ const crearActivo = async (req, res) => {
     if (documentosKey.length > 0) {
         for (let key of documentosKey) {
             const validacionDocumento = validarDocumentos(documentos[key])
-            if (validacionDocumento.msg) return validacionDocumento
+            if (validacionDocumento.msg) return res.json(validacionDocumento)
         }
     }
 
@@ -180,13 +180,15 @@ const crearActivo = async (req, res) => {
     if (componentes.length > 0) {
         for (let componente of componentes) {
             const validacionComponente = await validarDatosComponente(componente)
-            if (validacionComponente.msg) return validacionComponente
+            if (validacionComponente.msg) return res.json(validacionComponente)
         }
     }
     // guardar el activo y retornar los datos necesarios para guardar los demas datos
     validacion.create_by = sessionid
     const nuevoActivo = await guardarNuevoActivo(validacion)
-    if (nuevoActivo.msg) return nuevoActivo
+
+    if (nuevoActivo.msg) return res.json(nuevoActivo)
+
 
     // guardar imagenes 
     let nombreImagenes = []
@@ -237,11 +239,10 @@ const actualizarActivo = async (req, res) => {
     const { permisos } = req
     if (permisos.indexOf(3) === -1) return res.json({ msg: 'Usted no tiene permisos para Actualizar Activos' })
     // extrae los datos del req 
-
+    
     const datos = req.body.datos
     //validar que el id corresponde al codigo interno del equipo
     const id = datos.activo.split('-')[1]
-
     const dataBd = await consultarCodigoInterno(id)
     if (dataBd.msg) return res.json({ msg: 'En estos momentos no es posible validar la informaciona  actualizar intetelo más tarde' })
 
@@ -251,7 +252,7 @@ const actualizarActivo = async (req, res) => {
     const actualizacion = await actualizarActivoDb(validacion)
     if (actualizacion.msg) return res.json(actualizacion)
     const activo = await consultarActivoUno(id)
-    if (activo.msg) return res.json({msg: 'el activo se a actualziado correctamente, pero no se pudo devolver la informacion de la actualziacion recargue la pagina'})
+    if (activo.msg) return res.json({ msg: 'el activo se a actualziado correctamente, pero no se pudo devolver la informacion de la actualziacion recargue la pagina' })
     activo.fecha_compra = activo.fecha_compra.toISOString().substring(0, 10)
     activo.vencimiento_garantia = activo.vencimiento_garantia.toISOString().substring(0, 10)
     activo.fecha_creacion = activo.fecha_creacion.toISOString().substring(0, 10)
@@ -263,7 +264,6 @@ const actualizarActivo = async (req, res) => {
         exito: 'Los datos del Activo se actualizaron correctamente',
         activo
     })
-
 
 }
 
@@ -313,20 +313,20 @@ const cambiarClasificacion = async (req, res) => {
     const cambioNombreCarpetas = await copiarYCambiarNombre(datafile)
     if (cambioNombreCarpetas.msg) return res.json(cambioNombreCarpetas)
 
-   // cambiar nombre de los datos almacenados en la BD
-    const { soportes, url_img  } = clasificacionActual
+    // cambiar nombre de los datos almacenados en la BD
+    const { soportes, url_img } = clasificacionActual
 
     if (url_img !== null && url_img !== '') datafile.nuevaUrl = url_img.replaceAll(datafile.codigoAntiguo, datafile.codigoNuevo)
-    
+
     if (soportes !== null && soportes !== '') datafile.nuevoSoportes = soportes.replaceAll(datafile.codigoAntiguo, datafile.codigoNuevo)
 
     datafile.id = data.id
     datafile.idClasificacion = clasificacionNueva.existe
 
     const actualizado = actualizarClasificacion(datafile)
-    if (actualizado.msg) return res.json({msg:'no fue posible actualizar los datos en la base de datos '})
+    if (actualizado.msg) return res.json({ msg: 'no fue posible actualizar los datos en la base de datos ' })
 
-    res.json({id:datafile.id, exito:'Casificacion cambiada correctamente'})
+    res.json({ id: datafile.id, exito: 'Casificacion cambiada correctamente' })
 }
 
 const eliminarActivo = async (req, res) => {
@@ -429,7 +429,7 @@ const eliminarImagenActivo = async (req, res) => {
     const { data } = req.body
     //validar que el id corresponde al codigo interno del equipo
     const dataBd = await consultarCodigoInterno(data.id)
-    if (dataBd.msg) return request.json({ msg: 'En estos momentos no es posible validar la información  actualizar intetelo más tarde' })
+    if (dataBd.msg) return res.json({ msg: 'En estos momentos no es posible validar la información  actualizar intetelo más tarde' })
 
     if (dataBd.codigo !== data.codigo) return res.json({ msg: 'El Id del activo no corresponde al codigo interno no se puede actualizar los datos' })
 
@@ -465,7 +465,7 @@ const eliminarDocumento = async (req, res) => {
 
     //validar que el id corresponde al codigo interno del equipo
     const dataBd = await consultarCodigoInterno(data.id)
-    if (dataBd.msg) return request.json({ msg: 'En estos momentos no es posible validar la información  actualizar intetelo más tarde' })
+    if (dataBd.msg) return res.json({ msg: 'En estos momentos no es posible validar la información  actualizar intetelo más tarde' })
 
     if (dataBd.soportes.trim() === null) return res.json({ msg: 'El del activo no tiene documentos para eliminar' })
     if (dataBd.soportes.trim() === '') return res.json({ msg: 'El del activo no tiene documentos para eliminar' })
@@ -490,7 +490,7 @@ const descargarDocumento = async (req, res) => {
 
     //validar que el id corresponde al codigo interno del equipo
     const dataBd = await consultarCodigoInterno(data.id)
-    if (dataBd.msg) return request.json({ msg: 'En estos momentos no es posible validar la información  actualizar intetelo más tarde' })
+    if (dataBd.msg) return res.json({ msg: 'En estos momentos no es posible validar la información  actualizar intetelo más tarde' })
 
     if (dataBd.soportes.trim() === null) return res.json({ msg: 'El  activo no tiene documentos' })
     if (dataBd.soportes.trim() === '') return res.json({ msg: 'El  activo no tiene documentos' })
@@ -520,7 +520,7 @@ const guardarDocumento = async (req, res) => {
     //validar que el id corresponde al codigo interno del equipo
     const dataBd = await consultarCodigoInterno(data.id)
     if (dataBd.msg) {
-        return request.json({ msg: 'En estos momentos no es posible validar la información  actualizar intetelo más tarde' })
+        return res.json({ msg: 'En estos momentos no es posible validar la información  actualizar intetelo más tarde' })
     }
     if (!data.file) return res.json({ msg: 'Debe cargar un documento' })
     if (!data.documento || data.documento == '') return res.json({ msg: 'No se selecciono el tipo de documento ' })
@@ -565,7 +565,7 @@ const descargarHojaDeVida = async (req, res) => {
 
     //validar que el id corresponde al codigo interno del equipo
     const dataBd = await consultarCodigoInterno(data.id)
-    if (dataBd.msg) return request.json({ msg: 'En estos momentos no es posible validar la información  actualizar intetelo más tarde' })
+    if (dataBd.msg) return res.json({ msg: 'En estos momentos no es posible validar la información  actualizar intetelo más tarde' })
 
     const hojadevida = await crearPdfMake(data.id, 'Activo')
     res.json({
@@ -578,14 +578,14 @@ const consultarDatosActivoSolicitud = async (req, res) => {
     const id = req.body.id
 
     const activo = await consultarActivoSolicitud(id)
-    if(activo == undefined) return res.json({ msg: 'No fue Posible consultar los datos del activo' })
+    if (activo == undefined) return res.json({ msg: 'No fue Posible consultar los datos del activo' })
     const dataBd = await consultarCodigoInterno(id)
-        
+
     if (activo.url_img !== null && activo.url_img.trim() !== '') {
         activo.url_img = activo.url_img.split(',')
         const Imagenes = await bufferimagenes(activo.url_img, dataBd)
         activo.BufferImagenes = Imagenes
-    }else{
+    } else {
         activo.url_img = null
     }
     res.json(activo)
@@ -596,8 +596,8 @@ const consultarDatosActivoReportePrev = async (req, res) => {
 
     const consulta = await consultarActivoReportePrev(id)
     const activo = consulta[0][0]
-    if(activo == undefined) return res.json({ msg: 'No fue Posible consultar los datos del activo' })
-    
+    if (activo == undefined) return res.json({ msg: 'No fue Posible consultar los datos del activo' })
+
     activo.listaEstados = consulta[1]
     activo.listaUsuarios = consulta[2]
     activo.listaProveedores = consulta[3]
@@ -609,7 +609,7 @@ const consultarDatosActivoReportePrev = async (req, res) => {
         activo.url_img = activo.url_img.split(',')
         const Imagenes = await bufferimagenes(activo.url_img, dataBd)
         activo.BufferImagenes = Imagenes
-    }else{
+    } else {
         activo.url_img = null
     }
 

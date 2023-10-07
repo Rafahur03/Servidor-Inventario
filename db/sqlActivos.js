@@ -16,6 +16,7 @@ const dataConfActivo = async () => {
             SELECT id, TRIM(frecuencia) AS frecuencia, dias FROM frecuencia_Mtto WHERE estado !=3
             SELECT id, TRIM(estado) AS estado FROM estado_solicitudes
             SELECT id, TRIM(tipoMtto) AS tipoMtto FROM tipo_mantenimeintos WHERE estado_id !=3
+            SELECT id, TRIM(riesgo_equipos_medicos) AS riesgo FROM riesgo_invima
 
         `)
         cerrarConexion(pool)
@@ -70,7 +71,8 @@ const consultarActivoUno = async (id) => {
                 TRIM(la.valor) valor, la.fecha_compra, la.vencimiento_garantia, la.frecuencia_id, TRIM(fre.frecuencia) AS frecuencia,
                 TRIM(la.descripcion) AS descripcion, TRIM(la.recomendaciones_Mtto) AS recomendaciones_Mtto,
                 TRIM(la.obervacion) AS obervacion, TRIM(la.url_img) AS url_img, la.fecha_creacion, la.tipo_activo_id,
-                TRIM(ta.tipo_activo) AS  tipoActivo, la.fecha_proximo_mtto, TRIM(la.soportes) AS soportes
+                TRIM(ta.tipo_activo) AS  tipoActivo, la.fecha_proximo_mtto, TRIM(la.soportes) AS soportes,
+                TRIM(la.invima) AS invima, la.riesgoId, TRIM(ri.riesgo_equipos_medicos) AS riesgo
                 FROM listado_activos la
                 INNER JOIN clasificacion_activos ca
                 ON ca.id = la.clasificacion_id
@@ -90,6 +92,8 @@ const consultarActivoUno = async (id) => {
                 ON fre.id = la.frecuencia_id
                 INNER JOIN tipo_activo ta
                 ON ta.id = la.tipo_activo_id
+                INNER JOIN riesgo_invima ri
+                ON ri.id = la.riesgoid
             WHERE la.id ='${id}'
         `)
         cerrarConexion(pool)
@@ -175,8 +179,6 @@ const consultarActivoReportePrev = async (id) => {
 const guardarNuevoActivo = async (data) => {
     const pool = await conectardb()
 
-
-
     try {
         const consecutivo = await pool.query(
             `SELECT TOP 1 consecutivo_interno 
@@ -211,8 +213,11 @@ const guardarNuevoActivo = async (data) => {
                 obervacion,
                 create_by,
                 tipo_activo_id,
-                fecha_creacion)
-                VALUES('${data.clasificacion_id}','${data.consecutivo_interno}','${data.nombre}','${data.marca_id}','${data.modelo}','${data.serie}','${data.proceso_id}','${data.area_id}','${data.ubicacion}','${data.usuario_id}','${data.estado_id}','${data.proveedor_id}','${data.numero_factura}','${data.valor}','${data.fecha_compra}','${data.vencimiento_garantia}','${data.frecuencia_id}','${data.descripcion}','${data.recomendaciones_Mtto}','${data.obervacion}','${data.create_by}','${data.tipo_activo_id}','${data.fecha_creacion}')
+                fecha_creacion,
+                riesgoid,
+                invima,
+                fecha_proximo_mtto)
+                VALUES('${data.clasificacion_id}','${data.consecutivo_interno}','${data.nombre}','${data.marca_id}','${data.modelo}','${data.serie}','${data.proceso_id}','${data.area_id}','${data.ubicacion}','${data.usuario_id}','${data.estado_id}','${data.proveedor_id}','${data.numero_factura}','${data.valor}','${data.fecha_compra}','${data.vencimiento_garantia}','${data.frecuencia_id}','${data.descripcion}','${data.recomendaciones_Mtto}','${data.obervacion}','${data.create_by}','${data.tipo_activo_id}','${data.fecha_creacion}' ,'${data.riesgoId}','${data.invima}', '${data.proximoMtto}')
         
             SELECT IDENT_CURRENT('listado_activos') AS id
         `)
@@ -293,7 +298,9 @@ const actualizarActivoDb = async (data) => {
                 recomendaciones_Mtto ='${data.recomendaciones_Mtto}',
                 obervacion ='${data.obervacion}',
                 tipo_activo_id ='${data.tipo_activo_id}',
-                fecha_proximo_mtto = '${data.proximoMtto}'
+                fecha_proximo_mtto = '${data.proximoMtto}',
+                riesgoid = '${data.riesgoId}',
+                invima = '${data.invima}'
 
             WHERE id='${data.id}'
         `)

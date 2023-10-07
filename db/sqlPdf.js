@@ -106,13 +106,13 @@ const dataActivo = async (id) => {
         const pool = await conectardb()
         const resultado = await pool.query(`
             SELECT  LA.id, LA.nombre, CONCAT(TRIM(CA.siglas), TRIM(LA.consecutivo_interno)) AS codigo, TRIM(MA.marca) AS marca, LA.modelo,
-                LA.serie, LA.riesgo, LA.fecha_compra AS fechaCompra , LA.vencimiento_garantia AS garantia, LA.tipo_activo_id, 
+                LA.serie, TRIM(ri.riesgo_equipos_medicos) AS riesgo, LA.fecha_compra AS fechaCompra , LA.vencimiento_garantia AS garantia, LA.tipo_activo_id, 
                 TRIM(LA.ubicacion) AS ubicacion, 
                 CONCAT(TRIM(USR.nombre), ' ', TRIM(USR.nombre_1), ' ', TRIM(USR.apellido), ' ', TRIM(USR.apellido) ) AS responsable,
                 TRIM(ES.estado) AS estado, TRIM(FR.frecuencia) AS frecuencia, TRIM(PR.proceso) AS proceso, TRIM(AR.area) AS area,
                 TRIM(PRO.razon_social) AS proveedor, TRIM(LA.numero_factura) AS factura, TRIM(LA.valor) AS valor, la.fecha_creacion AS ingreso,
                 TRIM(LA.descripcion) AS descripcion, TRIM(LA.recomendaciones_Mtto) AS recomendaciones, TRIM(LA.obervacion) AS observacion,
-                LA.url_img, TRIM(CA.siglas) AS siglas
+                LA.url_img, TRIM(CA.siglas) AS siglas, TRIM(la.invima) AS invima
                 FROM listado_activos LA
                 INNER JOIN clasificacion_activos CA
                 ON CA.id = LA.clasificacion_id
@@ -130,6 +130,8 @@ const dataActivo = async (id) => {
                 ON AR.id = LA.area_id
                 INNER JOIN proveedores PRO
                 ON PRO.id = LA.proveedor_id
+                INNER JOIN riesgo_invima ri
+                ON ri.id = la.riesgoid
             
             WHERE LA.id = '${id}'
         

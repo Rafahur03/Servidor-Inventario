@@ -4,7 +4,7 @@ const validarDatosActivo = async (datos, crear = null) => {
 
     for (const key in datos) {
 
-        if (key === 'areaId' || key === 'marcaId' || key === 'procesoId' || key === 'estadoId' || key === 'proveedorId' || key === 'responsableId' || key === 'tipoId' || key === 'frecuecniaId' || key === 'activo') {
+        if (key === 'areaId' || key === 'marcaId' || key === 'procesoId' || key === 'estadoId' || key === 'proveedorId' || key === 'responsableId' || key === 'tipoId' || key === 'frecuecniaId' || key === 'activo'|| key === 'riesgoId') {
             if (validarVacios(datos[key])) return { msg: 'El campo ' + key.replace('Id', '') + ' no puede estar vacio escoja un elemento de la lista o primero' }
 
             if (validarCaracteres(datos[key])) return { msg: 'El campo ' + key.replace('Id', '') + ' no puede contener caracteres como <>, {} o [] este' }
@@ -15,16 +15,24 @@ const validarDatosActivo = async (datos, crear = null) => {
 
         } else {
 
-            if (key !== 'descripcionActivo' && key !== 'recomendacionActivo' && key !== 'observacionActivo' && key !== 'proximoMtto') {
-
-                if (validarVacios(datos[key])) return { msg: 'El campo ' + key.replace('Activo', '') + ' no puede estar vacio' }
+            if (key == 'descripcionActivo' || key == 'recomendacionActivo' || key == 'observacionActivo' ||key == 'proximoMtto' || key == 'registroActivo') {
 
                 if (validarCaracteres(datos[key])) return { msg: 'El campo ' + key.replace('Activo', '') + ' no puede contener caracteres como <>, {} o []' }
 
                 if (validarPalabras(datos[key])) return { msg: 'El campo ' + key.replace('Activo', '') + ' no puede contener palabras reservadas como Select, from, insert ect.' }
 
-            }
+            } else {
 
+                if (key !== 'areaActivo' && key !== 'marcaActivo' && key !== 'procesoActivo' && key !== 'estadoActivo' && key !== 'proveedorActivo' && key !== 'responsableActivo' && key !== 'tipoActivo'&& key !== 'frecuenciaMtto' && key !== 'riesgoActivo') {
+
+                    if (validarVacios(datos[key])) return { msg: 'El campo ' + key.replace('Activo', '') + ' no puede estar vacio' }
+
+                    if (validarCaracteres(datos[key])) return { msg: 'El campo ' + key.replace('Activo', '') + ' no puede contener caracteres como <>, {} o []' }
+
+                    if (validarPalabras(datos[key])) return { msg: 'El campo ' + key.replace('Activo', '') + ' no puede contener palabras reservadas como Select, from, insert ect.' }
+                }
+            }
+ 
         }
     }
 
@@ -39,6 +47,8 @@ const validarDatosActivo = async (datos, crear = null) => {
     const responsableId = datos.responsableId.split('-')[1]
     const tipoId = datos.tipoId.split('-')[1]
     const frecuecniaId = datos.frecuecniaId.split('-')[1]
+    const riesgoId = datos.riesgoId.split('-')[1]
+
     let estado_id
     let clasificacion_id = null
 
@@ -194,6 +204,17 @@ const validarDatosActivo = async (datos, crear = null) => {
         if (config[8].length === key + 1) return { msg: 'Debe escoger un frecuencia del listado' }
     }
 
+    for (let key in config[11]) {
+        let encontrado = null
+        if (config[11][key].id == riesgoId) if (config[11][key].riesgo !== datos.riesgoActivo) {
+            encontrado = 1
+            return { msg: 'Debe escoger una clase de riesgo del listado' }
+        }
+        if (encontrado !== null) break
+        if (config[11].length === key + 1) return { msg: 'Debe escoger una clase de riesgo del listado' }
+    }
+
+
     const timestamp = Date.now();
     const fechaActual = new Date(timestamp).toISOString().substring(0, 10)
 
@@ -232,6 +253,8 @@ const validarDatosActivo = async (datos, crear = null) => {
         obervacion: datos.observacionActivo,
         proximoMtto: datos.proximoMtto,
         tipo_activo_id: tipoId,
+        riesgoId,
+        invima : datos.registroActivo, 
         fecha_creacion: crear = null ? null : fechaActual
     }
 
