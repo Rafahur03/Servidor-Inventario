@@ -1,23 +1,24 @@
-import { config } from "dotenv"
+
 import { consultaconfi, actualizarConfigDb, guardarConfig, consultarTodasTablas, consultarConfuno } from "../db/sqlConfig.js"
 
 const consultarconfig = async (req, res) => {
-    const tablasConfig = {
-        1: 'areas',
-        2: 'marca_activos',
-        3: 'tipo_activo',
-        4: 'lista_componentes',
-        5: 'frecuencia_Mtto',
-        6: 'procesos',
-        7: 'clasificacion_activos',
-        8: 'proveedores'
+
+    const query = {
+        1: 'SELECT id, TRIM(area) AS area, estado FROM areas WHERE estado = 1',
+        2: 'SELECT id, TRIM(marca) AS marca, estado FROM marca_activos WHERE estado = 1',
+        3: 'SELECT id, TRIM(tipo_activo) AS tipo_activo, estado FROM tipo_activo WHERE estado = 1',
+        4: 'SELECT id, TRIM(componente) AS componente, estado FROM lista_componentes WHERE estado = 1',
+        5: 'SELECT id, TRIM(frecuencia) AS frecuencia, dias, estado FROM frecuencia_Mtto WHERE estado = 1',
+        6: 'SELECT id, TRIM(proceso) AS procesos, TRIM(sigla) AS sigla, estado FROM procesos WHERE estado = 1',
+        7: 'SELECT id, TRIM(nombre) AS nombre, TRIM(siglas) AS siglas, estado FROM clasificacion_activos WHERE estado = 1',
+        8: 'SELECT id, TRIM(nombre_comercial) AS nombre_comercial, TRIM(nit) AS nit, dv,TRIM(razon_social) AS razon_social, TRIM(telefonos) AS telefonos, TRIM(contacto) AS contacto, TRIM(direccion) AS direccion, TRIM(descripcion) AS descripcion, estado FROM proveedores  WHERE estado = 1'
     }
     const { config } = req.body
 
-    if (!tablasConfig[config]) {
+    if (!query[config]) {
         return res.json({ msg: 'solicitud ivalida' })
     }
-    const tabla = await consultaconfi(tablasConfig[config])
+    const tabla = await consultaconfi(query[config])
     res.json(tabla)
 }
 

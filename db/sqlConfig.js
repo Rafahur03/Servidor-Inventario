@@ -1,13 +1,10 @@
 import { conectardb, cerrarConexion } from "./db.js";
 
-const consultaconfi = async (conf) => {
+const consultaconfi = async (query) => {
 
     try {
         const pool = await conectardb()
-        const resultado = await pool.query(`
-            SELECT * FROM ${conf}
-            WHERE estado = 1
-        `)
+        const resultado = await pool.query(query)
         cerrarConexion(pool)
         return (resultado.recordsets[0])
 
