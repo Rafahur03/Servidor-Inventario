@@ -114,6 +114,8 @@ const validarDatosUsuarios = async datos => {
 
     if (typeof datos.clasificacion !== "boolean") return { msg: 'Debe Selecioar un estado de la opcion permisos para el menu Cambiar clasificacion activos' }
 
+    if (typeof datos.informes !== "boolean") return { msg: 'Debe Selecioar un estado de la opcion permisos para el menu Informes' }
+
     if (datos.proveedores.length == 0) return modalMensaje({ titulo: 'ERROR', mensaje: 'El usuario debe estar asociado al menos un porveedor' })
 
     const validarproveedor = datos.proveedores.map(item => {
@@ -294,6 +296,8 @@ const validarDatosUsuariosEditados = async datos => {
 
         if (typeof datos.clasificacion !== "boolean") return { msg: 'Debe Selecioar un estado de la opcion permisos para el menu Cambiar clasificacion activos' }
 
+        if (typeof datos.informes !== "boolean") return { msg: 'Debe Selecioar un estado de la opcion permisos para el menu Informes' }
+
         if (validarId(datos.estado)) return { msg: 'Debe escoger un estado para el Usuario' }
 
         if (datos.estado !== 'Es-1') if (datos.estado !== 'Es-2') return { msg: 'Debe escoger un estado para el Usuario' }
@@ -302,6 +306,8 @@ const validarDatosUsuariosEditados = async datos => {
 
         if (datos.usuarios) datos.permisos.push(1)
         delete datos.usuarios
+        if (datos.informes) datos.permisos.push(2)
+        delete datos.informes
         if (datos.activos) datos.permisos.push(3)
         delete datos.activos
         if (datos.solicitudes) datos.permisos.push(5)

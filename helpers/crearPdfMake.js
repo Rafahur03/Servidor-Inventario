@@ -8,6 +8,7 @@ import { ddReporte } from "./docDefinitionPdfMake/pdfReporte.js"
 import { ddSolicitud } from "./docDefinitionPdfMake/pdfSolicitud.js";
 import { ddHojaDeVida } from "./docDefinitionPdfMake/pdfHojadeVida.js";
 import { ddListadoReporte } from "./docDefinitionPdfMake/pdfListadoMtto.js";
+import {ddInformeActivo} from "./docDefinitionPdfMake/informeActivo.js";
 import { consultarActivoUno } from "../db/sqlActivos.js";
 const pathBase = process.env.PATH_FILES
 const __dirname = new URL('.', import.meta.url).pathname.substring(1)
@@ -34,8 +35,12 @@ async function crearPdfMake(id, tipo) {
 
     if (tipo === 'listadoReportes') {
         data = await listadoReporteData(id)
-        if (data)
-            dd = await ddListadoReporte(data)
+        dd = await ddListadoReporte(data)
+    }
+
+    if (tipo === 'InformActivo') {
+        data = await informeActivo(id)
+        dd = await ddInformeActivo(data)
     }
 
     const pdfDocGenerator = pdfMake.createPdf(dd);
@@ -122,13 +127,13 @@ const reporteData = async id => {
     // normalizamos los datos del reporte para su ingreso a pdf y creamos los buffer de imagenes para ingresarlos al pdf 
     // normalizamos las fechas 
     datadb.fechaSolicitud = datadb.fechaSolicitud.toLocaleString('es-CO')
-    datadb.fechaReporte = datadb.fechaReporte.toISOString().substring(0, 10)   
-    if(datadb.fechaCierre == null || datadb.fechaCierre ==''){
+    datadb.fechaReporte = datadb.fechaReporte.toISOString().substring(0, 10)
+    if (datadb.fechaCierre == null || datadb.fechaCierre == '') {
         datadb.fechaCierre = ''
-    } else{
+    } else {
         datadb.fechaCierre = datadb.fechaCierre.toLocaleString('es-CO')
     }
-    
+
     datadb.proximoMtto = datadb.proximoMtto.toISOString().substring(0, 10)
 
     // determinamos el tipo de  activo
@@ -174,7 +179,7 @@ const reporteData = async id => {
 
         // creamos un buffer de las imagenes en un array que se pude insertar  dirrectamente en el PDF del reporte
         const bodyImagenes = datadb.img_reporte.map(imagen => {
-            const imageData = fs.readFileSync(path + 'Reporte\\'+ datadb.idReporte + '\\' + imagen);
+            const imageData = fs.readFileSync(path + 'Reporte\\' + datadb.idReporte + '\\' + imagen);
             const buffer = `data:${mime.lookup(imagen)};base64,${Buffer.from(imageData).toString('base64')}`
             return {
                 image: buffer,
@@ -185,9 +190,9 @@ const reporteData = async id => {
         })
 
         datadb.img_reporte = bodyImagenes
-        
-    }else{
-        datadb.img_reporte= []
+
+    } else {
+        datadb.img_reporte = []
     }
 
 
@@ -226,13 +231,178 @@ const reporteData = async id => {
 
         )
     }
-     datadb.logo = await bufferLogo()
+    datadb.logo = await bufferLogo()
     return datadb
 
 }
 
 // normalizamos los datos para un activo
 const activoData = async id => {
+    // consultamos los datos del activo
+    const datos = await dataActivo(id)
+    const datadb = datos[0][0]
+    if (datos[1].length > 0) datadb.componentes = datos[1]
+    // normalizamos los datos del reporte para su ingreso a pdf y creamos los buffer de imagenes para ingresarlos al pdf 
+    // normalizamos las fechas 
+    datadb.fechaCompra.setMinutes(datadb.fechaCompra.getMinutes() + datadb.fechaCompra.getTimezoneOffset())
+    datadb.fechaCompra = datadb.fechaCompra.toLocaleDateString('es-CO')
+
+    datadb.garantia.setMinutes(datadb.garantia.getMinutes() + datadb.garantia.getTimezoneOffset())
+    datadb.garantia = datadb.garantia.toLocaleDateString('es-CO')
+    datadb.ingreso = new Date(datadb.ingreso).toLocaleString('es-CO')
+
+    // determinamos el tipo de  activo
+    if (datadb.tipo_activo_id === 1) {
+        datadb.apoyo = ''
+        datadb.biomedico = 'X'
+    } else {
+        datadb.apoyo = 'X'
+        datadb.biomedico = ''
+    }
+
+    // creamos el path de la ruta donde se encuentran los archivos del activo
+    const path = pathBase + datadb.siglas + '\\' + datadb.codigo + '\\'
+    // seleccionamos una imagen del activo la primera 
+    datadb.url_img = datadb.url_img.split(',')[0]
+
+    if (datadb.url_img != null && datadb.url_img != '') {
+        // seleccionamos una imagen del activo la primera 
+        datadb.url_img = datadb.url_img.split(',')[0]
+
+        // leemos la imagen del activo de la ruta donde se encuentran los archivos y creamos un buffer de la imagen gurnadola en data.urL_imagens
+        const imageData = fs.readFileSync(path + datadb.url_img);
+        datadb.url_img = `data:${mime.lookup(datadb.url_img)};base64,${Buffer.from(imageData).toString('base64')}`
+
+    } else {
+        datadb.url_img = await bufferNoImage()
+    }
+
+    if (datadb.componentes) {
+        const arrayComponentes = datadb.componentes.map(element => {
+            return (
+                [
+                    { text: element.nombre },
+                    { text: element.marca },
+                    { text: element.modelo },
+                    { text: element.serie },
+                    { text: element.capacidad },
+                ]
+            )
+        })
+        arrayComponentes.unshift(
+            [
+                { text: 'ESPECIFICACIONES TECNICAS DE COMPONENTES', fontSize: 12, margin: [0, 0, 0, 5], colSpan: 5, bold: true, alignment: 'center' },
+                '',
+                '',
+                '',
+                ''
+            ],
+            [
+                { text: 'COMPONENTE:', bold: true },
+                { text: 'Marca:', bold: true },
+                { text: 'Modelo:', bold: true },
+                { text: 'Serie:', bold: true },
+                { text: 'Capacidad:', bold: true },
+            ]
+        )
+
+        datadb.componentes = arrayComponentes
+    } else {
+        datadb.componentes = [
+            [
+                { text: 'ESPECIFICACIONES TECNICAS DE COMPONENTES', fontSize: 12, margin: [0, 0, 0, 5], colSpan: 5, bold: true, alignment: 'center' },
+                '',
+                '',
+                '',
+                ''
+            ],
+            [
+                { text: 'COMPONENTE:', bold: true },
+                { text: 'Marca:', bold: true },
+                { text: 'Modelo:', bold: true },
+                { text: 'Serie:', bold: true },
+                { text: 'Capacidad:', bold: true },
+            ]
+        ]
+
+    }
+
+
+    datadb.logo = await bufferLogo()
+
+    return datadb
+
+}
+
+// normalizamos los datos para el lisato de reprotes
+const listadoReporteData = async id => {
+    // consultamos los datos del reporte,
+    const datos = await dataListaReporte(id)
+
+    let datadb = {}
+
+    if (datos < 1) {
+        const activoBd = await consultarActivoUno(id)
+        datadb.codigo = activoBd.codigo,
+            datadb.nombre = activoBd.nombre
+        const noDatos = [
+            { text: ' ' },
+            { text: ' ' },
+            { text: ' ' },
+            { text: 'A LA FECHA EL ACTIVO NO CUENTA CON REPORTES DE MANTENIMIENTO ' },
+            { text: ' ' },
+            { text: ' ' },
+            { text: ' ' },
+            { text: ' ' },
+        ]
+        datadb.body = [noDatos]
+
+    } else {
+
+        datadb.codigo = datos[0].codigo,
+            datadb.nombre = datos[0].nombre
+
+        datadb.body = datos.map((element, index) => {
+            element.fechaReporte = element.fechaReporte.toISOString().substring(0, 10)
+            if (element.fechaProximo == undefined) {
+                element.fechaProximo = ''
+            } else {
+                element.fechaProximo = element.fechaProximo.toISOString().substring(0, 10)
+            }
+            return [
+                { text: index + 1 },
+                { text: element.id },
+                { text: element.fechaReporte },
+                { text: element.hallazgos },
+                { text: element.reporte },
+                { text: element.recomendaciones },
+                { text: element.proveedor },
+                { text: element.fechaProximo },
+            ]
+        });
+    }
+
+    datadb.body.unshift(
+
+        [
+            { text: '#', bold: true, alignment: 'center' },
+            { text: 'Id', bold: true, alignment: 'center' },
+            { text: 'Fecha del reporte', bold: true, alignment: 'center' },
+            { text: 'Hallazgos', bold: true, alignment: 'center' },
+            { text: 'Reporte Tecnico', bold: true, alignment: 'center' },
+            { text: 'Recomendaciones', bold: true, alignment: 'center' },
+            { text: 'Proveedor', bold: true, alignment: 'center' },
+            { text: 'Fecha Proximo Mtto', bold: true, alignment: 'center' },
+
+        ]
+    )
+
+    datadb.logo = await bufferLogo()
+    return datadb
+}
+
+
+const informeActivo = async id => {
     // consultamos los datos del reporte,
     const datos = await dataActivo(id)
     const datadb = datos[0][0]
@@ -321,23 +491,9 @@ const activoData = async id => {
         ]
 
     }
-    datadb.logo = await bufferLogo()
 
-    return datadb
-
-}
-
-// normalizamos los datos para el lisato de reprotes
-const listadoReporteData = async id => {
-    // consultamos los datos del reporte,
-    const datos = await dataListaReporte(id)
-
-    let  datadb = { }
-
-    if (datos < 1) {
-        const activoBd = await consultarActivoUno(id)
-        datadb.codigo = activoBd.codigo,
-        datadb.nombre = activoBd.nombre
+    const datosreportes = await dataListaReporte(id)
+    if (datosreportes < 1) {
         const noDatos = [
             { text: ' ' },
             { text: ' ' },
@@ -348,34 +504,52 @@ const listadoReporteData = async id => {
             { text: ' ' },
             { text: ' ' },
         ]
-        datadb.body =[noDatos]
+        datadb.bodyreportes = [noDatos]
 
     } else {
-
-        datadb.codigo = datos[0].codigo,
-        datadb.nombre = datos[0].nombre
-
-        datadb.body = datos.map((element, index) => {
-            element.fechaReporte= element.fechaReporte.toISOString().substring(0, 10)
-            if(element.fechaProximo == undefined){
-                element.fechaProximo=''
-            }else{
+        let mo =0
+        let mp=0
+        datadb.bodyreportes = datosreportes.map((element, index) => {
+            element.fechaReporte = element.fechaReporte.toISOString().substring(0, 10)
+            if (element.fechaProximo == undefined || element.fechaProximo == null) {
+                element.fechaProximo = ''
+            } else {
                 element.fechaProximo = element.fechaProximo.toISOString().substring(0, 10)
             }
-            return [
-                { text: index + 1 },    
-                { text: element.id },
-                { text: element.fechaReporte },
-                { text: element.hallazgos },
-                { text: element.reporte },
-                { text: element.recomendaciones },
-                { text: element.proveedor },
-                { text: element.fechaProximo },
-            ]
+            mo += element.mo
+            mp += element.mp
+            if (index != datadb.bodyreportes.length - 1) {
+                return [
+                    { text: index + 1 },
+                    { text: element.id },
+                    { text: element.fechaReporte },
+                    { text: element.hallazgos },
+                    { text: element.reporte },
+                    { text: element.recomendaciones },
+                    { text: element.proveedor },
+                    { text: element.fechaProximo },
+                    { text: element.mo },
+                    { text: element.mp },
+                ]
+            }else{
+                return [
+                    { text: 'Total', colSpan: 7 },
+                    { text:''},
+                    { text: '' },
+                    { text:''},
+                    { text: ''},
+                    { text: '' },
+                    { text:'' },
+                    { text:'' },
+                    { text: mo },
+                    { text: mp },
+                ]
+            }
+
         });
     }
 
-    datadb.body.unshift(
+    datadb.bodyreportes.unshift(
 
         [
             { text: '#', bold: true, alignment: 'center' },
@@ -386,12 +560,15 @@ const listadoReporteData = async id => {
             { text: 'Recomendaciones', bold: true, alignment: 'center' },
             { text: 'Proveedor', bold: true, alignment: 'center' },
             { text: 'Fecha Proximo Mtto', bold: true, alignment: 'center' },
-
+            { text: 'Costo Mo', bold: true, alignment: 'center' },
+            { text: 'Costo Mp', bold: true, alignment: 'center' },
         ]
     )
 
     datadb.logo = await bufferLogo()
+
     return datadb
+
 }
 
 // generamos el logo

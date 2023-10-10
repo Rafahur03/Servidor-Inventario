@@ -70,7 +70,7 @@ const iniciaSesion = async (req, res) => {
 
     const proveedoresbd = tokenGuardado.proveedores.split(',')
     const proveedores = proveedoresbd.map(elemento => parseInt(elemento.trim(), 10))
-
+    
 
     res.json({
         token,
@@ -120,6 +120,8 @@ const crearUsuario = async (req, res) => {
 
     if (datos.usuarios) datos.permisos.push(1)
     delete datos.usuarios
+    if (datos.informes) datos.permisos.push(2)
+    delete datos.informes
     if (datos.activos) datos.permisos.push(3)
     delete datos.activos
     if (datos.solicitudes) datos.permisos.push(5)

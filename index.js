@@ -8,6 +8,7 @@ const app = express();
 
 app.use(express.raw({limit: '20mb'}))
 app.use(bodyParser.json({ limit: '20mb'}));
+app.set('trust proxy', true)
 app.use(express.json())
 
 conectardb();

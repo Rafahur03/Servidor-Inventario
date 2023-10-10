@@ -597,7 +597,7 @@ const consultarDatosActivoReportePrev = async (req, res) => {
     const consulta = await consultarActivoReportePrev(id)
     const activo = consulta[0][0]
     if (activo == undefined) return res.json({ msg: 'No fue Posible consultar los datos del activo' })
-
+  
     activo.listaEstados = consulta[1]
     activo.listaUsuarios = consulta[2]
     activo.listaProveedores = consulta[3]
@@ -605,7 +605,9 @@ const consultarDatosActivoReportePrev = async (req, res) => {
     const dataBd = await consultarCodigoInterno(id)
 
     if (activo.proximoMto !== null && activo.proximoMto != '') activo.proximoMto = activo.proximoMto.toISOString().substring(0, 10)
+   
     if (activo.url_img !== null && activo.url_img.trim() !== '') {
+     
         activo.url_img = activo.url_img.split(',')
         const Imagenes = await bufferimagenes(activo.url_img, dataBd)
         activo.BufferImagenes = Imagenes

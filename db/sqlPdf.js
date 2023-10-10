@@ -159,7 +159,7 @@ const dataListaReporte = async (id) => {
         const resultado = await pool.query(`
             SELECT TRIM(LA.nombre) AS nombre, CONCAT(TRIM(CA.siglas), TRIM(LA.consecutivo_interno)) AS codigo, RM.id, RM.fechareporte AS fechaReporte,
                 TRIM(RM.hallazgos) AS hallazgos, TRIM(RM.reporte) AS reporte, TRIM(RM.recomendaciones) AS recomendaciones, RM.proximoMtto AS fechaProximo,
-                TRIM(PRO.razon_social) AS proveedor
+                TRIM(PRO.razon_social) AS proveedor, RM.costo_mo AS MO, RM.costo_mp AS MP
                 FROM repotesMtto RM 
                 INNER JOIN listado_activos LA
                 ON LA.id = RM.id_activo
