@@ -10,6 +10,7 @@ import { iniciaSesion,
     } from '../controllers/controllersUsuarios.js';
 
 import {checkAuth} from '../middleware/authMiddlewareUsuario.js';
+
 import {
     consultarActivosTodos,
     consultarListasConfActivos,
@@ -37,7 +38,8 @@ import { consultarSolicitudTodos,
     eliminarImagenSolicitud,
     guardarImagenSolicitud,
     descargarSolicitud,
-    consultarSolicitudReporte } from '../controllers/controllerSolicitudSoporte.js'
+    consultarSolicitudReporte 
+} from '../controllers/controllerSolicitudSoporte.js'
 
 import { consultarReportesTodos,
     consultarReporte,
@@ -52,14 +54,23 @@ import { consultarReportesTodos,
     guardarSoporteExtReporte,
     descargarReporteExterno,
     descargarReporte,
-    guardarReportePrev } from '../controllers/controllersReportes.js'
+    guardarReportePrev
+} from '../controllers/controllersReportes.js'
 
 import { consultarconfig,
     actualizarConfig,
     crearConfig,
-    consultarTodasTablasConfig } from '../controllers/controlerConfig.js';
+    consultarTodasTablasConfig
+} from '../controllers/controlerConfig.js';
 
-import { eliminarComponente, guardarComponente  } from '../controllers/controllerComponentes.js';
+import { eliminarComponente, guardarComponente  
+} from '../controllers/controllerComponentes.js';
+
+import { descargaCronograma,
+    informelistadoAct,
+    informelistadoActCost,
+    descargarIfoActCosteado,
+} from '../controllers/informes.js';
 
 import { probarfechas } from '../controllers/probarfechas.js';
 
@@ -179,13 +190,18 @@ router.get('/consultarTodasTablasConfig', checkAuth, consultarTodasTablasConfig)
 
 router.post('/probarfechas', probarfechas)
 
-
-
-
 // ruta componente 
 
 router.delete('/eliminarComponente', checkAuth, eliminarComponente)
 
 router.post('/guardarComponente', checkAuth, guardarComponente)
+
+router.post('/descargaCronograma', checkAuth, descargaCronograma)
+router.post('/informelistadoAct', checkAuth, informelistadoAct)
+router.post('/informelistadoActCost', checkAuth, informelistadoActCost)
+router.post('/descargarIfoActCosteado', checkAuth, descargarIfoActCosteado)
+
+
+//informes
 
 export default  router
