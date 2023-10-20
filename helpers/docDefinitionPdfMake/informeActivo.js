@@ -1,10 +1,10 @@
 import pdfMake from 'pdfmake/build/pdfmake.js'
 import vfsFonts from 'pdfmake/build/vfs_fonts.js'
 
-const ddInformeActivo = async data => {
+const ddInformeActivoCosteado = async data => {
     pdfMake.vfs = vfsFonts.pdfMake.vfs;
     const dd = {
-        pageSize: 'LETTER',
+        pageSize: 'LEGAL',
         pageOrientation: 'landscape',
         pageMargins: [40, 103, 40, 40],
         content: [
@@ -232,12 +232,12 @@ const ddInformeActivo = async data => {
             },
             tableBodyData: {
                 fontSize: 10,
-                margin: [0, 10, 0, 0],
+                margin: [0, 20, 0, 0],
                 alignment: 'center',
             },
             tableBodyComponentes: {
                 fontSize: 10,
-                margin: [0, 5, 0, 0],
+                margin: [0, 20, 0, 0],
                 alignment: 'center',
             }
         },
@@ -248,4 +248,4 @@ const ddInformeActivo = async data => {
 }
 
 
-export { ddInformeActivo }
+export { ddInformeActivoCosteado }

@@ -42,7 +42,7 @@ const consultarReportesTodos = async (req, res) => {
         return res.json(solicitudes[0])
     }
     listadoReportes.forEach(element => {
-        element.fechareporte = element.fechareporte.toLocaleDateString('es-CO')
+        element.fechareporte = element.fechareporte.toISOString().substring(0, 10)
     })
     res.json(listadoReportes)
 }

@@ -318,10 +318,10 @@ const consultarCodigoInterno = async (id) => {
         const pool = await conectardb()
 
         const resultado = await pool.query(`
-            SELECT CONCAT( RTRIM(ca. siglas), la.consecutivo_interno) AS codigo, la.url_img, RTRIM(ca.siglas) AS siglas, TRIM(la.soportes) AS soportes, TRIM(la.reportes) AS reportes, la.estado_id
+            SELECT la.id, CONCAT( RTRIM(ca.siglas), la.consecutivo_interno) AS codigo, la.url_img, RTRIM(ca.siglas) AS siglas, TRIM(la.soportes) AS soportes, TRIM(la.reportes) AS reportes, la.estado_id
                 FROM listado_activos la
                 INNER JOIN clasificacion_activos ca
-                    on la.clasificacion_id =ca.id
+                    on la.clasificacion_id = ca.id
             WHERE la.id = '${id}'
         `)
         cerrarConexion(pool)

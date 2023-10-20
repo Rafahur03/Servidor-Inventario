@@ -8,8 +8,11 @@ import { ddReporte } from "./docDefinitionPdfMake/pdfReporte.js"
 import { ddSolicitud } from "./docDefinitionPdfMake/pdfSolicitud.js";
 import { ddHojaDeVida } from "./docDefinitionPdfMake/pdfHojadeVida.js";
 import { ddListadoReporte } from "./docDefinitionPdfMake/pdfListadoMtto.js";
-import {ddInformeActivo} from "./docDefinitionPdfMake/informeActivo.js";
+import { ddInformeActivoCosteado } from "./docDefinitionPdfMake/informeActivo.js";
+import { ddcronogramaMtto } from "./docDefinitionPdfMake/cronogramaMtto.js";
 import { consultarActivoUno } from "../db/sqlActivos.js";
+import { consultaconfi } from "../db/sqlConfig.js";
+import { sqlCronogramaManteniento } from "../db/sqlInformes.js";
 const pathBase = process.env.PATH_FILES
 const __dirname = new URL('.', import.meta.url).pathname.substring(1)
 
@@ -20,31 +23,49 @@ async function crearPdfMake(id, tipo) {
 
     if (tipo === 'Reporte') {
         data = await reporteData(id)
+        if (data.msg) return data.msg
         dd = await ddReporte(data)
+        if (dd.msg) return dd.msg
     }
 
     if (tipo === 'Solicitud') {
         data = await solicitudData(id)
+        if (data.msg) return data.msg
         dd = await ddSolicitud(data)
+        if (dd.msg) return dd.msg
     }
 
     if (tipo === 'Activo') {
         data = await activoData(id)
+        if (data.msg) return data.msg
         dd = await ddHojaDeVida(data)
+        if (dd.msg) return dd.msg
     }
 
     if (tipo === 'listadoReportes') {
         data = await listadoReporteData(id)
+        if (data.msg) return data.msg
         dd = await ddListadoReporte(data)
+        if (dd.msg) return dd.msg
     }
 
-    if (tipo === 'InformActivo') {
-        data = await informeActivo(id)
-        dd = await ddInformeActivo(data)
+    if (tipo === 'InformActivoCosteado') {
+        data = await informeActivoCosteado(id)
+        if (data.msg) return data.msg
+        dd = await ddInformeActivoCosteado(data)
+        if (dd.msg) return dd.msg
+    }
+
+    if (tipo === 'cronogramaMtto') {
+        data = await cronogramaMtto(id)
+        if (data.msg) return data.msg
+        dd = await ddcronogramaMtto(data)
+        if (dd.msg) return dd.msg
     }
 
     const pdfDocGenerator = pdfMake.createPdf(dd);
     try {
+
         // Retorna una promesa que se resuelve con la data del PDF en Base64
         return new Promise((resolve, reject) => {
             pdfDocGenerator.getBase64((data) => {
@@ -402,9 +423,10 @@ const listadoReporteData = async id => {
 }
 
 
-const informeActivo = async id => {
+const informeActivoCosteado = async id => {
     // consultamos los datos del reporte,
     const datos = await dataActivo(id)
+    if (datos.msg) return datos
     const datadb = datos[0][0]
     if (datos[1].length > 0) datadb.componentes = datos[1]
     // normalizamos los datos del reporte para su ingreso a pdf y creamos los buffer de imagenes para ingresarlos al pdf 
@@ -493,12 +515,15 @@ const informeActivo = async id => {
     }
 
     const datosreportes = await dataListaReporte(id)
-    if (datosreportes < 1) {
+
+    if (datosreportes === 0) {
         const noDatos = [
+            { text: 'A LA FECHA EL ACTIVO NO CUENTA CON REPORTES DE MANTENIMIENTO ', colSpan: 10 },
             { text: ' ' },
             { text: ' ' },
             { text: ' ' },
-            { text: 'A LA FECHA EL ACTIVO NO CUENTA CON REPORTES DE MANTENIMIENTO ' },
+            { text: ' ' },
+            { text: ' ' },
             { text: ' ' },
             { text: ' ' },
             { text: ' ' },
@@ -507,46 +532,46 @@ const informeActivo = async id => {
         datadb.bodyreportes = [noDatos]
 
     } else {
-        let mo =0
-        let mp=0
+        let mo = 0
+        let mp = 0
+        console.log(datosreportes)
         datadb.bodyreportes = datosreportes.map((element, index) => {
+            
             element.fechaReporte = element.fechaReporte.toISOString().substring(0, 10)
             if (element.fechaProximo == undefined || element.fechaProximo == null) {
                 element.fechaProximo = ''
             } else {
                 element.fechaProximo = element.fechaProximo.toISOString().substring(0, 10)
             }
-            mo += element.mo
-            mp += element.mp
-            if (index != datadb.bodyreportes.length - 1) {
-                return [
-                    { text: index + 1 },
-                    { text: element.id },
-                    { text: element.fechaReporte },
-                    { text: element.hallazgos },
-                    { text: element.reporte },
-                    { text: element.recomendaciones },
-                    { text: element.proveedor },
-                    { text: element.fechaProximo },
-                    { text: element.mo },
-                    { text: element.mp },
-                ]
-            }else{
-                return [
-                    { text: 'Total', colSpan: 7 },
-                    { text:''},
-                    { text: '' },
-                    { text:''},
-                    { text: ''},
-                    { text: '' },
-                    { text:'' },
-                    { text:'' },
-                    { text: mo },
-                    { text: mp },
-                ]
-            }
+            mo += element.MO
+            mp += element.MP
 
+            return [
+                { text: index + 1 },
+                { text: element.id },
+                { text: element.fechaReporte },
+                { text: element.hallazgos },
+                { text: element.reporte },
+                { text: element.recomendaciones },
+                { text: element.proveedor },
+                { text: element.fechaProximo },
+                { text: element.MO },
+                { text: element.MP },
+            ]
         });
+
+        datadb.bodyreportes.push([
+            { text: 'Total', colSpan: 8 },
+            { text: '' },
+            { text: '' },
+            { text: '' },
+            { text: '' },
+            { text: '' },
+            { text: '' },
+            { text: '' },
+            { text: mo },
+            { text: mp },
+        ])
     }
 
     datadb.bodyreportes.unshift(
@@ -564,12 +589,152 @@ const informeActivo = async id => {
             { text: 'Costo Mp', bold: true, alignment: 'center' },
         ]
     )
-
+    console.log(datadb.componentes)
+    console.log(datadb.bodyreportes)
     datadb.logo = await bufferLogo()
 
     return datadb
 
 }
+
+const cronogramaMtto = async data => {
+    // consultamos los datos del reporte,
+    const clasificacion = await consultaconfi('SELECT id, TRIM(siglas) AS siglas FROM clasificacion_activos WHERE estado = 1')
+
+    const todos = data.filtros.some(element => element.id === 'TD' && element.valor === true)
+    let condicion = 'WHERE (la.estado_id = 1'
+
+    if (!todos) {
+        const filtrosSiglas = data.filtros.filter(element => element.valor)
+        const filtros = clasificacion.filter(element => filtrosSiglas.some(item => item.id === element.siglas))
+        if (filtros.length == 0) return res.json({ msg: 'Debe seleccionar un filtro valido' })
+        filtros.forEach((element, index) => {
+            if (index == 0) {
+                condicion = condicion + ' AND la.clasificacion_id = ' + element.id
+            } else {
+                condicion = condicion + ' OR la.clasificacion_id = ' + element.id
+            }
+        });
+
+    }
+
+    condicion = condicion + ') \nORDER BY la.clasificacion_id ASC, codigo;'
+    const datos = await sqlCronogramaManteniento(condicion)
+
+    if (datos.msg) return res.json({ msg: 'No fue posible consultar los datos' })
+    let cronograma = [
+        [{ rowSpan: 2, text: '#', style: 'textheader' }, { rowSpan: 2, text: 'Codigo', style: 'textheader' }, { rowSpan: 2, text: 'Activo', style: 'textheader' }, { rowSpan: 2, text: 'Marca', style: 'textheader' }, { rowSpan: 2, text: 'Modelo', style: 'textheader' }, { rowSpan: 2, text: 'Serie', style: 'textheader' }, { rowSpan: 2, text: 'Ubicacion', style: 'textheader' }, { rowSpan: 2, text: 'Proveedor Mtto', style: 'textheader' }, { colSpan: 12, text: 'Cronograma 2023', style: 'textheader' }, '', '', '', '', '', '', '', '', '', '', ''],
+        ['', '', '', '', '', '', '', '', { text: 'Ene', style: 'textbodymonth' }, { text: 'Feb', style: 'textbodymonth' }, { text: 'Mar', style: 'textbodymonth' }, { text: 'Abr', style: 'textbodymonth' }, { text: 'May', style: 'textbodymonth' }, { text: 'Jun', style: 'textbodymonth' }, { text: 'Jul', style: 'textbodymonth' }, { text: 'Ago', style: 'textbodymonth' }, { text: 'Sep', style: 'textbodymonth' }, { text: 'Oct', style: 'textbodymonth' }, { text: 'Nov', style: 'textbodymonth' }, { text: 'Dic', style: 'textbodymonth' }],
+
+    ]
+    let content = []
+    datos.forEach((element, index) => {
+
+        if (element.dias === 0) {
+            cronograma.push([index + 1, element.codigo, element.nombre, element.marca, element.modelo, element.serie, element.ubicacion, element.proveedor, { colSpan: 12, text: 'No Aplica', alignment: 'center' }])
+        } else {
+
+            let fechapivote = null
+            if (element.fechareporte !== null) {
+                fechapivote = element.fechareporte.toISOString().substring(0, 10);
+            } else if (element.fecha_proximo_mtto !== null && element.fecha_proximo_mtto.toISOString() !== '1900-01-01T00:00:00.000Z') {
+                fechapivote = element.fecha_proximo_mtto.toISOString().substring(0, 10);
+            } else if (element.vencimiento_garantia !== null && element.vencimiento_garantia.toISOString() !== '1900-01-01T00:00:00.000Z') {
+                fechapivote = element.vencimiento_garantia.toISOString().substring(0, 10);
+            } else if (element.fecha_compra !== null && element.fecha_compra.toISOString() !== '1900-01-01T00:00:00.000Z') {
+                fechapivote = element.fecha_compra.toISOString().substring(0, 10);
+            } else if (element.fecha_creacion !== null && element.fecha_creacion.toISOString() !== '1900-01-01T00:00:00.000Z') {
+                fechapivote = element.fecha_creacion.toISOString().substring(0, 10);
+            }
+
+            fechapivote = new Date(fechapivote)
+            const fechaInicio = new Date(fechapivote)
+            if (fechapivote.getFullYear() === parseInt(data.year)) {
+
+                do {
+                    fechaInicio.setDate(fechaInicio.getDate() - element.dias)
+                } while (fechaInicio.getFullYear() === parseInt(data.year))
+
+                fechaInicio.setDate(fechaInicio.getDate() + element.dias)
+
+            } else if (fechapivote.getFullYear() < parseInt(data.year)) {
+                do {
+                    fechaInicio.setDate(fechaInicio.getDate() + element.dias)
+                } while (fechaInicio.getFullYear() !== parseInt(data.year))
+
+            } else if (fechapivote.getFullYear() > parseInt(data.year)) {
+
+                do {
+                    fechaInicio.setDate(fechaInicio.getDate() - element.dias)
+                } while (fechaInicio.getFullYear() >= parseInt(data.year))
+
+                fechaInicio.setDate(fechaInicio.getDate() + element.dias)
+            }
+
+            let fechas = []
+
+            for (let i = 0; i < 12; i++) {
+                if (fechaInicio.getMonth() === i && fechaInicio.getFullYear() === parseInt(data.year)) {
+                    fechas[i] = fechaInicio.getDate()
+                    fechaInicio.setDate(fechaInicio.getDate() + element.dias)
+                } else {
+                    fechas[i] = ''
+                }
+            }
+
+            cronograma.push([index + 1, element.codigo, element.nombre, element.marca, element.modelo, element.serie, element.ubicacion, element.proveedor].concat(fechas))
+        }
+
+        let ingresardatos = false
+        if (datos.length === index + 1) {
+            ingresardatos = true
+        } else if (datos[index + 1].idSigla !== element.idSigla) {
+            ingresardatos = true
+        }
+
+        if (ingresardatos) {
+            content.push(
+
+                { text: element.clasificacion + ' "' + element.siglas + '" ', style: 'title' },
+
+                {
+                    style: 'table',
+                    table: {
+                        widths: [22.5, 70, 70, 70, 70, 70, 80, 106.5, 17, 16.5, 18, 16.5, 19, 18, 16.5, 18, 17, 16.5, 18, 16.5],
+                        body: cronograma
+                    },
+
+                    layout: {
+                        fillColor: function (rowIndex, node, columnIndex) {
+                            return (rowIndex % 2 === 0) ? '#CCCCCC' : null;
+                        },
+                        hLineWidth: function (i, node) {
+                            return (i === 1 || i === 2 || i === node.table.body.length) ? 2 : 0;
+                        },
+                        vLineWidth: function (i, node) {
+                            return (i === 0 || i === node.table.widths.length) ? 2 : (i > 7 ? 1 : 0);
+                        }
+
+                    }
+                }
+
+            )
+            cronograma = [
+                [{ rowSpan: 2, text: '#', style: 'textheader' }, { rowSpan: 2, text: 'Codigo', style: 'textheader' }, { rowSpan: 2, text: 'Activo', style: 'textheader' }, { rowSpan: 2, text: 'Marca', style: 'textheader' }, { rowSpan: 2, text: 'Modelo', style: 'textheader' }, { rowSpan: 2, text: 'Serie', style: 'textheader' }, { rowSpan: 2, text: 'Ubicacion', style: 'textheader' }, { rowSpan: 2, text: 'Proveedor Mtto', style: 'textheader' }, { colSpan: 12, text: 'Cronograma 2023', style: 'textheader' }, '', '', '', '', '', '', '', '', '', '', ''],
+                ['', '', '', '', '', '', '', '', { text: 'Ene', style: 'textbodymonth' }, { text: 'Feb', style: 'textbodymonth' }, { text: 'Mar', style: 'textbodymonth' }, { text: 'Abr', style: 'textbodymonth' }, { text: 'May', style: 'textbodymonth' }, { text: 'Jun', style: 'textbodymonth' }, { text: 'Jul', style: 'textbodymonth' }, { text: 'Ago', style: 'textbodymonth' }, { text: 'Sep', style: 'textbodymonth' }, { text: 'Oct', style: 'textbodymonth' }, { text: 'Nov', style: 'textbodymonth' }, { text: 'Dic', style: 'textbodymonth' }],
+
+            ]
+        }
+    })
+    const logo = await bufferLogo()
+    const datadb = {
+        content,
+        logo
+    }
+    return datadb
+
+}
+
 
 // generamos el logo
 const bufferLogo = async () => {
