@@ -2,7 +2,7 @@
 import pdfMake from "pdfmake/build/pdfmake.js"
 import { URL } from "url";
 import fs from 'fs'
-import mime from 'mime-types'
+import mime, { contentType } from 'mime-types'
 import { dataReporte, dataSolicitud, dataActivo, dataListaReporte } from "../db/sqlPdf.js";
 import { ddReporte } from "./docDefinitionPdfMake/pdfReporte.js"
 import { ddSolicitud } from "./docDefinitionPdfMake/pdfSolicitud.js";
@@ -10,9 +10,11 @@ import { ddHojaDeVida } from "./docDefinitionPdfMake/pdfHojadeVida.js";
 import { ddListadoReporte } from "./docDefinitionPdfMake/pdfListadoMtto.js";
 import { ddInformeActivoCosteado } from "./docDefinitionPdfMake/informeActivo.js";
 import { ddcronogramaMtto } from "./docDefinitionPdfMake/cronogramaMtto.js";
+import { ddListadoActivoCosteado } from "./docDefinitionPdfMake/ddListadoActivoCosteado.js";
+import { ddinformelistadoActivo } from "./docDefinitionPdfMake/ddinformelistadoActivo.js";
 import { consultarActivoUno } from "../db/sqlActivos.js";
 import { consultaconfi } from "../db/sqlConfig.js";
-import { sqlCronogramaManteniento } from "../db/sqlInformes.js";
+import { sqlCronogramaManteniento, sqlListadoActivoCosteado, sqlInformeListadoActivo } from "../db/sqlInformes.js";
 const pathBase = process.env.PATH_FILES
 const __dirname = new URL('.', import.meta.url).pathname.substring(1)
 
@@ -60,6 +62,20 @@ async function crearPdfMake(id, tipo) {
         data = await cronogramaMtto(id)
         if (data.msg) return data.msg
         dd = await ddcronogramaMtto(data)
+        if (dd.msg) return dd.msg
+    }
+
+    if (tipo === 'listadoActivoCosteado') {
+        data = await listadoActivoCosteado(id)
+        if (data.msg) return data.msg
+        dd = await ddListadoActivoCosteado(data)
+        if (dd.msg) return dd.msg
+    }
+
+    if (tipo === 'informelistadoActivo') {
+        data = await informelistadoActivo(id)
+        if (data.msg) return data.msg
+        dd = await ddinformelistadoActivo(data)
         if (dd.msg) return dd.msg
     }
 
@@ -534,9 +550,8 @@ const informeActivoCosteado = async id => {
     } else {
         let mo = 0
         let mp = 0
-        console.log(datosreportes)
         datadb.bodyreportes = datosreportes.map((element, index) => {
-            
+
             element.fechaReporte = element.fechaReporte.toISOString().substring(0, 10)
             if (element.fechaProximo == undefined || element.fechaProximo == null) {
                 element.fechaProximo = ''
@@ -589,8 +604,6 @@ const informeActivoCosteado = async id => {
             { text: 'Costo Mp', bold: true, alignment: 'center' },
         ]
     )
-    console.log(datadb.componentes)
-    console.log(datadb.bodyreportes)
     datadb.logo = await bufferLogo()
 
     return datadb
@@ -623,15 +636,70 @@ const cronogramaMtto = async data => {
 
     if (datos.msg) return res.json({ msg: 'No fue posible consultar los datos' })
     let cronograma = [
-        [{ rowSpan: 2, text: '#', style: 'textheader' }, { rowSpan: 2, text: 'Codigo', style: 'textheader' }, { rowSpan: 2, text: 'Activo', style: 'textheader' }, { rowSpan: 2, text: 'Marca', style: 'textheader' }, { rowSpan: 2, text: 'Modelo', style: 'textheader' }, { rowSpan: 2, text: 'Serie', style: 'textheader' }, { rowSpan: 2, text: 'Ubicacion', style: 'textheader' }, { rowSpan: 2, text: 'Proveedor Mtto', style: 'textheader' }, { colSpan: 12, text: 'Cronograma 2023', style: 'textheader' }, '', '', '', '', '', '', '', '', '', '', ''],
-        ['', '', '', '', '', '', '', '', { text: 'Ene', style: 'textbodymonth' }, { text: 'Feb', style: 'textbodymonth' }, { text: 'Mar', style: 'textbodymonth' }, { text: 'Abr', style: 'textbodymonth' }, { text: 'May', style: 'textbodymonth' }, { text: 'Jun', style: 'textbodymonth' }, { text: 'Jul', style: 'textbodymonth' }, { text: 'Ago', style: 'textbodymonth' }, { text: 'Sep', style: 'textbodymonth' }, { text: 'Oct', style: 'textbodymonth' }, { text: 'Nov', style: 'textbodymonth' }, { text: 'Dic', style: 'textbodymonth' }],
+        [
+            { rowSpan: 2, text: '#', style: 'textheader' },
+            { rowSpan: 2, text: 'Codigo', style: 'textheader' },
+            { rowSpan: 2, text: 'Activo', style: 'textheader' },
+            { rowSpan: 2, text: 'Marca', style: 'textheader' },
+            { rowSpan: 2, text: 'Modelo', style: 'textheader' },
+            { rowSpan: 2, text: 'Serie', style: 'textheader' },
+            { rowSpan: 2, text: 'Ubicacion', style: 'textheader' },
+            { rowSpan: 2, text: 'Proveedor Mtto', style: 'textheader' },
+            { colSpan: 12, text: 'Cronograma 2023', style: 'textheader' },
+            '',
+            '',
+            '',
+            '',
+            '',
+            '',
+            '',
+            '',
+            '',
+            '',
+            ''
+        ],
+        [
+            '',
+            '',
+            '',
+            '',
+            '',
+            '',
+            '',
+            '',
+            { text: 'Ene', style: 'textbodymonth' },
+            { text: 'Feb', style: 'textbodymonth' },
+            { text: 'Mar', style: 'textbodymonth' },
+            { text: 'Abr', style: 'textbodymonth' },
+            { text: 'May', style: 'textbodymonth' },
+            { text: 'Jun', style: 'textbodymonth' },
+            { text: 'Jul', style: 'textbodymonth' },
+            { text: 'Ago', style: 'textbodymonth' },
+            { text: 'Sep', style: 'textbodymonth' },
+            { text: 'Oct', style: 'textbodymonth' },
+            { text: 'Nov', style: 'textbodymonth' },
+            { text: 'Dic', style: 'textbodymonth' }
+        ],
 
     ]
+
     let content = []
     datos.forEach((element, index) => {
 
         if (element.dias === 0) {
-            cronograma.push([index + 1, element.codigo, element.nombre, element.marca, element.modelo, element.serie, element.ubicacion, element.proveedor, { colSpan: 12, text: 'No Aplica', alignment: 'center' }])
+            cronograma.push(
+                [
+                    index + 1,
+                    element.codigo,
+                    element.nombre,
+                    element.marca,
+                    element.modelo,
+                    element.serie,
+                    element.ubicacion,
+                    element.proveedor,
+                    { colSpan: 12, text: 'No Aplica', alignment: 'center' }
+                ]
+            )
         } else {
 
             let fechapivote = null
@@ -682,7 +750,18 @@ const cronogramaMtto = async data => {
                 }
             }
 
-            cronograma.push([index + 1, element.codigo, element.nombre, element.marca, element.modelo, element.serie, element.ubicacion, element.proveedor].concat(fechas))
+            cronograma.push(
+                [
+                    index + 1,
+                    element.codigo,
+                    element.nombre,
+                    element.marca,
+                    element.modelo,
+                    element.serie,
+                    element.ubicacion,
+                    element.proveedor
+                ].concat(fechas)
+            )
         }
 
         let ingresardatos = false
@@ -694,9 +773,7 @@ const cronogramaMtto = async data => {
 
         if (ingresardatos) {
             content.push(
-
                 { text: element.clasificacion + ' "' + element.siglas + '" ', style: 'title' },
-
                 {
                     style: 'table',
                     table: {
@@ -720,8 +797,50 @@ const cronogramaMtto = async data => {
 
             )
             cronograma = [
-                [{ rowSpan: 2, text: '#', style: 'textheader' }, { rowSpan: 2, text: 'Codigo', style: 'textheader' }, { rowSpan: 2, text: 'Activo', style: 'textheader' }, { rowSpan: 2, text: 'Marca', style: 'textheader' }, { rowSpan: 2, text: 'Modelo', style: 'textheader' }, { rowSpan: 2, text: 'Serie', style: 'textheader' }, { rowSpan: 2, text: 'Ubicacion', style: 'textheader' }, { rowSpan: 2, text: 'Proveedor Mtto', style: 'textheader' }, { colSpan: 12, text: 'Cronograma 2023', style: 'textheader' }, '', '', '', '', '', '', '', '', '', '', ''],
-                ['', '', '', '', '', '', '', '', { text: 'Ene', style: 'textbodymonth' }, { text: 'Feb', style: 'textbodymonth' }, { text: 'Mar', style: 'textbodymonth' }, { text: 'Abr', style: 'textbodymonth' }, { text: 'May', style: 'textbodymonth' }, { text: 'Jun', style: 'textbodymonth' }, { text: 'Jul', style: 'textbodymonth' }, { text: 'Ago', style: 'textbodymonth' }, { text: 'Sep', style: 'textbodymonth' }, { text: 'Oct', style: 'textbodymonth' }, { text: 'Nov', style: 'textbodymonth' }, { text: 'Dic', style: 'textbodymonth' }],
+                [
+                    { rowSpan: 2, text: '#', style: 'textheader' },
+                    { rowSpan: 2, text: 'Codigo', style: 'textheader' },
+                    { rowSpan: 2, text: 'Activo', style: 'textheader' },
+                    { rowSpan: 2, text: 'Marca', style: 'textheader' },
+                    { rowSpan: 2, text: 'Modelo', style: 'textheader' },
+                    { rowSpan: 2, text: 'Serie', style: 'textheader' },
+                    { rowSpan: 2, text: 'Ubicacion', style: 'textheader' },
+                    { rowSpan: 2, text: 'Proveedor Mtto', style: 'textheader' },
+                    { colSpan: 12, text: 'Cronograma 2023', style: 'textheader' },
+                    '',
+                    '',
+                    '',
+                    '',
+                    '',
+                    '',
+                    '',
+                    '',
+                    '',
+                    '',
+                    ''
+                ],
+                [
+                    '',
+                    '',
+                    '',
+                    '',
+                    '',
+                    '',
+                    '',
+                    '',
+                    { text: 'Ene', style: 'textbodymonth' },
+                    { text: 'Feb', style: 'textbodymonth' },
+                    { text: 'Mar', style: 'textbodymonth' },
+                    { text: 'Abr', style: 'textbodymonth' },
+                    { text: 'May', style: 'textbodymonth' },
+                    { text: 'Jun', style: 'textbodymonth' },
+                    { text: 'Jul', style: 'textbodymonth' },
+                    { text: 'Ago', style: 'textbodymonth' },
+                    { text: 'Sep', style: 'textbodymonth' },
+                    { text: 'Oct', style: 'textbodymonth' },
+                    { text: 'Nov', style: 'textbodymonth' },
+                    { text: 'Dic', style: 'textbodymonth' }
+                ],
 
             ]
         }
@@ -735,6 +854,276 @@ const cronogramaMtto = async data => {
 
 }
 
+const listadoActivoCosteado = async data => {
+    // consultamos los datos del reporte,
+    const clasificacion = await consultaconfi('SELECT id, TRIM(siglas) AS siglas FROM clasificacion_activos WHERE estado = 1')
+
+    const todos = data.filtros.some(element => element.id === 'TD' && element.valor === true)
+    let condicion
+
+    if (!todos) {
+        const filtrosSiglas = data.filtros.filter(element => element.valor)
+        const filtros = clasificacion.filter(element => filtrosSiglas.some(item => item.id === element.siglas))
+        if (filtros.length == 0) return { msg: 'Debe seleccionar un filtro valido' }
+        
+        filtros.forEach((element, index) => {
+            if (index === 0) {
+                if (data.estado) {
+                    condicion = 'WHERE (la.clasificacion_id = ' + element.id
+                } else {
+                    condicion = 'WHERE (la.estado_id = 1 AND la.clasificacion_id = ' + element.id
+                }
+
+            } else {
+                condicion = condicion + ' OR la.clasificacion_id = ' + element.id
+            }
+        });
+
+        if (data.estado) {
+            condicion = condicion + ') \nORDER BY la.clasificacion_id DESC, estado_id ASC, codigo;'
+        } else {
+            condicion = condicion + ') \nORDER BY la.clasificacion_id ASC, codigo;'
+        }
+    }else{
+
+        if (data.estado) {
+            condicion = 'ORDER BY la.clasificacion_id DESC, estado_id ASC, codigo;'
+        } else {
+            condicion = 'ORDER BY la.clasificacion_id ASC, codigo;'
+        }
+    }
+
+    
+    const datos = await sqlListadoActivoCosteado(condicion)
+    if (datos.msg) return { msg: 'No fue posible consultar los datos' }
+
+
+    let content = []
+    let reporte = []
+    datos.forEach((element, index) => {
+        const costo = parseFloat(element.valor.replace(',', '.'), 2)
+        reporte.push(
+            [
+                index + 1,
+                element.codigo,
+                element.nombre,
+                element.marca,
+                element.modelo,
+                element.serie,
+                element.proceso,
+                element.area,
+                element.ubicacion,
+                element.usuario,
+                costo,
+                element.totalMo,
+                element.totalMp,
+                (costo + element.totalMo + element.totalMp),
+                element.estado
+            ]
+        )
+
+        let ingresardatos = false
+
+        if (datos.length === index + 1) {
+            ingresardatos = true
+        } else if (datos[index + 1].idSigla !== element.idSigla) {
+            ingresardatos = true
+        }
+
+        if (ingresardatos) {
+            reporte.unshift(
+
+                [
+                    { text: '#', style: 'header' },
+                    { text: 'Codigo', style: 'header' },
+                    { text: 'Activo', style: 'header' },
+                    { text: 'Marca', style: 'header' },
+                    { text: 'Modelo', style: 'header' },
+                    { text: 'Serie', style: 'header' },
+                    { text: 'Proceso', style: 'header' },
+                    { text: 'Area', style: 'header' },
+                    { text: 'Ubicacion', style: 'header' },
+                    { text: 'Responsable', style: 'header' },
+                    { text: 'Valor', style: 'header' },
+                    { text: 'Valor Mo Mtto', style: 'header' },
+                    { text: 'Valor Mp Mtto', style: 'header' },
+                    { text: 'Total', style: 'header' },
+                    { text: 'Estado', style: 'header' }
+                ],
+
+            )
+
+            content.push(
+                [
+                    { text: element.clasificacion + ' "' + element.sigla + '" ', style: 'title' },
+                    {
+                        style: 'table',
+                        table: {
+                            widths: ['*',55, 55, 55, 55, 55, 55, 55, 55, 70, 60, 60, 60, 60, '*'],
+                            body: reporte,
+                        },
+                        layout: {
+                            fillColor: function (rowIndex) {
+                                return (rowIndex % 2 === 0) ? '#CCCCCC' : null;
+                            },
+
+                            hLineWidth: function (i, node) {
+                                return (i === 1 || i === node.table.body.length) ? 2 : 0;
+                            },
+                            vLineWidth: function (i, node) {
+                                return (i === 0 || i === node.table.widths.length) ? 2 : 0;
+                            }
+
+                        }
+                    },
+                ]
+            )
+            reporte = [];
+        }
+    })
+
+
+
+    const logo = await bufferLogo()
+
+    const datadb = {
+        content,
+        logo
+    }
+    return datadb
+
+}
+
+const informelistadoActivo = async data => {
+    // consultamos los datos del reporte,
+    const clasificacion = await consultaconfi('SELECT id, TRIM(siglas) AS siglas FROM clasificacion_activos WHERE estado = 1')
+
+    const todos = data.filtros.some(element => element.id === 'TD' && element.valor === true)
+    let condicion
+
+    if (!todos) {
+        const filtrosSiglas = data.filtros.filter(element => element.valor)
+        const filtros = clasificacion.filter(element => filtrosSiglas.some(item => item.id === element.siglas))
+        if (filtros.length == 0) return { msg: 'Debe seleccionar un filtro valido' }
+        
+        filtros.forEach((element, index) => {
+            if (index === 0) {
+                if (data.estado) {
+                    condicion = 'WHERE (la.clasificacion_id = ' + element.id
+                } else {
+                    condicion = 'WHERE (la.estado_id = 1 AND la.clasificacion_id = ' + element.id
+                }
+
+            } else {
+                condicion = condicion + ' OR la.clasificacion_id = ' + element.id
+            }
+        });
+
+        if (data.estado) {
+            condicion = condicion + ') \nORDER BY la.clasificacion_id DESC, estado_id ASC, codigo;'
+        } else {
+            condicion = condicion + ') \nORDER BY la.clasificacion_id ASC, codigo;'
+        }
+    }else{
+
+        if (data.estado) {
+            condicion = 'ORDER BY la.clasificacion_id DESC, estado_id ASC, codigo;'
+        } else {
+            condicion = 'ORDER BY la.clasificacion_id ASC, codigo;'
+        }
+    }
+
+    
+    const datos = await sqlInformeListadoActivo(condicion)
+    if (datos.msg) return { msg: 'No fue posible consultar los datos' }
+
+
+    let content = []
+    let reporte = []
+    datos.forEach((element, index) => {
+        reporte.push(
+            [
+                index + 1,
+                element.codigo,
+                element.nombre,
+                element.marca,
+                element.modelo,
+                element.serie,
+                element.proceso,
+                element.area,
+                element.ubicacion,
+                element.usuario,
+                element.estado
+            ]
+        )
+
+        let ingresardatos = false
+
+        if (datos.length === index + 1) {
+            ingresardatos = true
+        } else if (datos[index + 1].idSigla !== element.idSigla) {
+            ingresardatos = true
+        }
+
+        if (ingresardatos) {
+            reporte.unshift(
+
+                [
+                    { text: '#', style: 'header' },
+                    { text: 'Codigo', style: 'header' },
+                    { text: 'Activo', style: 'header' },
+                    { text: 'Marca', style: 'header' },
+                    { text: 'Modelo', style: 'header' },
+                    { text: 'Serie', style: 'header' },
+                    { text: 'Proceso', style: 'header' },
+                    { text: 'Area', style: 'header' },
+                    { text: 'Ubicacion', style: 'header' },
+                    { text: 'Responsable', style: 'header' },
+                    { text: 'Estado', style: 'header' }
+                ],
+
+            )
+
+            content.push(
+                [
+                    { text: element.clasificacion + ' "' + element.sigla + '" ', style: 'title' },
+                    {
+                        style: 'table',
+                        table: {
+                            widths: [22.5, 43.5, 70, 60, 67, 67, 77, 55, 64, 80, 55],
+                            body: reporte,
+                        },
+                        layout: {
+                            fillColor: function (rowIndex) {
+                                return (rowIndex % 2 === 0) ? '#CCCCCC' : null;
+                            },
+
+                            hLineWidth: function (i, node) {
+                                return (i === 1 || i === node.table.body.length) ? 2 : 0;
+                            },
+                            vLineWidth: function (i, node) {
+                                return (i === 0 || i === node.table.widths.length) ? 2 : 0;
+                            }
+
+                        }
+                    },
+                ]
+            )
+            reporte = [];
+        }
+    })
+
+
+
+    const logo = await bufferLogo()
+
+    const datadb = {
+        content,
+        logo
+    }
+    return datadb
+
+}
 
 // generamos el logo
 const bufferLogo = async () => {
