@@ -1,6 +1,6 @@
 import { conectardb, cerrarConexion } from "./db.js";
 
-const consultarReportes = async () => {
+const consultarReportes = async condicion=> {
 
     try {
         const pool = await conectardb()
@@ -22,9 +22,7 @@ const consultarReportes = async () => {
                 ON us.id = sm.id_usuario
                 INNER JOIN estado_solicitudes es
                 ON es.id = sm.id_estado
-                WHERE sm.id_estado <> '4'
-            
-            ORDER BY sm.id_estado ASC, idReporte DESC
+            ${condicion} 
         `)
         cerrarConexion(pool)
         return (resultado.recordset)

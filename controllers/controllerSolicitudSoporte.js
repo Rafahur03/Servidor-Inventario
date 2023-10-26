@@ -21,18 +21,95 @@ import {
 } from "../db/sqlSolicitudes.js"
 
 import { listaNuevoReporte } from "../db/sqlConfig.js"
-
 import { validarImagenes } from "../helpers/validarFiles.js"
-import { dataSolicitud } from "../db/sqlPdf.js"
+import { consultaconfi } from "../db/sqlConfig.js"
+import { validarFecha } from "../helpers/validarfechas.js"
 
 const consultarSolicitudTodos = async (req, res) => {
-    const solicitudes = await consultarSolicitudes()
-    if (solicitudes.msg) {
-        return res.json(solicitudes[0])
+
+    const { data } = req.body
+    console.log(data)
+
+    // validamos las fechas
+    if (data.fechaInicialSolicitud != '') {
+        if (!validarFecha(data.fechaInicialSolicitud)) return res.json({ msg: 'La fecha de inicio no es valida' })
+        const hoy = new Date()
+        const inicio = new Date(data.fechaInicialSolicitud)
+        if (inicio > hoy) return res.json({ msg: 'La fecha de inicio no puede ser mayor al dia de hoy' })
     }
-    solicitudes.forEach(element => {
-        element.fecha_solicitud = element.fecha_solicitud.toLocaleDateString('es-CO')
-    });
+    if (data.fechaFinalSolicitud != '') {
+        if (!validarFecha(data.fechaFinalSolicitud)) return res.json({ msg: 'La fecha de Final no es valida' })
+        const hoy = new Date()
+        const fin = new Date(data.fechaFinalSolicitud)
+        if (fin > hoy) return res.json({ msg: 'La fecha de final no puede ser mayor al dia de hoy' })
+    }
+
+    //establecemos la fechas de inicio y final
+    let fechaInicio
+    let fechaFin
+    if (data.fechaInicialSolicitud == '' && data.fechaFinalSolicitud == '') {
+        const fechaActual = new Date()
+        fechaFin = fechaActual.toISOString().substring(0, 10)
+        fechaActual.setMonth(fechaActual.getMonth() - 12)
+        fechaInicio = fechaActual.toISOString().substring(0, 10)
+    } else if (data.fechaInicialSolicitud == '') {
+        fechaFin = data.fechaFinalSolicitud
+        const fin = new Date(data.fechaFinalSolicitud)
+        fin.setMonth(fin.getMonth() - 12)
+        fechaInicio = fin.toISOString().substring(0, 10)
+    } else if (data.fechaFinalSolicitud == '') {
+        fechaInicio = data.fechaInicialSolicitud
+        const inicio = new Date(data.fechaInicialSolicitud)
+        inicio.setMonth(inicio.getMonth() + 12)
+        fechaFin = inicio.toISOString().substring(0, 10)
+    } else {
+        const inicio = new Date(data.fechaInicialSolicitud)
+        const fin = new Date(data.fechaInicialSolicitud)
+        if (inicio > fin) return res.json({ msg: 'La fecha de inicio no puede ser mayor a la fecha final' })
+        // Calcula la diferencia en meses
+        const diferenciaEnMeses = (fin.getFullYear() - inicio.getFullYear()) * 12 + (fin.getMonth() - inicio.getMonth())
+        if (diferenciaEnMeses > 12) return res.json({ msg: 'El rango de fechas supera los doce (12) meses' })
+
+        fechaInicio = data.fechaInicialSolicitud
+        fechaFin = data.fechaFinalSolicitud
+    }
+
+
+    for (var i = 0; i < data.filtros.length; i++) {
+        if (typeof data.filtros[i].valor !== 'boolean') return res.json({ msg: 'No se pudo validar los filtros seleccionados' });
+
+        if (typeof data.filtros[i].id !== 'string' || data.filtros[i].id.trim().length === 0) return res.json({ msg: 'No se pudo validar los filtros seleccionados' });
+    }
+
+    if (data.filtros.every(item => item.valor === false)) return res.json({ msg: 'Debe escoger una Clasificacion de Activo' })
+
+    const clasificacion = await consultaconfi('SELECT id, TRIM(siglas) AS siglas FROM clasificacion_activos WHERE estado = 1')
+    if (clasificacion.msg) return res.json({ msg: 'No fue posible validar la consulta' })
+    //filtramos las siglas que tengan valor true
+    const filtrosSiglas = data.filtros.filter(element => element.valor)
+    // validamos que los filtros con valor true correspondan a una clasificacon activo valida
+    const filtros = clasificacion.filter(element => filtrosSiglas.some(item => item.id === element.siglas))
+    if (filtros.length == 0) return res.json({ msg: 'Debe seleccionar un filtro valido' })
+
+
+    let condicion = "WHERE (sm.id_estado <> 4 AND sm.fecha_solicitud >= '" + fechaInicio + "' AND sm.fecha_solicitud <= '" + fechaFin + "' AND("
+
+    filtros.forEach((element, index) => {
+        if (index === 0) {
+            condicion = condicion + ' la.clasificacion_id = ' + element.id
+        } else {
+            condicion = condicion + ' OR la.clasificacion_id = ' + element.id
+        }
+
+    })
+
+    condicion = condicion + ')) \nORDER BY sm.id_estado ASC, fecha_solicitud;'
+
+    const solicitudes = await consultarSolicitudes(condicion)
+    if (solicitudes.msg) return res.json({ msg: 'No fue posible consultar el listado de solicitudes' })
+    if(solicitudes.length === 0) return res.json({ msg: 'La consulta bajo estos filtros no arrojo resultado modifiquelos e intente de nuevo' })
+    
+    solicitudes.forEach(element => { element.fecha_solicitud = element.fecha_solicitud.toISOString().substring(0, 10)});
     res.json(solicitudes)
 
 }
@@ -50,7 +127,7 @@ const consultarSolicitud = async (req, res) => {
         dataBd.idSolicitud = solicitud.id
         const imagenesSolicitud = await bufferimagenes(solicitud.img_solicitud, dataBd, 1)
         solicitud.imagenesSolicitud = imagenesSolicitud
-    }else{
+    } else {
         solicitud.img_solicitud = null
     }
 
@@ -61,15 +138,15 @@ const consultarSolicitud = async (req, res) => {
 
     solicitud.editar = false
     solicitud.reporte = false
-   
+
     if (solicitud.idUsuario == sessionid) {
         solicitud.editar = true
-    }else{
+    } else {
         if (permisos.indexOf(5) !== -1) solicitud.editar = true
     }
-    
-    if(solicitud.idReporte !== null) solicitud.editar = false
-    if(permisos.indexOf(6) !== -1) solicitud.reporte = true
+
+    if (solicitud.idReporte !== null) solicitud.editar = false
+    if (permisos.indexOf(6) !== -1) solicitud.reporte = true
     res.json(
         solicitud
     )
@@ -112,7 +189,7 @@ const crearSolicitud = async (req, res) => {
 
     const guardado = await guardarSolicitud(data)
     if (guardado.msg) return res.json(guardado)
-    
+
     dataBd.idSolicitud = guardado
 
     if (imagenes !== null) {
@@ -129,7 +206,7 @@ const crearSolicitud = async (req, res) => {
                 img_solicitud: nombreImagenes.toString()
             }
             const guardadoImagenes = await actualizarImagenesSolicitud(datos)
-            if (guardadoImagenes.msg) return res.json({ msg: 'no fue posible guardar las imagenes en la base de datos'})
+            if (guardadoImagenes.msg) return res.json({ msg: 'no fue posible guardar las imagenes en la base de datos' })
         }
     }
 
@@ -143,7 +220,7 @@ const crearSolicitud = async (req, res) => {
     }
 
     res.json({
-        id:guardado
+        id: guardado
     })
 
 }
@@ -166,15 +243,15 @@ const editarSolicitud = async (req, res) => {
 
     if (dataBd.idReporte !== null) return res.json({ msg: 'No se puede Actualizar la solictud, ya ha sido gestionada y tiene un reporte creado ' })
 
-    if (dataBd.idUsuario !== sessionid) if (permisos.indexOf(5) === -1)  return res.json({ msg: 'Usted no tiene permisos para editar solicitudes' })
-    
+    if (dataBd.idUsuario !== sessionid) if (permisos.indexOf(5) === -1) return res.json({ msg: 'Usted no tiene permisos para editar solicitudes' })
+
     const validarDatos = validarDatoSolicitud(data)
 
     if (validarDatos.msg) return res.json(validarDatos)
 
     const actualizar = await actualizarSolicitud(data)
     if (actualizar.msg) return res.json(actualizar)
-    
+
 
     res.json({
         exito: 'Activo actualizado correctamente'
@@ -198,11 +275,11 @@ const eliminarSolicitud = async (req, res) => {
 
     if (dataBd.idReporte !== null) return res.json({ msg: 'No se puede eliminar la solictud, ya ha sido gestionada y tiene un reporte creado ' })
 
-    if (dataBd.idUsuario !== sessionid) if (permisos.indexOf(5) === -1)  return res.json({ msg: 'Usted no tiene permisos para editar solicitudes' })
-         
+    if (dataBd.idUsuario !== sessionid) if (permisos.indexOf(5) === -1) return res.json({ msg: 'Usted no tiene permisos para editar solicitudes' })
+
     const actualizar = await eliminarSolicitudDb(dataBd.id)
-    if (actualizar.msg)  return res.json(actualizar)
-    
+    if (actualizar.msg) return res.json(actualizar)
+
 
     res.json({
         exito: 'Eliminado Correctamente',
@@ -228,7 +305,7 @@ const eliminarImagenSolicitud = async (req, res) => {
     if (dataBd.idReporte !== null) return res.json({ msg: 'No se puede eliminar la Imagen, la solicitud ya ha sido gestionada y tiene un reporte creado ' })
 
     if (dataBd.idUsuario !== sessionid) if (permisos.indexOf(5) === -1) return res.json({ msg: 'Usted no tiene permisos para editar solicitudes' })
-         
+
     const imagenes = dataBd.img_solicitud.split(',')
     const imagen = data.imagen
     const nuevaImagen = imagenes.filter((item) => item !== imagen)
@@ -240,7 +317,7 @@ const eliminarImagenSolicitud = async (req, res) => {
     }
     const actualizar = await actualizarImagenesSolicitud(datos)
     if (actualizar.msg) return res.json(actualizar)
-    
+
     const dataActivo = await consultarCodigoInterno(dataBd.id_activo)
     dataActivo.idSolicitud = dataBd.id
     // elimina la imagen del bd
@@ -275,7 +352,7 @@ const guardarImagenSolicitud = async (req, res) => {
     if (dataBd.idUsuario !== sessionid) {
         if (permisos.indexOf(5) === -1) {
             return res.json({ msg: 'Usted no tiene permisos para editar solicitudes' })
-        } 
+        }
     }
 
     const imagen = data.imagen
@@ -291,13 +368,13 @@ const guardarImagenSolicitud = async (req, res) => {
     const guardarImagen = await guardarImagenesBase64(imagen, dataActivo, 1);
     if (guardarImagen.msg) return res.json(guardarImagen)
 
-    
-    if(imagenes[0]==='') imagenes.shift()
+
+    if (imagenes[0] === '') imagenes.shift()
     imagenes.push(guardarImagen);
 
     const datos = {
         img_solicitud: imagenes.toString(),
-        id: dataBd.id   
+        id: dataBd.id
     }
     const actualizar = await actualizarImagenesSolicitud(datos)
     if (actualizar.msg) {
@@ -305,7 +382,7 @@ const guardarImagenSolicitud = async (req, res) => {
     }
 
     res.json({
-        nombre:guardarImagen
+        nombre: guardarImagen
     })
 }
 
@@ -331,24 +408,24 @@ const descargarSolicitud = async (req, res) => {
 const consultarSolicitudReporte = async (req, res) => {
     const { permisos } = req
 
-    if(permisos.indexOf(6) === -1) return res.json({msg: 'Usted no tiene permisos para crear reportes'})
+    if (permisos.indexOf(6) === -1) return res.json({ msg: 'Usted no tiene permisos para crear reportes' })
     const id = req.body.id
 
     const solicitud = await consultarSolicitureporte(id)
-    if(solicitud.msg)return res.json({msg: 'Ha ocurido un error consultando los datos intentelo mas tarde'})
+    if (solicitud.msg) return res.json({ msg: 'Ha ocurido un error consultando los datos intentelo mas tarde' })
     if (solicitud.msg) return res.json(solicitud)
-    
+
     const dataBd = await consultarCodigoInterno(solicitud.id_activo)
-    if(dataBd.msg)return res.json({msg: 'Ha ocurido un error consultando los datos intentelo mas tarde'})
+    if (dataBd.msg) return res.json({ msg: 'Ha ocurido un error consultando los datos intentelo mas tarde' })
     //valos por aqui
     solicitud.imagenes_Activo = solicitud.imagenes_Activo.split(',')
     const imagenesActivo = await bufferimagenes(solicitud.imagenes_Activo, dataBd)
     solicitud.imagenesActivo = imagenesActivo
     solicitud.fecha_solicitud = solicitud.fecha_solicitud.toISOString().substring(0, 10)
     const listado = await listaNuevoReporte()
-    
-    if(listado.msg)return res.json({msg: 'Ha ocurido un error consultando los datos intentelo mas tarde'})
-     solicitud.listados = listado    
+
+    if (listado.msg) return res.json({ msg: 'Ha ocurido un error consultando los datos intentelo mas tarde' })
+    solicitud.listados = listado
 
     res.json(
         solicitud

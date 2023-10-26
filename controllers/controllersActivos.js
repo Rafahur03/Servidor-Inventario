@@ -7,6 +7,7 @@ import { crearPdfMake } from "../helpers/crearPdfMake.js"
 import { consultarReportesActivo } from "../db/sqlReportes.js"
 import { validarDatosComponente } from "../helpers/validarComponentes.js"
 import { crearComponente } from "../db/sqlComponentes.js"
+import { consultaconfi } from "../db/sqlConfig.js"
 import {
     copiarYCambiarNombre,
     guardarImagenesNuevoActivo,
@@ -45,7 +46,46 @@ import { consultarComponentes } from "../db/sqlComponentes.js"
 
 
 const consultarActivosTodos = async (req, res) => {
-    const listadoActivos = await consultarActivos()
+    const { data } = req.body
+    if (typeof data.dadoBaja != 'boolean') return res.json({ msg: 'El checkbox dado de baja no es valido' })
+
+    for (var i = 0; i < data.filtros.length; i++) {
+        if (typeof data.filtros[i].valor !== 'boolean') return res.json({ msg: 'No se pudo validar los filtros seleccionados' });
+
+        if (typeof data.filtros[i].id !== 'string' || data.filtros[i].id.trim().length === 0) return res.json({ msg: 'No se pudo validar los filtros seleccionados' });
+    }
+
+    if (data.filtros.every(item => item.valor === false)) return res.json({ msg: 'Debe escoger una Clasificacion de Activo' })
+
+    const clasificacion = await consultaconfi('SELECT id, TRIM(siglas) AS siglas FROM clasificacion_activos WHERE estado = 1')
+    if (clasificacion.msg) return res.json({ msg: 'No fue posible validar la consulta' })
+    //filtramos las siglas que tengan valor true
+    const filtrosSiglas = data.filtros.filter(element => element.valor)
+    // validamos que los filtros con valor true correspondan a una clasificacon activo valida
+    const filtros = clasificacion.filter(element => filtrosSiglas.some(item => item.id === element.siglas))
+    if (filtros.length == 0) return res.json({ msg: 'Debe seleccionar un filtro valido' })
+
+    let condicion
+    filtros.forEach((element, index) => {
+
+        if (index === 0) {
+            if (data.dadoBaja) {
+                condicion = 'WHERE (la.estado_id <> 3 AND (la.clasificacion_id = ' + element.id
+            } else {
+                condicion = 'WHERE (la.estado_id = 1 AND (la.clasificacion_id = ' + element.id
+            }
+
+        } else {
+            condicion = condicion + ' OR la.clasificacion_id = ' + element.id
+        }
+
+    })
+
+    condicion = condicion + ')) \nORDER BY codigoInterno;'
+
+    const listadoActivos = await consultarActivos(condicion)
+    if (listadoActivos.msg) return res.json({ msg: 'No fue posible realizar la consulta' })
+    if(listadoActivos.length == 0) return res.json({ msg: 'La consulta no arrojo datos intente otros filtros' })
     res.json(listadoActivos)
 }
 
@@ -239,7 +279,7 @@ const actualizarActivo = async (req, res) => {
     const { permisos } = req
     if (permisos.indexOf(3) === -1) return res.json({ msg: 'Usted no tiene permisos para Actualizar Activos' })
     // extrae los datos del req 
-    
+
     const datos = req.body.datos
     //validar que el id corresponde al codigo interno del equipo
     const id = datos.activo.split('-')[1]
@@ -597,7 +637,7 @@ const consultarDatosActivoReportePrev = async (req, res) => {
     const consulta = await consultarActivoReportePrev(id)
     const activo = consulta[0][0]
     if (activo == undefined) return res.json({ msg: 'No fue Posible consultar los datos del activo' })
-  
+
     activo.listaEstados = consulta[1]
     activo.listaUsuarios = consulta[2]
     activo.listaProveedores = consulta[3]
@@ -605,9 +645,9 @@ const consultarDatosActivoReportePrev = async (req, res) => {
     const dataBd = await consultarCodigoInterno(id)
 
     if (activo.proximoMto !== null && activo.proximoMto != '') activo.proximoMto = activo.proximoMto.toISOString().substring(0, 10)
-   
+
     if (activo.url_img !== null && activo.url_img.trim() !== '') {
-     
+
         activo.url_img = activo.url_img.split(',')
         const Imagenes = await bufferimagenes(activo.url_img, dataBd)
         activo.BufferImagenes = Imagenes

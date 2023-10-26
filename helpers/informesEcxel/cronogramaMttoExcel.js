@@ -38,13 +38,13 @@ const cronogramaMttoExcel = async data => {
         mergeConfigs.push({ s: { r: 0, c: i }, e: { r: 1, c: i } })
     }
     mergeConfigs.push({ s: { r: 0, c: 8 }, e: { r: 0, c: 19 } })
-
+    let consecutivo = 1
     datos.forEach((element, index) => {
 
         if (element.dias === 0) {
             cronograma.push(
                 [
-                    index + 1,
+                    consecutivo++,
                     element.codigo,
                     element.nombre,
                     element.marca,
@@ -108,7 +108,7 @@ const cronogramaMttoExcel = async data => {
 
             cronograma.push(
                 [
-                    index + 1,
+                    consecutivo++,
                     element.codigo,
                     element.nombre,
                     element.marca,
@@ -142,8 +142,8 @@ const cronogramaMttoExcel = async data => {
             XLSX.utils.sheet_add_aoa(worksheet, cronograma, { origin: 'A3' })
             XLSX.utils.book_append_sheet(workbook, worksheet, element.siglas)
 
-           
             cronograma = []
+            consecutivo=1
         }
         //Guarda el libro de Excel en un búfer en formato XLSX
 

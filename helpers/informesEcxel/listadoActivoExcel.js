@@ -1,8 +1,8 @@
 import * as XLSX from 'xlsx'
 import { consultaconfi } from "../../db/sqlConfig.js"
-import { sqlListadoActivoCosteado } from "../../db/sqlInformes.js"
+import { sqlInformeListadoActivo } from "../../db/sqlInformes.js"
 
-const listadoActivoCosteadoExcel = async data => {
+const listadoActivoExcel = async data => {
     // consultamos los datos del reporte,
     const clasificacion = await consultaconfi('SELECT id, TRIM(siglas) AS siglas FROM clasificacion_activos WHERE estado = 1')
 
@@ -17,9 +17,9 @@ const listadoActivoCosteadoExcel = async data => {
         filtros.forEach((element, index) => {
             if (index === 0) {
                 if (data.estado) {
-                    condicion = 'WHERE (la.clasificacion_id = ' + element.id
+                    condicion = 'WHERE (la.estado_id <> 3 AND (la.clasificacion_id = ' + element.id
                 } else {
-                    condicion = 'WHERE (la.estado_id = 1 AND la.clasificacion_id = ' + element.id
+                    condicion = 'WHERE (la.estado_id = 1 AND (la.clasificacion_id = ' + element.id
                 }
 
             } else {
@@ -28,9 +28,9 @@ const listadoActivoCosteadoExcel = async data => {
         });
 
         if (data.estado) {
-            condicion = condicion + ') \nORDER BY la.clasificacion_id DESC, estado_id ASC, codigo;'
+            condicion = condicion + ')) \nORDER BY la.clasificacion_id DESC, estado_id ASC, codigo;'
         } else {
-            condicion = condicion + ') \nORDER BY la.clasificacion_id ASC, codigo;'
+            condicion = condicion + ')) \nORDER BY la.clasificacion_id ASC, codigo;'
         }
     } else {
 
@@ -42,7 +42,7 @@ const listadoActivoCosteadoExcel = async data => {
     }
 
 
-    const datos = await sqlListadoActivoCosteado(condicion)
+    const datos = await sqlInformeListadoActivo(condicion)
     if (datos.msg) return { msg: 'No fue posible consultar los datos' }
 
     const workbook = XLSX.utils.book_new();
@@ -51,10 +51,9 @@ const listadoActivoCosteadoExcel = async data => {
     let reporte = []
     let consecutivo = 1
     datos.forEach((element, index) => {
-        const costo = parseFloat(element.valor.replace(',', '.'), 2)
         reporte.push(
             [
-                consecutivo ++,
+                consecutivo++,
                 element.codigo,
                 element.nombre,
                 element.marca,
@@ -64,10 +63,6 @@ const listadoActivoCosteadoExcel = async data => {
                 element.area,
                 element.ubicacion,
                 element.usuario,
-                costo,
-                element.totalMo,
-                element.totalMp,
-                (costo + element.totalMo + element.totalMp),
                 element.estado
             ]
         )
@@ -93,20 +88,16 @@ const listadoActivoCosteadoExcel = async data => {
                     'Area',
                     'Ubicacion',
                     'Responsable',
-                    'Valor',
-                    'Valor Mo Mtto',
-                    'Valor Mp Mtto',
-                    'Total',
                     'Estado'
                 ],
             )
 
             worksheet = XLSX.utils.aoa_to_sheet([])
-            worksheet['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 14 } }]
-           
-            XLSX.utils.sheet_add_aoa(worksheet, [['Listado de ' + element.clasificacion + ' "' + element.siglas + '" costeado ']], { origin: 'A2' })
+            worksheet['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 10 } }]
+            // agregamos los datos a la hoja
+            XLSX.utils.sheet_add_aoa(worksheet, [['Listado Activo de ' + element.clasificacion + ' "' + element.sigla + '" ']], { origin: 'A1' })
             XLSX.utils.sheet_add_aoa(worksheet, reporte, { origin: 'A2' })
-            XLSX.utils.book_append_sheet(workbook, worksheet, element.siglas)
+            XLSX.utils.book_append_sheet(workbook, worksheet, element.sigla)
             reporte = [];
             consecutivo = 1
         }
@@ -120,4 +111,4 @@ const listadoActivoCosteadoExcel = async data => {
 
 }
 
-export { listadoActivoCosteadoExcel }
+export { listadoActivoExcel }

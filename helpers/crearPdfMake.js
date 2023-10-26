@@ -684,12 +684,13 @@ const cronogramaMtto = async data => {
     ]
 
     let content = []
+    let consecutivo=1
     datos.forEach((element, index) => {
 
         if (element.dias === 0) {
             cronograma.push(
                 [
-                    index + 1,
+                    consecutivo++,
                     element.codigo,
                     element.nombre,
                     element.marca,
@@ -752,7 +753,7 @@ const cronogramaMtto = async data => {
 
             cronograma.push(
                 [
-                    index + 1,
+                    consecutivo++,
                     element.codigo,
                     element.nombre,
                     element.marca,
@@ -796,6 +797,7 @@ const cronogramaMtto = async data => {
                 }
 
             )
+
             cronograma = [
                 [
                     { rowSpan: 2, text: '#', style: 'textheader' },
@@ -843,6 +845,7 @@ const cronogramaMtto = async data => {
                 ],
 
             ]
+            consecutivo=1
         }
     })
     const logo = await bufferLogo()
@@ -900,11 +903,12 @@ const listadoActivoCosteado = async data => {
 
     let content = []
     let reporte = []
+    let consecutivo=1
     datos.forEach((element, index) => {
         const costo = parseFloat(element.valor.replace(',', '.'), 2)
         reporte.push(
             [
-                index + 1,
+                consecutivo++,
                 element.codigo,
                 element.nombre,
                 element.marca,
@@ -979,6 +983,7 @@ const listadoActivoCosteado = async data => {
                 ]
             )
             reporte = [];
+            consecutivo=1
         }
     })
 
@@ -1040,10 +1045,11 @@ const informelistadoActivo = async data => {
 
     let content = []
     let reporte = []
+    let consecutivo=1
     datos.forEach((element, index) => {
         reporte.push(
             [
-                index + 1,
+                consecutivo++,
                 element.codigo,
                 element.nombre,
                 element.marca,
@@ -1109,7 +1115,8 @@ const informelistadoActivo = async data => {
                     },
                 ]
             )
-            reporte = [];
+            reporte = []
+            consecutivo=1
         }
     })
 

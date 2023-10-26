@@ -1,6 +1,6 @@
 import { conectardb, cerrarConexion } from "./db.js";
 
-const consultarSolicitudes = async (data) => {
+const consultarSolicitudes = async condicion => {
 
     try {
         const pool = await conectardb()
@@ -15,8 +15,7 @@ const consultarSolicitudes = async (data) => {
                 ON ma.id = la.marca_id
                 INNER JOIN estado_solicitudes es
                 ON es.id = sm.id_estado
-            WHERE sm.id_estado <> '4'
-            ORDER BY sm.id_estado ASC, fecha_solicitud
+            ${condicion}
         `)
         cerrarConexion(pool)
         return (resultado.recordset)

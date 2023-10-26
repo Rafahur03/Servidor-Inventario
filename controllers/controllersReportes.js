@@ -4,6 +4,7 @@ import { validarDatoReporte, validarDatosReportePrev } from "../helpers/validarD
 import { consultarCodigoInterno, actualizarEstadoyFechaActivo } from "../db/sqlActivos.js"
 import { consultaValidarSolicitudReporte } from "../db/sqlSolicitudes.js"
 import { crearPdfMake } from "../helpers/crearPdfMake.js"
+import { validarFecha } from "../helpers/validarfechas.js"
 import { validarImagenes, validarDocumentos } from "../helpers/validarFiles.js"
 import {
     guardarImagenesNuevoActivo,
@@ -20,6 +21,7 @@ import {
     guadarReporteEliminadoBd
 } from "../helpers/copiarCarpetasArchivos.js"
 import { listaNuevoReporte } from "../db/sqlConfig.js"
+import { consultaconfi } from "../db/sqlConfig.js"
 
 import {
     consultarReportes,
@@ -37,29 +39,106 @@ import {
 
 
 const consultarReportesTodos = async (req, res) => {
-    const listadoReportes = await consultarReportes()
-    if (listadoReportes.msg) {
-        return res.json(solicitudes[0])
+    const { data } = req.body
+    // validamos las fechas
+    if (data.fechaInicialReporte != '') {
+        if (!validarFecha(data.fechaInicialReporte)) return res.json({ msg: 'La fecha de inicio no es valida' })
+        const hoy = new Date()
+        const inicio = new Date(data.fechaInicialReporte)
+        if (inicio > hoy) return res.json({ msg: 'La fecha de inicio no puede ser mayor al dia de hoy' })
     }
-    listadoReportes.forEach(element => {
-        element.fechareporte = element.fechareporte.toISOString().substring(0, 10)
+    if (data.fechaFinalReporte != '') {
+        if (!validarFecha(data.fechaFinalReporte)) return res.json({ msg: 'La fecha de Final no es valida' })
+        const hoy = new Date()
+        const fin = new Date(data.fechaFinalReporte)
+        if (fin > hoy) return res.json({ msg: 'La fecha de final no puede ser mayor al dia de hoy' })
+    }
+
+
+    //establecemos la fechas de inicio y final
+    let fechaInicio
+    let fechaFin
+    if (data.fechaInicialReporte == '' && data.fechaFinalReporte == '') {
+        const fechaActual = new Date()
+        fechaFin = fechaActual.toISOString().substring(0, 10)
+        fechaActual.setMonth(fechaActual.getMonth() - 12)
+        fechaInicio = fechaActual.toISOString().substring(0, 10)
+    } else if (data.fechaInicialReporte == '') {
+        fechaFin = data.fechaFinalReporte
+        const fin = new Date(data.fechaFinalReporte)
+        fin.setMonth(fin.getMonth() - 12)
+        fechaInicio = fin.toISOString().substring(0, 10)
+    } else if (data.fechaFinalReporte == '') {
+        fechaInicio = data.fechaInicialReporte
+        const inicio = new Date(data.fechaInicialReporte)
+        inicio.setMonth(inicio.getMonth() + 12)
+        fechaFin = inicio.toISOString().substring(0, 10)
+    } else {
+        const inicio = new Date(data.fechaInicialReporte)
+        const fin = new Date(data.fechaInicialReporte)
+        if (inicio > fin) return res.json({ msg: 'La fecha de inicio no puede ser mayor a la fecha final' })
+        // Calcula la diferencia en meses
+        const diferenciaEnMeses = (fin.getFullYear() - inicio.getFullYear()) * 12 + (fin.getMonth() - inicio.getMonth())
+        if (diferenciaEnMeses > 12) return res.json({ msg: 'El rango de fechas supera los doce (12) meses' })
+
+        fechaInicio = data.fechaInicialReporte
+        fechaFin = data.fechaFinalReporte
+    }
+
+
+    for (var i = 0; i < data.filtros.length; i++) {
+        if (typeof data.filtros[i].valor !== 'boolean') return res.json({ msg: 'No se pudo validar los filtros seleccionados' });
+
+        if (typeof data.filtros[i].id !== 'string' || data.filtros[i].id.trim().length === 0) return res.json({ msg: 'No se pudo validar los filtros seleccionados' });
+    }
+
+    if (data.filtros.every(item => item.valor === false)) return res.json({ msg: 'Debe escoger una Clasificacion de Activo' })
+
+    const clasificacion = await consultaconfi('SELECT id, TRIM(siglas) AS siglas FROM clasificacion_activos WHERE estado = 1')
+    if (clasificacion.msg) return res.json({ msg: 'No fue posible validar la consulta' })
+    //filtramos las siglas que tengan valor true
+    const filtrosSiglas = data.filtros.filter(element => element.valor)
+    // validamos que los filtros con valor true correspondan a una clasificacon activo valida
+    const filtros = clasificacion.filter(element => filtrosSiglas.some(item => item.id === element.siglas))
+    if (filtros.length == 0) return res.json({ msg: 'Debe seleccionar un filtro valido' })
+
+
+    let condicion = "WHERE (sm.id_estado <> 4 AND rm.fechareporte >= '" + fechaInicio + "' AND rm.fechareporte <= '" + fechaFin + "' AND("
+
+    filtros.forEach((element, index) => {
+        if (index === 0) {
+            condicion = condicion + ' la.clasificacion_id = ' + element.id
+        } else {
+            condicion = condicion + ' OR la.clasificacion_id = ' + element.id
+        }
+
     })
+
+    condicion = condicion + ')) \nORDER BY sm.id_estado ASC, fechareporte DESC;'
+  
+    const listadoReportes = await consultarReportes(condicion)
+    if (listadoReportes.msg) return res.json({ msg: 'No fue posible realizar la consulta' })
+ 
+    if(listadoReportes.length === 0) return res.json({ msg: 'La consulta bajo estos filtros no arrojo resultado modifiquelos e intente de nuevo' })
+
+    listadoReportes.forEach(element => { element.fechareporte = element.fechareporte.toISOString().substring(0, 10) })
+
     res.json(listadoReportes)
 }
 
 const consultarReporte = async (req, res) => {
     const id = parseInt(req.body.id)
-    
+
     if (id == NaN) return res.json({ msg: 'Debe ingresar un id valido' })
     const { sessionid } = req
     const reporte = await consultarReporteUno(id)
     if (reporte.msg) return res.json(reporte)
     const dataBd = await consultarCodigoInterno(reporte.idActivo)
     if (dataBd.msg) return res.json(dataBd)
-  
+
     // normalizamos las fecha a la  hora local del pc
     reporte.fechaReporte = reporte.fechaReporte.toISOString().substring(0, 10)
-    if( reporte.proximoMtto !== null) reporte.proximoMtto = reporte.proximoMtto.toISOString().substring(0, 10)
+    if (reporte.proximoMtto !== null) reporte.proximoMtto = reporte.proximoMtto.toISOString().substring(0, 10)
     reporte.fechaSolicitud = reporte.fechaSolicitud.toISOString().substring(0, 10)
     reporte.imgActivo = reporte.imgActivo.split(',')
     // cargamos la imagenes 
@@ -73,11 +152,11 @@ const consultarReporte = async (req, res) => {
     } else {
         reporte.imgReporte = null
     }
- 
+
     if (reporte.repIntExte === 'Ext') {
         reporte.soporte = await bufferSoportepdf('Rep', dataBd, reporte.idReporte)
     }
- 
+
     if (reporte.usuarioReporteId == sessionid) {
         if (reporte.estadoSolicitudId != 3 && reporte.estadoSolicitudId != 4) reporte.editar = true
 
@@ -89,9 +168,9 @@ const consultarReporte = async (req, res) => {
     }
 
     const listado = await listaNuevoReporte()
-    if(listado.msg) return (res.json({msg: ' No se fue posible consultar todos los datos del reporte'}))
+    if (listado.msg) return (res.json({ msg: ' No se fue posible consultar todos los datos del reporte' }))
     reporte.listados = listado
-    
+
 
 
     res.json(
@@ -121,10 +200,10 @@ const crearReporte = async (req, res) => {
 
     if (dataSolicitud.idReporte != null) return res.json({ msg: 'la solicitud ya tiene un reporte creado' })
 
-    if (dataSolicitud.estadoSolicitud == 3)  return res.json({ msg: 'la solicitud esta en estado cerrada y no puede modificarse' })
+    if (dataSolicitud.estadoSolicitud == 3) return res.json({ msg: 'la solicitud esta en estado cerrada y no puede modificarse' })
 
-    if (dataSolicitud.estadoSolicitud == 4)return res.json({ msg: 'la solicitu no existe o fue eliminada' })
-    
+    if (dataSolicitud.estadoSolicitud == 4) return res.json({ msg: 'la solicitu no existe o fue eliminada' })
+
     // validamos que todos los datos sean correctos para ingresarlos a la bd
     const validarDatos = await validarDatoReporte(data)
     if (validarDatos.msg) return res.json(validarDatos)
@@ -304,7 +383,7 @@ const guardarReportePrev = async (req, res) => {
     const estadoSolicitudId = data.estadoSolicitudId.split('-')[1]
     const recibidoConformeId = data.recibidoConformeId.split('-')[1]
 
-    
+
     const datosReporte = {
         id_activo: activo,
         id_usuario: recibidoConformeId,
@@ -321,8 +400,8 @@ const guardarReportePrev = async (req, res) => {
         hallazgos: data.hallazgos,
         reporte: data.reporte,
         recomendaciones: data.recomendaciones,
-        fechaCreacion: new Date(Date.now()).toISOString().substring(0, 19).replace('T', ' ') ,
-        fechaproximoMtto:data.fechaproximoMtto,
+        fechaCreacion: new Date(Date.now()).toISOString().substring(0, 19).replace('T', ' '),
+        fechaproximoMtto: data.fechaproximoMtto,
         estadoActivoId
     }
 
@@ -371,7 +450,7 @@ const guardarReportePrev = async (req, res) => {
         }
         const actualizarReporteBd = await actualizarSoporteReporte(datosreporte)
         if (actualizarReporteBd.msg) return res.json({ msg: 'No fue posible guardar el Soporte en pdf en la Base de datos verifique y actualice el reporte', reporte: guardado })
-    
+
     } else {
         const pdfmake = await crearPdfMake(guardado, 'Reporte');
 
@@ -387,7 +466,7 @@ const guardarReportePrev = async (req, res) => {
             id: guardado,
             repIntExte: 'Int'
         }
-        
+
         const actualizarReporteBd = await actualizarSoporteReporte(datosreporte)
         if (actualizarReporteBd.msg) return res.json({ msg: 'No fue posible guardar el Soporte en pdf Make en la Base de datos verifique y actualice el reporte', reporte: guardado })
     }

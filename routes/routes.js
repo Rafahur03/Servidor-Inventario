@@ -1,15 +1,16 @@
 import express from 'express';
-import { iniciaSesion,
-     crearUsuario,
-      actualizaUsuario,
-       consultarUsuario,
-       cambiarFirma,
-       guardarProveedorUsuario,
-       eliminarProveedorUsuario,
-       cambiarContraseña 
-    } from '../controllers/controllersUsuarios.js';
+import {
+    iniciaSesion,
+    crearUsuario,
+    actualizaUsuario,
+    consultarUsuario,
+    cambiarFirma,
+    guardarProveedorUsuario,
+    eliminarProveedorUsuario,
+    cambiarContraseña
+} from '../controllers/controllersUsuarios.js';
 
-import {checkAuth} from '../middleware/authMiddlewareUsuario.js';
+import { checkAuth } from '../middleware/authMiddlewareUsuario.js';
 
 import {
     consultarActivosTodos,
@@ -30,7 +31,8 @@ import {
     consultarActivoCambiarClasificacion
 } from '../controllers/controllersActivos.js'
 
-import { consultarSolicitudTodos,
+import {
+    consultarSolicitudTodos,
     crearSolicitud,
     editarSolicitud,
     eliminarSolicitud,
@@ -38,10 +40,11 @@ import { consultarSolicitudTodos,
     eliminarImagenSolicitud,
     guardarImagenSolicitud,
     descargarSolicitud,
-    consultarSolicitudReporte 
+    consultarSolicitudReporte
 } from '../controllers/controllerSolicitudSoporte.js'
 
-import { consultarReportesTodos,
+import {
+    consultarReportesTodos,
     consultarReporte,
     crearReporte,
     modificarReporte,
@@ -57,19 +60,24 @@ import { consultarReportesTodos,
     guardarReportePrev
 } from '../controllers/controllersReportes.js'
 
-import { consultarconfig,
+import {
+    consultarconfig,
     actualizarConfig,
     crearConfig,
     consultarTodasTablasConfig
 } from '../controllers/controlerConfig.js';
 
-import { eliminarComponente, guardarComponente  
+import {
+    eliminarComponente, guardarComponente
 } from '../controllers/controllerComponentes.js';
 
-import { descargaCronograma,
+import {
+    descargaCronograma,
     informelistadoAct,
     informelistadoActCost,
     descargarIfoActCosteado,
+    informelistadoReportes,
+    informelistadoSolicitudes
 } from '../controllers/informes.js';
 
 import { probarfechas } from '../controllers/probarfechas.js';
@@ -97,7 +105,7 @@ router.delete('/eliminarProveedorUsuario', checkAuth, eliminarProveedorUsuario)
 
 // ruta de manejo de activos
 
-router.get('/consultarActivosTodos', checkAuth, consultarActivosTodos)
+router.post('/consultarActivosTodos', checkAuth, consultarActivosTodos)
 
 router.get('/consultarListasConfActivos', checkAuth, consultarListasConfActivos)
 
@@ -131,7 +139,7 @@ router.post('/consultarDatosActivoReportePrev', checkAuth, consultarDatosActivoR
 
 // ruta de solicitudes de soporte 
 
-router.get('/consultarSolicitudTodos', checkAuth, consultarSolicitudTodos)
+router.post('/consultarSolicitudTodos', checkAuth, consultarSolicitudTodos)
 
 router.post('/consultarSolicitud', checkAuth, consultarSolicitud)
 
@@ -151,7 +159,7 @@ router.post('/consultarSolicitudReporte', checkAuth, consultarSolicitudReporte)
 
 // router reportes
 
-router.get('/consultarReportesTodos', checkAuth, consultarReportesTodos)
+router.post('/consultarReportesTodos', checkAuth, consultarReportesTodos)
 
 router.post('/consultarReporte', checkAuth, consultarReporte)
 
@@ -200,8 +208,10 @@ router.post('/descargaCronograma', checkAuth, descargaCronograma)
 router.post('/informelistadoAct', checkAuth, informelistadoAct)
 router.post('/informelistadoActCost', checkAuth, informelistadoActCost)
 router.post('/descargarIfoActCosteado', checkAuth, descargarIfoActCosteado)
+router.post('/informelistadoReportes', checkAuth, informelistadoReportes)
+router.post('/informelistadoSolicitudes', checkAuth, informelistadoSolicitudes)
 
 
 //informes
 
-export default  router
+export default router
