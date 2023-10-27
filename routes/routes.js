@@ -14,6 +14,7 @@ import { checkAuth } from '../middleware/authMiddlewareUsuario.js';
 
 import {
     consultarActivosTodos,
+    consultarlistadoActivoFiltrado,
     consultarListasConfActivos,
     crearActivo,
     actualizarActivo,
@@ -105,7 +106,9 @@ router.delete('/eliminarProveedorUsuario', checkAuth, eliminarProveedorUsuario)
 
 // ruta de manejo de activos
 
-router.post('/consultarActivosTodos', checkAuth, consultarActivosTodos)
+router.get('/consultarActivosTodos', checkAuth, consultarActivosTodos)
+
+router.post('/consultarlistadoActivoFiltrado', checkAuth, consultarlistadoActivoFiltrado)
 
 router.get('/consultarListasConfActivos', checkAuth, consultarListasConfActivos)
 

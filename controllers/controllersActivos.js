@@ -46,6 +46,13 @@ import { consultarComponentes } from "../db/sqlComponentes.js"
 
 
 const consultarActivosTodos = async (req, res) => {
+  
+    const listadoActivos = await consultarActivos('')
+    if (listadoActivos.msg) return res.json({ msg: 'No fue posible realizar la consulta' })
+    res.json(listadoActivos)
+}
+
+const consultarlistadoActivoFiltrado = async (req, res) => {
     const { data } = req.body
     if (typeof data.dadoBaja != 'boolean') return res.json({ msg: 'El checkbox dado de baja no es valido' })
 
@@ -661,6 +668,7 @@ const consultarDatosActivoReportePrev = async (req, res) => {
 export {
 
     consultarActivosTodos,
+    consultarlistadoActivoFiltrado,
     consultarListasConfActivos,
     crearActivo,
     actualizarActivo,
