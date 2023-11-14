@@ -223,7 +223,7 @@ const validarDatosActivo = async (datos, crear = null) => {
     if (datos.garantiaActivo == '') return { msg: 'El campo fecha de vencimiento de la garantia es obligatorio' }
     if (estado_id !== 2) {
         if (datos.proximoMtto == '') return { msg: 'El campo fecha de proximo mantenimiento es obligatorio' }
-        if (datos.proximoMtto < fechaActual) return { msg: 'la fecha del proximo mantenimeinto no puede ser inferior a el dia de hoy' }
+        if (datos.proximoMtto < fechaActual) return { msg: 'la fecha del proximo mantenimiento no puede ser inferior a el dia de hoy' }
     }
     if (crear !== null) if (datos.ingresoActivo !== fechaActual) return { msg: 'La fecha de ingreso no puede ser diferente del dia de hoy' }
     if (datos.fechaCompra > fechaActual) return { msg: 'La fecha de compra no puede ser superior al dia de hoy' }

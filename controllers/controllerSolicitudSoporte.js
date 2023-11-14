@@ -28,7 +28,7 @@ import { validarFecha } from "../helpers/validarfechas.js"
 const consultarSolicitudTodos = async (req, res) => {
 
     const { data } = req.body
-    console.log(data)
+
 
     // validamos las fechas
     if (data.fechaInicialSolicitud != '') {
@@ -48,8 +48,10 @@ const consultarSolicitudTodos = async (req, res) => {
     let fechaInicio
     let fechaFin
     if (data.fechaInicialSolicitud == '' && data.fechaFinalSolicitud == '') {
-        const fechaActual = new Date()
+        let fechaActual = new Date()
+        fechaActual.setDate(fechaActual.getDate() + 1)
         fechaFin = fechaActual.toISOString().substring(0, 10)
+        fechaActual = new Date()
         fechaActual.setMonth(fechaActual.getMonth() - 12)
         fechaInicio = fechaActual.toISOString().substring(0, 10)
     } else if (data.fechaInicialSolicitud == '') {
@@ -105,6 +107,19 @@ const consultarSolicitudTodos = async (req, res) => {
 
     condicion = condicion + ')) \nORDER BY sm.id_estado ASC, fecha_solicitud;'
 
+    console.log(`
+    SELECT sm.id, CONCAT(TRIM(cl.siglas), la.consecutivo_interno) as codigoInterno,TRIM(la.nombre) AS nombreActivo, TRIM(la.modelo) AS modelo,
+    TRIM(ma.marca) AS marca, sm.fecha_solicitud, TRIM(sm.solicitud) AS solicitud, TRIM(es.estado) AS estado FROM solicitudes_mtto sm
+        INNER JOIN listado_activos la
+        ON sm.id_activo = la.id
+        INNER JOIN clasificacion_activos cl
+        ON cl.id = la.clasificacion_id
+        INNER JOIN marca_activos ma
+        ON ma.id = la.marca_id
+        INNER JOIN estado_solicitudes es
+        ON es.id = sm.id_estado
+    ${condicion}
+`)
     const solicitudes = await consultarSolicitudes(condicion)
     if (solicitudes.msg) return res.json({ msg: 'No fue posible consultar el listado de solicitudes' })
     if(solicitudes.length === 0) return res.json({ msg: 'La consulta bajo estos filtros no arrojo resultado modifiquelos e intente de nuevo' })

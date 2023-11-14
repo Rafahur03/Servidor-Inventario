@@ -115,9 +115,9 @@ const consultarActivo = async (req, res) => {
 
     reportes.forEach(element => {
         if (element.proximoMtto != null) {
-            element.proximoMtto = element.proximoMtto.toLocaleDateString('es-CO')
+            element.proximoMtto = element.proximoMtto.toISOString().substring(0, 10)
         }
-        element.fechareporte = element.fechareporte.toLocaleDateString('es-CO')
+        element.fechareporte = element.fechareporte.toISOString().substring(0, 10)
     })
 
     activo.fecha_compra = activo.fecha_compra.toISOString().substring(0, 10)
@@ -191,7 +191,6 @@ const crearActivo = async (req, res) => {
 
     // extrae los datos del req y valida que esten normalizados para ingreso a la bd
     const { datos } = req.body
-
     const imagenes = datos.imagenes
     const componentes = datos.componentes
     const documentos = datos.documentos

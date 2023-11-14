@@ -115,13 +115,13 @@ const consultarReportesTodos = async (req, res) => {
     })
 
     condicion = condicion + ')) \nORDER BY sm.id_estado ASC, fechareporte DESC;'
-  
+
     const listadoReportes = await consultarReportes(condicion)
     if (listadoReportes.msg) return res.json({ msg: 'No fue posible realizar la consulta' })
- 
-    if(listadoReportes.length === 0) return res.json({ msg: 'La consulta bajo estos filtros no arrojo resultado modifiquelos e intente de nuevo' })
 
-    listadoReportes.forEach(element => { element.fechareporte = element.fechareporte.toISOString().substring(0, 10) })
+    if (listadoReportes.length === 0) return res.json({ msg: 'La consulta bajo estos filtros no arrojo resultado modifiquelos e intente de nuevo' })
+
+    listadoReportes.forEach(element => {element.fechareporte = element.fechareporte.toISOString().substring(0, 10) })
 
     res.json(listadoReportes)
 }
@@ -171,8 +171,6 @@ const consultarReporte = async (req, res) => {
     if (listado.msg) return (res.json({ msg: ' No se fue posible consultar todos los datos del reporte' }))
     reporte.listados = listado
 
-
-
     res.json(
         reporte
     )
@@ -181,10 +179,10 @@ const consultarReporte = async (req, res) => {
 }
 
 const crearReporte = async (req, res) => {
-
+  
     // validar permisos para crear activos
     const { sessionid, permisos, Id_proveedores } = req
-    console.log(sessionid)
+    console.log('aqui')
 
     if (permisos.indexOf(6) === -1) return res.json({ msg: 'Usted no tiene permisos para crear crear reportes de mantenimiento' })
 
@@ -213,8 +211,10 @@ const crearReporte = async (req, res) => {
     data.id_activo = dataSolicitud.id_activo
 
     data.provedorMttoId = parseInt(data.provedorMttoId.split('-')[1])
-    if (Id_proveedores.indexOf(data.provedorMttoId) === -1) return res.json({ msg: 'Usted no esta asociado al proveedor de mantenimientos seleccionado, favor seleccione uno al cual este asociado.' })
 
+    if (sessionid !== 1) {
+        if (Id_proveedores.indexOf(data.provedorMttoId) === -1) return res.json({ msg: 'Usted no esta asociado al proveedor de mantenimientos seleccionado, favor seleccione uno al cual este asociado.' })
+    }
     const fechaSolicitud = dataSolicitud.fecha_solicitud.toISOString().substring(0, 10)
 
     if (fechaSolicitud > data.fechareporte) return res.json({ msg: 'La fecha de realizacion del mantenimiento no puede ser inferior a la fecha de solicitud' })
@@ -257,7 +257,7 @@ const crearReporte = async (req, res) => {
     data.idSolicitud = idSolicitud
 
     // guardamos los datos del reporte en la base de  datos
-    console.log(data)
+
     const guardado = await guardarReporte(data)
     if (guardado.msg) return res.json(guardado)
     // consulta los datos del activo
@@ -362,8 +362,9 @@ const guardarReportePrev = async (req, res) => {
     if (validarDatos.msg) return res.json(validarDatos)
 
     data.provedorMttoId = parseInt(data.provedorMttoId.split('-')[1])
-    if (Id_proveedores.indexOf(data.provedorMttoId) === -1) return res.json({ msg: 'Usted no esta asociado al proveedor de mantenimientos seleccionado, favor seleccione uno al cual este asociado.' })
-
+    if (sessionid !== 1) {
+        if (Id_proveedores.indexOf(data.provedorMttoId) === -1) return res.json({ msg: 'Usted no esta asociado al proveedor de mantenimientos seleccionado, favor seleccione uno al cual este asociado.' })
+    }
     let imagenes = null
     if (data.imagenes.length > 0) {
         for (let imagen of data.imagenes) {
@@ -766,7 +767,7 @@ const guardarSoporteExtReporte = async (req, res) => {
     const soporte = await bufferSoportepdf('Rep', dataBd, reporte.idReporte)
 
     res.json({
-        exito: 'El documento se elimino y actualizo correctamente',
+        exito: 'Documento Guardado correctamente',
         soporte
     })
 }

@@ -359,7 +359,7 @@ const guardarPDF = async (file, data, complemento) => {
 }
 
 const guardarDocumentoBase64 = async (datos, data, destino) => {
-
+	
 	function getRandomInt(max) {
 		return Math.floor(Math.random() * max);
 	}
@@ -493,13 +493,12 @@ const bufferReporte = (data, id) => {
 }
 
 const eliminarReporteExterno = async (data) => {
-	function getRandomInt(max) {
-		return Math.floor(Math.random() * max);
-	}
+
+	console.log(data)
 
 	try {
 
-		const pathReporte = `${path}\\${data.siglas}\\${data.codigo}\\Reporte\\${data.reporte}`
+		const pathReporte = `${path}\\${data.siglas}\\${data.codigo}\\Rep-${data.codigo}-${data.reporte}.pdf`
 		try {
 			await fspromises.access(pathReporte, fspromises.constants.F_OK);
 		} catch (error) {
@@ -507,7 +506,7 @@ const eliminarReporteExterno = async (data) => {
 		}
 
 		//Cambiar ubicacion y nombre del archivo
-		await fspromises.rename(`${path}\\${data.siglas}\\${data.codigo}\\Rep-${data.codigo}-${data.reporte}.pdf`, `${pathReporte}\\E-Rep-${data.codigo}-${data.reporte}-${getRandomInt(50)}.pdf`);
+		await fspromises.rename(`${path}\\${data.siglas}\\${data.codigo}\\Rep-${data.codigo}-${data.reporte}.pdf`, `${path}\\${data.siglas}\\${data.codigo}\\E-Rep-${data.codigo}-${data.reporte}.pdf`);
 		return true
 
 	} catch (error) {

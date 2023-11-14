@@ -49,13 +49,13 @@ const listaNuevoReporte = async (query) => {
             SELECT id, TRIM(estado) AS estado FROM estado_solicitudes
             SELECT id, TRIM(tipoMtto) AS tipoMantenimeinto FROM tipo_mantenimeintos WHERE estado_id = 1 
             SELECT id, TRIM(nombre_comercial) AS nombre,TRIM(razon_social) AS razonSocial, TRIM(nit)  AS nit FROM proveedores WHERE estado = 1 
-            SELECT id, CONCAT(TRIM(nombre), SPACE(1),TRIM(nombre_1), SPACE(1),TRIM(apellido), SPACE(1), TRIM(apellido_1)) AS usuario FROM usuarios WHERE Id_proveedores LIKE '%43%'  AND estado = 1 
+            SELECT id, CONCAT(TRIM(nombre), SPACE(1),TRIM(nombre_1), SPACE(1),TRIM(apellido), SPACE(1), TRIM(apellido_1)) AS usuario FROM usuarios WHERE estado = 1 
         `)
         cerrarConexion(pool)
         return (resultado.recordsets)
     } catch (error) {
         console.error(error);
-        return { msg: 'Ha ocurido un error al intentar actualizar los datos intentalo mas tarde' }
+        return { msg: 'Ha ocurido un error al intentar consultar los datos del reporte intentalo mas tarde' }
     }
 }
 

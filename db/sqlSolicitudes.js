@@ -17,6 +17,7 @@ const consultarSolicitudes = async condicion => {
                 ON es.id = sm.id_estado
             ${condicion}
         `)
+        
         cerrarConexion(pool)
         return (resultado.recordset)
     } catch (error) {
