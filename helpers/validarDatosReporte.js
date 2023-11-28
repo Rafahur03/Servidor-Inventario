@@ -145,7 +145,7 @@ const validarDatoReporte = async (datos) => {
 
     if (datos.fechaproximoMtto == '') return { titulo: 'ERROR', mensaje: 'El campo fecha de reporte es obligatorio' }
 
-    if (datos.fechaproximoMtto < datos.fechaReporte) return modalMensaje({ titulo: 'ERROR', mensaje: 'La fecha del proximo mantenimeinto no puede ser menor a la fecha de reporte' })
+    if (datos.fechaproximoMtto < datos.fechaReporte) return modalMensaje({ titulo: 'ERROR', mensaje: 'La fecha del proximo mantenimiento no puede ser menor a la fecha de reporte' })
     
     return true
 
@@ -272,7 +272,7 @@ const validarDatosReportePrev = async (datos) => {
 
     if (datos.fechaReporte.length === 0) return { titulo: 'ERROR', mensaje: 'La fecha de reporte no puede estar vacia' }
 
-    if (datos.fechaproximoMtto === 0) return { titulo: 'ERROR', mensaje: 'La fecha del Proximo mantenimeinto no puede estar vacio' }
+    if (datos.fechaproximoMtto === 0) return { titulo: 'ERROR', mensaje: 'La fecha del Proximo mantenimiento no puede estar vacio' }
 
     if (datos.fechaSolicitud.length === 0) return { titulo: 'ERROR', mensaje: 'La fecha de solicitud no puede estar vacia' }
 
@@ -280,7 +280,7 @@ const validarDatosReportePrev = async (datos) => {
 
     if (datos.fechaReporte < datos.fechaSolicitud) return { titulo: 'ERROR', mensaje: 'La fecha del reporte no puede ser menor a la fecha de solicitud' }
 
-    if (datos.fechaproximoMtto < datos.fechaReporte) return { titulo: 'ERROR', mensaje: 'La fecha del proximo mantenimeinto no puede ser menor a la fecha de reporte'}
+    if (datos.fechaproximoMtto < datos.fechaReporte) return { titulo: 'ERROR', mensaje: 'La fecha del proximo mantenimiento no puede ser menor a la fecha de reporte'}
 
 
     return true

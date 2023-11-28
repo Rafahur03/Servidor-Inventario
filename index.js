@@ -3,7 +3,9 @@ import bodyParser from "body-parser"
 import dotenv from "dotenv";
 import {conectardb} from "./db/db.js";
 import router from "./routes/routes.js";
-dotenv.config();
+
+dotenv.config()
+
 const app = express();
 
 app.use(express.raw({limit: '20mb'}))

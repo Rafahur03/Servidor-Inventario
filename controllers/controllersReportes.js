@@ -390,7 +390,7 @@ const guardarReportePrev = async (req, res) => {
         id_usuario: recibidoConformeId,
         id_estado: estadoSolicitudId,
         fecha_solicitud: data.fechaSolicitud,
-        solicitud: 'Mantenimeinto Preventivo Act-' + activo,
+        solicitud: 'Mantenimiento Preventivo Act-' + activo,
         tipoMantenimientoId: 1,
         fechaReporte: data.fechaReporte,
         costoMo: data.costoMo,

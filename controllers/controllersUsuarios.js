@@ -160,7 +160,7 @@ const crearUsuario = async (req, res) => {
 }
 
 const consultarUsuario = async (req, res) => {
-
+  
     // validar si tiene o no permisos para crear usuario
     const { sessionid, permisos } = req
     const { id } = req.body
@@ -168,7 +168,6 @@ const consultarUsuario = async (req, res) => {
     if (nid == NaN) return { msg: 'El ID del usuario es invalido' }
 
     if (nid != sessionid) if (permisos.indexOf(1) === -1) return res.json({ msg: 'Usted no tiene permisos para editar usuarios' })
-
     const usuario = await buscarUsuario(nid)
     if (usuario.msg) return res.json(usuario)
 
@@ -179,13 +178,12 @@ const consultarUsuario = async (req, res) => {
     if (permisosUsuario.indexOf(6) !== -1) usuario.reporte = true
     if (permisosUsuario.indexOf(8) !== -1) usuario.confguraciones = true
     if (permisosUsuario.indexOf(4) !== -1) usuario.clasificacion = true
-    delete usuario.permisos
+
     if (usuario.firma !== null && usuario.firma.trim() !== '') {
         usuario.firmaUrl = await bufferimagen(usuario.firma, '', 3)
     } else {
         usuario.firmaUrl = await bufferimagen('NO FIRMA.png', '', 3)
     }
-
     const proveedores = usuario.IdPporveedores.split(',').map(item => { return parseInt(item) })
     let consulta = null
     proveedores.forEach(element => {
@@ -196,14 +194,13 @@ const consultarUsuario = async (req, res) => {
         }
 
     });
+
     usuario.proveedores = await consultarProveedoresUsuarios(consulta)
     if (usuario.proveedores.msg) return res.json(usuario.proveedores);
     if (permisos.indexOf(1) !== -1) usuario.listaUsuarios = await consultarProveedoresUsuarios("SELECT CONCAT( 'Us-', id) AS id, CONCAT( numero_id, '--', TRIM(nombre), SPACE(1), TRIM(nombre_1), SPACE(1), TRIM(apellido), SPACE(1), TRIM(apellido_1), '--', TRIM(email)) AS nombre FROM usuarios")
 
     if (usuario.id == sessionid && usuario.id != 1) return res.json(usuario)
-
     usuario.listaproveedores = await consultarProveedoresUsuarios("SELECT CONCAT('Pro-', id) AS id, CONCAT(TRIM(razon_social),'--', TRIM(nombre_comercial),'--', TRIM(nit)) AS nombre  FROM proveedores")
-
     usuario.listadoEstados = await consultarProveedoresUsuarios("SELECT id, TRIM(estado) AS estados FROM estados WHERE id <> 3")
 
     res.json(usuario)

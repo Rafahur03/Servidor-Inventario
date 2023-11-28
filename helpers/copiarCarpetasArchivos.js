@@ -246,7 +246,7 @@ const bufferimagen = async (url_img, data, destino) => {
 			pathActivo = `${path}${data.siglas}\\${data.codigo}\\Reporte\\`
 			break
 		case 3:
-			pathActivo = `${path}\\Usuarios\\`;
+			pathActivo = path + 'Usuarios\\';
 			break;
 		default:
 			pathActivo = `${path}${data.siglas}\\${data.codigo}\\`
