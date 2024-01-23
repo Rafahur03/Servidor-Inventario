@@ -66,14 +66,15 @@ const consultarSolicitudTodos = async (req, res) => {
         fechaFin = inicio.toISOString().substring(0, 10)
     } else {
         const inicio = new Date(data.fechaInicialSolicitud)
-        const fin = new Date(data.fechaInicialSolicitud)
+        const fin = new Date(data.fechaFinalSolicitud)
         if (inicio > fin) return res.json({ msg: 'La fecha de inicio no puede ser mayor a la fecha final' })
         // Calcula la diferencia en meses
         const diferenciaEnMeses = (fin.getFullYear() - inicio.getFullYear()) * 12 + (fin.getMonth() - inicio.getMonth())
         if (diferenciaEnMeses > 12) return res.json({ msg: 'El rango de fechas supera los doce (12) meses' })
 
         fechaInicio = data.fechaInicialSolicitud
-        fechaFin = data.fechaFinalSolicitud
+        fin.setDate(fin.getDate() + 1)
+        fechaFin = fin.toISOString().substring(0, 10)
     }
 
 
@@ -107,24 +108,12 @@ const consultarSolicitudTodos = async (req, res) => {
 
     condicion = condicion + ')) \nORDER BY sm.id_estado ASC, fecha_solicitud;'
 
-    console.log(`
-    SELECT sm.id, CONCAT(TRIM(cl.siglas), la.consecutivo_interno) as codigoInterno,TRIM(la.nombre) AS nombreActivo, TRIM(la.modelo) AS modelo,
-    TRIM(ma.marca) AS marca, sm.fecha_solicitud, TRIM(sm.solicitud) AS solicitud, TRIM(es.estado) AS estado FROM solicitudes_mtto sm
-        INNER JOIN listado_activos la
-        ON sm.id_activo = la.id
-        INNER JOIN clasificacion_activos cl
-        ON cl.id = la.clasificacion_id
-        INNER JOIN marca_activos ma
-        ON ma.id = la.marca_id
-        INNER JOIN estado_solicitudes es
-        ON es.id = sm.id_estado
-    ${condicion}
-`)
+
     const solicitudes = await consultarSolicitudes(condicion)
     if (solicitudes.msg) return res.json({ msg: 'No fue posible consultar el listado de solicitudes' })
-    if(solicitudes.length === 0) return res.json({ msg: 'La consulta bajo estos filtros no arrojo resultado modifiquelos e intente de nuevo' })
-    
-    solicitudes.forEach(element => { element.fecha_solicitud = element.fecha_solicitud.toISOString().substring(0, 10)});
+    if (solicitudes.length === 0) return res.json({ msg: 'La consulta bajo estos filtros no arrojo resultado modifiquelos e intente de nuevo' })
+
+    solicitudes.forEach(element => { element.fecha_solicitud = element.fecha_solicitud.toISOString().substring(0, 10) });
     res.json(solicitudes)
 
 }

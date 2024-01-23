@@ -114,12 +114,21 @@ const guardarReporte = async (data) => {
         let resultado
         if (data.id_estado == 3) {
             resultado = await pool.query(`
+            
+                UPDATE solicitudes_mtto 
+                    SET id_estado = '${data.estadoSolicitudId}'
+                WHERE id = '${data.idSolicitud}'
+
                 INSERT INTO repotesMtto (solicitud_id, tipoMtoo_id, fechareporte, costo_mo, costo_mp, proveedor_id, usuario_idReporte, usuario_idaprovado, hallazgos, reporte, recomendaciones, id_activo, fechaCreacion, fechaCierre, proximoMtto )
                     VALUES ('${data.idSolicitud}', '${data.tipoMantenimientoId}', '${data.fechaReporte}', '${data.costoMo}', '${data.costoMp}', '${data.provedorMttoId}', '${data.usuario_idReporte}', '${data.recibidoConformeId}', '${data.hallazgos}', '${data.reporte}', '${data.recomendaciones}', '${data.id_activo}', '${data.fechaCreacion}', '${data.fechaCierre}', '${data.fechaproximoMtto}')
                 SELECT IDENT_CURRENT('repotesMtto') AS id
             `)
         } else {
             resultado = await pool.query(`
+                UPDATE solicitudes_mtto 
+                    SET id_estado = '${data.estadoSolicitudId}'
+                WHERE id = '${data.idSolicitud}'    
+
                 INSERT INTO repotesMtto (solicitud_id, tipoMtoo_id, fechareporte, costo_mo, costo_mp, proveedor_id, usuario_idReporte, usuario_idaprovado, hallazgos, reporte, recomendaciones, id_activo, fechaCreacion, proximoMtto)
                     VALUES ('${data.idSolicitud}', '${data.tipoMantenimientoId}', '${data.fechaReporte}', '${data.costoMo}', '${data.costoMp}', '${data.provedorMttoId}', '${data.usuario_idReporte}', '${data.recibidoConformeId}', '${data.hallazgos}', '${data.reporte}', '${data.recomendaciones}', '${data.id_activo}', '${data.fechaCreacion}', '${data.fechaproximoMtto}')
                 SELECT IDENT_CURRENT('repotesMtto') AS id

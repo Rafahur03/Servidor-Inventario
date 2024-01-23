@@ -356,24 +356,26 @@ const validarId = (datos) => {
 }
 
 
-const validarUsuarioCreado = async (usuario) => {
+const validarUsuarioCreado = async (usuario) => {   
     if (regularEmail.test(usuario)) {
         const validacion = await validarExisteUsuario("", usuario)
         if (validacion.msg) {
             return validacion
         }
-
         if (validacion[1][0].estado != 1) {
-            return { msg: 'El usuario esta inactivo' }
+            return { msg: 'El usuario esta inactivo' } 
         }
         return validacion[1][0]
     }
-
+    
+    
     if (regularNumber.test(usuario)) {
         const validacion = await validarExisteUsuario(usuario, "")
         if (validacion.msg) {
             return validacion
         }
+        
+        console.log(usuario)
 
         if (validacion[0][0].estado != 1) {
             return { msg: 'El usuario esta inactivo' }
