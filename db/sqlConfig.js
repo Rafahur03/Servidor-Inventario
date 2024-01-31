@@ -89,6 +89,10 @@ const consultarTodasTablas = async (query) => {
             INNER JOIN estados es
             ON es.id = prov.estado
             SELECT id, TRIM(estado) AS estado FROM estados WHERE id <> 3
+            SELECT ins.id, TRIM(ins.insumo) AS nombre, TRIM(es.estado) AS estado, CONCAT('Es-', ins.estado) AS estadoId FROM insumos ins
+            INNER JOIN estados es
+            ON es.id = ins.estado
+
         `)
         cerrarConexion(pool)
         return (resultado.recordsets)

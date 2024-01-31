@@ -11,7 +11,8 @@ const consultarconfig = async (req, res) => {
         5: 'SELECT id, TRIM(frecuencia) AS frecuencia, dias, estado FROM frecuencia_Mtto WHERE estado = 1',
         6: 'SELECT id, TRIM(proceso) AS procesos, TRIM(sigla) AS sigla, estado FROM procesos WHERE estado = 1',
         7: 'SELECT id, TRIM(nombre) AS nombre, TRIM(siglas) AS siglas, estado FROM clasificacion_activos WHERE estado = 1',
-        8: 'SELECT id, TRIM(nombre_comercial) AS nombre_comercial, TRIM(nit) AS nit, dv,TRIM(razon_social) AS razon_social, TRIM(telefonos) AS telefonos, TRIM(contacto) AS contacto, TRIM(direccion) AS direccion, TRIM(descripcion) AS descripcion, estado FROM proveedores  WHERE estado = 1'
+        8: 'SELECT id, TRIM(nombre_comercial) AS nombre_comercial, TRIM(nit) AS nit, dv,TRIM(razon_social) AS razon_social, TRIM(telefonos) AS telefonos, TRIM(contacto) AS contacto, TRIM(direccion) AS direccion, TRIM(descripcion) AS descripcion, estado FROM proveedores  WHERE estado = 1',
+        9: 'SELECT id, TRIM(insumo) AS insumo, estado FROM insumos WHERE estado <> 3'
     }
     const { config } = req.body
 
@@ -81,7 +82,7 @@ const crearConfig = async (req, res) => {
             break
         case 6:
 
-        if (!data.proceso) return { msg: ' el campo Nombre del Proceso es obligatorio' }
+            if (!data.proceso) return { msg: ' el campo Nombre del Proceso es obligatorio' }
             if (validarVacios(data.proceso)) return { msg: ' el campo Nombre del Proceso es obligatorio' }
             if (validarPalabras(data.proceso)) return { msg: ' el campo Nombre del Proceso no debe llevar palabras reservadas como SELECT, FROM WHERE' }
             if (validarCaracteres(data.proceso)) return { msg: ' el campo Nombre del Proceso no debe llevar palabras reservadas como [], {},()' }
@@ -89,7 +90,7 @@ const crearConfig = async (req, res) => {
             if (validarVacios(data.sigla)) return { msg: ' el campo Siglas del Proceso es obligatorio' }
             if (validarPalabras(data.sigla)) return { msg: ' el campo Siglas del Proceso no debe llevar palabras reservadas como SELECT, FROM WHERE' }
             if (validarCaracteres(data.sigla)) return { msg: ' el campo Siglas del Proceso no debe llevar palabras reservadas como [], {},()' }
-           
+
             data.sigla = data.sigla.toUpperCase()
 
             query = `INSERT INTO procesos (proceso, sigla, estado) VALUES('${data.proceso}', '${data.sigla}', '1') 
@@ -97,7 +98,7 @@ const crearConfig = async (req, res) => {
             break
         case 7:
 
-        if (!data.clasificacion) return { msg: ' el campo Nombre del Clasificacion Activo es obligatorio' }
+            if (!data.clasificacion) return { msg: ' el campo Nombre del Clasificacion Activo es obligatorio' }
             if (validarVacios(data.clasificacion)) return { msg: ' el campo Nombre del Clasificacion Activo es obligatorio' }
             if (validarPalabras(data.clasificacion)) return { msg: ' el campo Nombre del Clasificacion Activo no debe llevar palabras reservadas como SELECT, FROM WHERE' }
             if (validarCaracteres(data.clasificacion)) return { msg: ' el campo Nombre del Clasificacion Activo no debe llevar palabras reservadas como [], {},()' }
@@ -105,7 +106,7 @@ const crearConfig = async (req, res) => {
             if (validarVacios(data.sigla)) return { msg: ' el campo Siglas de la Clasificacion Activo es obligatorio' }
             if (validarPalabras(data.sigla)) return { msg: ' el campo Siglas de la Clasificacion Activo no debe llevar palabras reservadas como SELECT, FROM WHERE' }
             if (validarCaracteres(data.sigla)) return { msg: ' el campo Siglas de la Clasificacion Activo no debe llevar palabras reservadas como [], {},()' }
-            
+
             data.sigla = data.sigla.toUpperCase()
 
             query = `INSERT INTO clasificacion_activos (nombre, siglas, estado) VALUES('${data.clasificacion}', '${data.sigla}', '1') 
@@ -143,9 +144,17 @@ const crearConfig = async (req, res) => {
             if (validarVacios(data.descripcionProveedor)) return { msg: ' el campo Descripcion del Proveedor es obligatorio' }
             if (validarPalabras(data.descripcionProveedor)) return { msg: ' el campo Descripcion del Proveedor no debe llevar palabras reservadas como SELECT, FROM WHERE' }
             if (validarCaracteres(data.descripcionProveedor)) return { msg: ' el campo Descripcion del Proveedor no debe llevar palabras reservadas como [], {},()' }
-            
+
             query = `INSERT INTO proveedores (nombre_comercial, razon_social, nit, dv, telefonos, contacto, direccion, descripcion ,estado) VALUES('${data.proveedor}', '${data.razonProveedor}', '${data.nitProveedor}', '${data.dvProveedor}', '${data.telefonosProveedor}', '${data.contactoProveedor}', '${data.direccionProveedor}', '${data.descripcionProveedor}', '1') 
                     SELECT IDENT_CURRENT('proveedores') AS id`
+            break
+        case 9:
+            if (!data.insumo) return { msg: ' el campo Nombre del insumo es obligatorio' }
+            if (validarVacios(data.insumo)) return { msg: ' el campo Nombre del insumo es obligatorio' }
+            if (validarPalabras(data.insumo)) return { msg: ' el campo Nombre del insumo no debe llevar palabras reservadas como SELECT, FROM WHERE' }
+            if (validarCaracteres(data.insumo)) return { msg: ' el campo Nombre del insumo no debe llevar palabras reservadas como [], {},()' }
+            query = `INSERT INTO insumos (insumo, estado) VALUES('${data.insumo}', '1') 
+                    SELECT IDENT_CURRENT('insumos') AS id`
             break
         default:
             return res.json({ msg: 'Solicitud invalida' })
@@ -156,10 +165,10 @@ const crearConfig = async (req, res) => {
     if (actualizar.msg) {
         return res.json(actualizar)
     }
-   
+
     return res.json({
         exito: 'creado exitosamente',
-        id:actualizar,
+        id: actualizar,
     })
 }
 
@@ -381,6 +390,24 @@ const actualizarConfig = async (req, res) => {
             if (idProveedor.id !== dataIdProveedor) return res.json({ msg: 'El Proveedor que intenta modificar no existe' })
 
             query = `UPDATE proveedores SET nombre_comercial = '${data.proveedor}', razon_social = '${data.razonProveedor}', nit = '${data.nitProveedor}', dv = '${data.dvProveedor}', telefonos = '${data.telefonosProveedor}', contacto = '${data.contactoProveedor}', direccion = '${data.direccionProveedor}', estado = '${estadoProveedor}', descripcion = '${data.descripcionProveedor}'  WHERE id = '${dataIdProveedor}'`
+        case 9:
+
+            if (!data.idInsumo) return { msg: 'Solicitud no valida, actualice la pagina e intente de nuevo' }
+            if (validarId(data.idInsumo)) return { msg: 'Solicitud no valida, actualice la pagina e intente de nuevo' }
+            if (!data.insumo) return { msg: ' El campo Nombre del insumo es obligatorio' }
+            if (validarVacios(data.insumo)) return { msg: ' El campo Nombre del insumo es obligatorio' }
+            if (validarPalabras(data.insumo)) return { msg: ' El campo Nombre del insumo no debe llevar palabras reservadas como SELECT, FROM WHERE' }
+            if (validarCaracteres(data.insumo)) return { msg: ' El campo Nombre del insumo no debe llevar palabras reservadas como [], {},()' }
+            if (!data.estado) return { msg: 'El Campo estado del insumo no es valido, Escoja un estado de la lista' }
+            if (validarId(data.estado)) return { msg: 'El Campo estado del insumo no es valido, Escoja un estado de la lista' }
+            const estadoInsumo = parseInt(data.estado.split('-')[1])
+            if (estadoInsumo !== 1 && estadoInsumo !== 2) return { msg: 'El Campo estado del insumo no es valido, Escoja un estado de la lista' }
+            const dataIdInsumo = parseInt(data.idInsumo.split('-')[1])
+            const idInsumo = await consultarConfuno('SELECT id FROM insumos WHERE id =' + dataIdInsumo)
+            if (idInsumo === undefined) return res.json({ msg: 'El insumo que intenta modificar no existe' })
+            if (idInsumo.msg) return res.json({ msg: 'No fue Posible validar la existencia del insumo revise los datos e intente de nuevo' })
+            if (idInsumo.id !== dataIdInsumo) return res.json({ msg: 'El insumo que intenta modificar no existe' })
+            query = `UPDATE insumos SET insumo = '${data.insumo}', estado = '${estadoInsumo}' WHERE id = '${dataIdInsumo}'`
 
             break
         default:
@@ -415,7 +442,8 @@ const consultarTodasTablasConfig = async (req, res) => {
         procesos: listado[5],
         clasificacionActivos: listado[6],
         proveedores: listado[7],
-        estado: listado[8]
+        estado: listado[8],
+        insumos: listado[9]
     }
 
     if (permisos.indexOf(8) !== -1) {
