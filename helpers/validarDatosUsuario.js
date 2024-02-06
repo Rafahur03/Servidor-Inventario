@@ -375,8 +375,6 @@ const validarUsuarioCreado = async (usuario) => {
             return validacion
         }
         
-        console.log(usuario)
-
         if (validacion[0][0].estado != 1) {
             return { msg: 'El usuario esta inactivo' }
         }

@@ -81,11 +81,14 @@ import {
     informelistadoSolicitudes
 } from '../controllers/informes.js';
 
+import { listadoInsumosBodega,
+    consultarUnInsumo } from '../controllers/bodegaInsumos.js'
+
 import { probarfechas } from '../controllers/probarfechas.js';
 
 const router = express.Router()
 
-// router inicio sesion y administration de usuarios
+// router inicio sesion y administration de usuarios----------------------------------
 
 router.post('/', iniciaSesion)
 
@@ -104,7 +107,7 @@ router.post('/cambiarClave', checkAuth, cambiarContraseña)
 router.delete('/eliminarProveedorUsuario', checkAuth, eliminarProveedorUsuario)
 
 
-// ruta de manejo de activos
+// ruta de manejo de activos-----------------------------------------------------------------
 
 router.get('/consultarActivosTodos', checkAuth, consultarActivosTodos)
 
@@ -140,7 +143,7 @@ router.post('/consultarDatosActivoSolicitud', checkAuth, consultarDatosActivoSol
 
 router.post('/consultarDatosActivoReportePrev', checkAuth, consultarDatosActivoReportePrev)
 
-// ruta de solicitudes de soporte 
+// ruta de solicitudes de soporte -------------------------------------------------------------
 
 router.post('/consultarSolicitudTodos', checkAuth, consultarSolicitudTodos)
 
@@ -160,7 +163,7 @@ router.delete('/eliminarImagenSolicitud', checkAuth, eliminarImagenSolicitud)
 
 router.post('/consultarSolicitudReporte', checkAuth, consultarSolicitudReporte)
 
-// router reportes
+// router reportes-----------------------------------------------------------------------------
 
 router.post('/consultarReportesTodos', checkAuth, consultarReportesTodos)
 
@@ -190,7 +193,7 @@ router.post('/descargarReporte', checkAuth, descargarReporte)
 
 router.post('/descargarReporteExterno', checkAuth, descargarReporteExterno)
 
-// router configuraciones
+// router configuraciones----------------------------------------------------------
 router.post('/consultarconfig', checkAuth, consultarconfig)
 
 router.post('/actualizarConfig', checkAuth, actualizarConfig)
@@ -201,12 +204,12 @@ router.get('/consultarTodasTablasConfig', checkAuth, consultarTodasTablasConfig)
 
 router.post('/probarfechas', probarfechas)
 
-// ruta componente 
+// ruta componente ------------------------------------------------------------
 
 router.delete('/eliminarComponente', checkAuth, eliminarComponente)
 
 router.post('/guardarComponente', checkAuth, guardarComponente)
-
+//informes---------------------------------------------------------------
 router.post('/descargaCronograma', checkAuth, descargaCronograma)
 router.post('/informelistadoAct', checkAuth, informelistadoAct)
 router.post('/informelistadoActCost', checkAuth, informelistadoActCost)
@@ -214,7 +217,10 @@ router.post('/descargarIfoActCosteado', checkAuth, descargarIfoActCosteado)
 router.post('/informelistadoReportes', checkAuth, informelistadoReportes)
 router.post('/informelistadoSolicitudes', checkAuth, informelistadoSolicitudes)
 
+//-------------------------insumos -------------------------------------
+router.get('/consultarInsumosBodega', checkAuth, listadoInsumosBodega)
 
-//informes
+router.post('/consultarUnInsumo', checkAuth, consultarUnInsumo)
+
 
 export default router

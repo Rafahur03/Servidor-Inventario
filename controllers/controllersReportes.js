@@ -182,7 +182,6 @@ const crearReporte = async (req, res) => {
   
     // validar permisos para crear activos
     const { sessionid, permisos, Id_proveedores } = req
-    console.log('aqui')
 
     if (permisos.indexOf(6) === -1) return res.json({ msg: 'Usted no tiene permisos para crear crear reportes de mantenimiento' })
 

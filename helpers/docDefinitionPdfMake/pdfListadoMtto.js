@@ -77,7 +77,6 @@ const ddListadoReporte = async data => {
 
 	}
 
-	console.log(dd)
 	return dd
 }
 

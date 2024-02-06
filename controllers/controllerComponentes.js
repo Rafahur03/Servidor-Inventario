@@ -43,8 +43,7 @@ const guardarComponente = async (req, res) => {
         if (permisos.indexOf(3) === -1)  return res.json({ msg: 'Usted no tiene permisos para Actualizar Componente' })
         
         const data = req.body.data
-        console.log(req.body)
-        
+           
         if (data == '' || data == null || data == undefined)  return res.json({ msg: 'Los datos no pueden enviarse vacios' })
 
         if (data.idActivo == '' || data.idActivo == null || data.idActivo == undefined) return res.json({ msg: 'No se reconoce el ID del activo' })

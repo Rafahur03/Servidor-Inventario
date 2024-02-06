@@ -494,8 +494,6 @@ const bufferReporte = (data, id) => {
 
 const eliminarReporteExterno = async (data) => {
 
-	console.log(data)
-
 	try {
 
 		const pathReporte = `${path}\\${data.siglas}\\${data.codigo}\\Rep-${data.codigo}-${data.reporte}.pdf`

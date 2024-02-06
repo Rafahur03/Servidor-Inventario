@@ -46,18 +46,15 @@ const descargaCronograma = async (req, res) => {
 const informelistadoAct = async (req, res) => {
     const { data } = req.body
     if (data.tipo != 'pdf' && data.tipo != 'excel') return res.json({ msg: 'No se pudo validar el tipo de archivo seleccionado' })
-    console.log(data)
     for (var i = 0; i < data.filtros.length; i++) {
 
         if (typeof data.filtros[i].valor !== 'boolean') {
-            console.log(data.filtros[i], 1)
-            return res.json({ msg: 'No se pudo validar los filtros seleccionados' });
+              return res.json({ msg: 'No se pudo validar los filtros seleccionados' });
         }
 
         if (
             
             typeof data.filtros[i].id !== 'string' || data.filtros[i].id.trim().length === 0) {
-                console.log(data.filtros[i], 2)
             return res.json({ msg: 'No se pudo validar los filtros seleccionados' });
         }
     }
