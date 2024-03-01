@@ -78,11 +78,20 @@ import {
     informelistadoActCost,
     descargarIfoActCosteado,
     informelistadoReportes,
-    informelistadoSolicitudes
+    informelistadoSolicitudes,
+    informeMovimientoInsumos
 } from '../controllers/informes.js';
 
 import { listadoInsumosBodega,
-    consultarUnInsumo } from '../controllers/bodegaInsumos.js'
+    consultarUnInsumo,
+    movimientoInsumoBodega,
+    actualizarFactInsumo,
+    guardarImagInsumo,
+    actualizarInsumo,
+    eliminarFactInsumo,
+    descargarFactInsumo,
+    eliminarImagInsumo 
+} from '../controllers/bodegaInsumos.js'
 
 import { probarfechas } from '../controllers/probarfechas.js';
 
@@ -193,6 +202,10 @@ router.post('/descargarReporte', checkAuth, descargarReporte)
 
 router.post('/descargarReporteExterno', checkAuth, descargarReporteExterno)
 
+router.post('/informeMovimientoInsumos', checkAuth, informeMovimientoInsumos)
+
+
+
 // router configuraciones----------------------------------------------------------
 router.post('/consultarconfig', checkAuth, consultarconfig)
 
@@ -221,6 +234,19 @@ router.post('/informelistadoSolicitudes', checkAuth, informelistadoSolicitudes)
 router.get('/consultarInsumosBodega', checkAuth, listadoInsumosBodega)
 
 router.post('/consultarUnInsumo', checkAuth, consultarUnInsumo)
+
+router.post('/movimientoInsumo', checkAuth, movimientoInsumoBodega)
+router.post('/actualizarFactInsumo', checkAuth, actualizarFactInsumo)
+router.post('/guardarImagInsumo', checkAuth, guardarImagInsumo)
+router.post('/actualizarInsumo', checkAuth, actualizarInsumo)
+router.post('/eliminarFactInsumo', checkAuth, eliminarFactInsumo)
+router.post('/descargarFactInsumo', checkAuth, descargarFactInsumo)
+router.post('/eliminarImagInsumo', checkAuth, eliminarImagInsumo)
+
+
+
+
+
 
 
 export default router

@@ -72,6 +72,9 @@ const guardarImagenesBase64 = async (imagen, data, destino) => {
 			case 3:
 				pathActivo = `${path}\\Usuarios\\`;
 				break;
+			case 4:
+				pathActivo = `${path}\\Insumos\\${data}\\`;
+				break;
 			default:
 				pathActivo = `${path}${data.siglas}\\${data.codigo}\\`;
 				break;
@@ -248,6 +251,10 @@ const bufferimagen = async (url_img, data, destino) => {
 		case 3:
 			pathActivo = path + 'Usuarios\\';
 			break;
+		case 4:
+			pathActivo = path + 'Insumos\\' + data + '\\';
+
+			break;
 		default:
 			pathActivo = `${path}${data.siglas}\\${data.codigo}\\`
 			break
@@ -271,7 +278,9 @@ const eliminarImagenes = async (file, data, destino) => {
 			case 2:
 				pathActivo = `${path}${data.siglas}\\${data.codigo}\\Reporte\\${data.idReporte}\\`
 				break
-
+			case 4:
+				pathActivo = `${path}Insumos\\${data}\\`
+				break
 			default:
 				pathActivo = `${path}${data.siglas}\\${data.codigo}\\`
 				break
@@ -359,7 +368,7 @@ const guardarPDF = async (file, data, complemento) => {
 }
 
 const guardarDocumentoBase64 = async (datos, data, destino) => {
-	
+
 	function getRandomInt(max) {
 		return Math.floor(Math.random() * max);
 	}
@@ -389,12 +398,14 @@ const guardarDocumentoBase64 = async (datos, data, destino) => {
 				pathActivo = `${path}${data.siglas}\\${data.codigo}\\Solicitud\\`
 				nuevoNombre = `${data.codigo}-${datos.documento}-${getRandomInt(100)}.${extencion}`
 				break
-
 			case 2:
 				pathActivo = `${path}${data.siglas}\\${data.codigo}\\`
 				nuevoNombre = `${datos.documento}-${data.codigo}-${datos.idReporte}.${extencion}`
 				break
-
+			case 4:
+				pathActivo = `${path}\\Insumos\\${data.id}\\`
+				nuevoNombre = `Factura-${data.factura}-Ins-${data.id}.${extencion}`
+				break
 			default:
 				pathActivo = `${path}${data.siglas}\\${data.codigo}\\`
 				nuevoNombre = `${data.codigo}-${datos.documento}-${getRandomInt(100)}.${extencion}`
@@ -486,8 +497,14 @@ const guadarReporteEliminadoBd = async (bufferPdf, data) => {
 
 }
 
-const bufferReporte = (data, id) => {
+const bufferReporte = async (data, id) => {
 	const pathSoporte = `${path}${data.siglas}\\${data.codigo}\\${id}.pdf`
+	const buffer = fs.readFileSync(pathSoporte);
+	return `data:application/pdf;base64,${buffer.toString('base64')}`
+}
+
+const bufferfacturaInsumo = async (id, factura) => {
+	const pathSoporte = `${path}Insumos\\${id}\\${factura}`
 	const buffer = fs.readFileSync(pathSoporte);
 	return `data:application/pdf;base64,${buffer.toString('base64')}`
 }
@@ -513,6 +530,18 @@ const eliminarReporteExterno = async (data) => {
 	}
 }
 
+const elimnarFactInsumo = async (file, data) => {
+
+	try {
+		const pathActivo = `${path}Insumos\\${data}\\`
+		await fspromises.rename(pathActivo + file, `${pathActivo}E-${file}`);
+		return { exito: 'Documento eliminado correctamente' }
+	} catch (error) {
+		console.error(`Ha ocurrido un error: ${error.message}`);
+		return { msg: 'error al elimiar las imagenes' }
+	}
+}
+
 
 export {
 	copiarYCambiarNombre,
@@ -531,5 +560,7 @@ export {
 	bufferReporte,
 	guardarDocumentoBase64,
 	eliminarReporteExterno, //nuevo
-	guadarReporteEliminadoBd
+	guadarReporteEliminadoBd,
+	bufferfacturaInsumo,
+	elimnarFactInsumo
 }

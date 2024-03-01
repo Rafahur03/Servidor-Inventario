@@ -17,7 +17,7 @@ const consultarconfig = async (req, res) => {
     const { config } = req.body
 
     if (!query[config]) {
-        return res.json({ msg: 'solicitud ivalida' })
+        return res.json({ msg: 'solicitud invalida' })
     }
     const tabla = await consultaconfi(query[config])
     res.json(tabla)

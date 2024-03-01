@@ -310,14 +310,16 @@ const validarDatosUsuariosEditados = async datos => {
         delete datos.informes
         if (datos.activos) datos.permisos.push(3)
         delete datos.activos
+        if (datos.clasificacion) datos.permisos.push(4)
+        delete datos.clasificacion
         if (datos.solicitudes) datos.permisos.push(5)
         delete datos.solicitudes
         if (datos.reportes) datos.permisos.push(6)
         delete datos.reportes
+    
         if (datos.confguraciones) datos.permisos.push(8)
         delete datos.confguraciones
-        if (datos.clasificacion) datos.permisos.push(4)
-        delete datos.clasificacion
+        
         datos.estado = datos.estado.split('-')[1]
 
     }
@@ -371,6 +373,7 @@ const validarUsuarioCreado = async (usuario) => {
     
     if (regularNumber.test(usuario)) {
         const validacion = await validarExisteUsuario(usuario, "")
+   
         if (validacion.msg) {
             return validacion
         }

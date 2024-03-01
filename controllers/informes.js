@@ -49,16 +49,16 @@ const informelistadoAct = async (req, res) => {
     for (var i = 0; i < data.filtros.length; i++) {
 
         if (typeof data.filtros[i].valor !== 'boolean') {
-              return res.json({ msg: 'No se pudo validar los filtros seleccionados' });
+            return res.json({ msg: 'No se pudo validar los filtros seleccionados' });
         }
 
         if (
-            
+
             typeof data.filtros[i].id !== 'string' || data.filtros[i].id.trim().length === 0) {
             return res.json({ msg: 'No se pudo validar los filtros seleccionados' });
         }
     }
-   
+
     if (data.filtros.every(item => item.valor === false)) return res.json({ msg: 'Debe escoger una Clasificacion de Activo' })
     if (typeof data.estado !== 'boolean') return { msg: 'Debe escoger un estado valido en el filtro estado' }
 
@@ -162,8 +162,8 @@ const informelistadoReportes = async (req, res) => {
     if (data.filtros.every(item => item.valor === false)) return res.json({ msg: 'Debe escoger una Clasificacion de Activo' })
 
     const reporte = await informeListadoReportesExcel(data)
-    if(reporte === undefined) return res.json({ msg: 'no se pudo procesar el reporte intentelo mas tarde'})
-    if(reporte.msg) return res.json(reporte)
+    if (reporte === undefined) return res.json({ msg: 'no se pudo procesar el reporte intentelo mas tarde' })
+    if (reporte.msg) return res.json(reporte)
 
     res.json({
         reportePDF: reporte,
@@ -197,9 +197,9 @@ const informelistadoSolicitudes = async (req, res) => {
     if (data.filtros.every(item => item.valor === false)) return res.json({ msg: 'Debe escoger una Clasificacion de Activo' })
 
     const reporte = await informeListadoSolicitudesExcel(data)
-    if(reporte === undefined) return res.json({ msg: 'no se pudo procesar el reporte intentelo mas tarde'})
-    if(reporte.msg) return res.json(reporte)
-    
+    if (reporte === undefined) return res.json({ msg: 'no se pudo procesar el reporte intentelo mas tarde' })
+    if (reporte.msg) return res.json(reporte)
+
 
     res.json({
         reportePDF: reporte,
@@ -207,6 +207,15 @@ const informelistadoSolicitudes = async (req, res) => {
     })
 }
 
+const informeMovimientoInsumos = async (req, res) => {
+
+    const { data } = req.body
+    console.log(data)
+
+    res.json({
+        msg: 'Informe movimeinto insumos'
+    })
+}
 
 
 
@@ -217,4 +226,5 @@ export {
     descargarIfoActCosteado,
     informelistadoReportes,
     informelistadoSolicitudes,
+    informeMovimientoInsumos
 }
