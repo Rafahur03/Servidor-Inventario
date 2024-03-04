@@ -1,7 +1,4 @@
 
-//CliofCos7Soporte
-//soportecliof@gmail.com
-
 import nodemailer from 'nodemailer';
 
 const enviarCorreo = async datos => {
