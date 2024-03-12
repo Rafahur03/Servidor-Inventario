@@ -542,6 +542,17 @@ const elimnarFactInsumo = async (file, data) => {
 	}
 }
 
+const copiarCambiarNombreCArpeta = async (data) => {
+
+	try {
+		await fspromises.copyFile(`${path}Insumos\\${data.id}`, `${path}Insumos\\${data.idNuevo}`);
+		return true;
+	} catch (error) {
+		console.error(`Ha ocurrido un error: ${error.message}`);
+		return { msg: 'error al elimiar las imagenes' }
+	}
+}
+
 
 export {
 	copiarYCambiarNombre,
@@ -562,5 +573,6 @@ export {
 	eliminarReporteExterno, //nuevo
 	guadarReporteEliminadoBd,
 	bufferfacturaInsumo,
-	elimnarFactInsumo
+	elimnarFactInsumo,
+	copiarCambiarNombreCArpeta
 }

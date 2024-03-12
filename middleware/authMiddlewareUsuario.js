@@ -32,6 +32,7 @@ const checkAuth = async(req, res, next) => {
         }
 
         req.sessionid = tokenExisteBD.id
+        req.nombreUsuario = tokenExisteBD.usuario
         const permisos = tokenExisteBD.permisos.split(',')
         req.permisos = permisos.map(elemento => parseInt(elemento.trim(), 10))
         const proveedores= tokenExisteBD.id_proveedores.split(',')

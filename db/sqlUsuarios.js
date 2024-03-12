@@ -132,9 +132,9 @@ const consultarToken = async (token) => {
     try {
         const pool = await conectardb()
         const resultado = await pool.query(`
-            SELECT id, TRIM(permisos) AS permisos, TRIM(Id_proveedores) AS id_proveedores
+            SELECT id, TRIM(permisos) AS permisos, TRIM(Id_proveedores) AS id_proveedores, CONCAT(TRIM(nombre), SPACE(1), TRIM(nombre_1), SPACE(1), TRIM(apellido), SPACE(1), TRIM(apellido_1)) AS usuario
                 FROM usuarios
-            WHERE token = '${token}'
+            WHERE token= '${token}'
         `)
         cerrarConexion(pool)
         return resultado.recordset[0]

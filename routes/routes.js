@@ -84,13 +84,15 @@ import {
 
 import { listadoInsumosBodega,
     consultarUnInsumo,
+    ingresoInicalInsumo,
     movimientoInsumoBodega,
     actualizarFactInsumo,
     guardarImagInsumo,
     actualizarInsumo,
     eliminarFactInsumo,
     descargarFactInsumo,
-    eliminarImagInsumo 
+    eliminarImagInsumo,
+    consultartablasInsumo
 } from '../controllers/bodegaInsumos.js'
 
 import { probarfechas } from '../controllers/probarfechas.js';
@@ -231,10 +233,11 @@ router.post('/informelistadoReportes', checkAuth, informelistadoReportes)
 router.post('/informelistadoSolicitudes', checkAuth, informelistadoSolicitudes)
 
 //-------------------------insumos -------------------------------------
-router.get('/consultarInsumosBodega', checkAuth, listadoInsumosBodega)
 
+router.get('/consultartablasInsumo', checkAuth, consultartablasInsumo)
+router.post('/consultarInsumosBodega', checkAuth, listadoInsumosBodega)
+router.post('/ingresoInicalInsumo', checkAuth, ingresoInicalInsumo)
 router.post('/consultarUnInsumo', checkAuth, consultarUnInsumo)
-
 router.post('/movimientoInsumo', checkAuth, movimientoInsumoBodega)
 router.post('/actualizarFactInsumo', checkAuth, actualizarFactInsumo)
 router.post('/guardarImagInsumo', checkAuth, guardarImagInsumo)

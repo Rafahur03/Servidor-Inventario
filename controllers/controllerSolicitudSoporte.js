@@ -4,9 +4,7 @@ import { validarDatoSolicitud } from "../helpers/validarDatosSolicitud.js"
 import { consultarCodigoInterno } from "../db/sqlActivos.js"
 import { crearPdfMake } from "../helpers/crearPdfMake.js"
 import {
-    guardarImagenesNuevoActivo,
     bufferimagenes,
-    eliminarImagenes,
     eliminarImagenesSoliRepor,
     guardarImagenesBase64
 } from "../helpers/copiarCarpetasArchivos.js"
@@ -24,6 +22,7 @@ import { listaNuevoReporte } from "../db/sqlConfig.js"
 import { validarImagenes } from "../helpers/validarFiles.js"
 import { consultaconfi } from "../db/sqlConfig.js"
 import { validarFecha } from "../helpers/validarfechas.js"
+import { enviarCorreo } from "../helpers/eviarEmail.js"
 
 const consultarSolicitudTodos = async (req, res) => {
 
@@ -161,72 +160,86 @@ const consultarSolicitud = async (req, res) => {
 const crearSolicitud = async (req, res) => {
 
     // validar permisos para crear activos
-    const { sessionid } = req
+    const { sessionid, nombreUsuario } = req
+    try {
+        const data = req.body
+        const activo = data.idActivo.split('-')[1]
+        // VALIDAR QUE EL CODIGO PERTENESCA AL ACTIVO
+        const dataBd = await consultarCodigoInterno(activo)
+        if (activo.msg) return res.json({ msg: 'El activo no es valido o no existe' })
 
-    const data = req.body
-    const activo = data.idActivo.split('-')[1]
-    // VALIDAR QUE EL CODIGO PERTENESCA AL ACTIVO
-    const dataBd = await consultarCodigoInterno(activo)
-    if (activo.msg) return res.json({ msg: 'El activo no es valido o no existe' })
+        // validar datos y files
+        const validarDatos = validarDatoSolicitud(data)
 
-    // validar datos y files
-    const validarDatos = validarDatoSolicitud(data)
+        if (validarDatos.msg) return res.json(validarDatos)
 
-    if (validarDatos.msg) return res.json(validarDatos)
-
-    let imagenes = null
-    if (data.imagenes.length > 0) {
-        for (let imagen of data.imagenes) {
-            const validacionImagen = validarImagenes(imagen)
-            if (validacionImagen.msg) return res.json(validacionImagen)
-        }
-        imagenes = data.imagenes
-        delete data.imagenes
-    }
-    data.id_activo = activo
-    data.solicitud = data.descripcion
-    data.id_usuario = sessionid
-    data.fecha_solicitud = new Date(Date.now()).toISOString().substring(0, 19).replace('T', ' ')
-    data.id_estado = 1
-    delete data.idActivo
-    delete data.descripcion
-
-    const guardado = await guardarSolicitud(data)
-    if (guardado.msg) return res.json(guardado)
-
-    dataBd.idSolicitud = guardado
-
-    if (imagenes !== null) {
-
-        const nombreImagenes = []
-        for (const imagen of imagenes) {
-            const guardarImagen = await guardarImagenesBase64(imagen, dataBd, 1);
-            if (!guardarImagen.msg) nombreImagenes.push(guardarImagen);
-        }
-        // guardar imagenes y actualizar en la base de datos.
-        if (nombreImagenes.length > 0) {
-            const datos = {
-                id: guardado,
-                img_solicitud: nombreImagenes.toString()
+        let imagenes = null
+        if (data.imagenes.length > 0) {
+            for (let imagen of data.imagenes) {
+                const validacionImagen = validarImagenes(imagen)
+                if (validacionImagen.msg) return res.json(validacionImagen)
             }
-            const guardadoImagenes = await actualizarImagenesSolicitud(datos)
-            if (guardadoImagenes.msg) return res.json({ msg: 'no fue posible guardar las imagenes en la base de datos' })
+            imagenes = data.imagenes
+            delete data.imagenes
         }
-    }
+        data.id_activo = activo
+        data.solicitud = data.descripcion
+        data.id_usuario = sessionid
+        data.fecha_solicitud = new Date(Date.now()).toISOString().substring(0, 19).replace('T', ' ')
+        data.id_estado = 1
+        delete data.idActivo
+        delete data.descripcion
 
-    data.id = guardado
-    if (data.img_solicitud) {
-        const Imagenes = await bufferimagenes(data.img_solicitud, dataBd, 1) //
-        return res.json({
-            data,
-            Imagenes
+        const guardado = await guardarSolicitud(data)
+        if (guardado.msg) return res.json(guardado)
+
+        dataBd.idSolicitud = guardado
+
+        if (imagenes !== null) {
+
+            const nombreImagenes = []
+            for (const imagen of imagenes) {
+                const guardarImagen = await guardarImagenesBase64(imagen, dataBd, 1);
+                if (!guardarImagen.msg) nombreImagenes.push(guardarImagen);
+            }
+            // guardar imagenes y actualizar en la base de datos.
+            if (nombreImagenes.length > 0) {
+                const datos = {
+                    id: guardado,
+                    img_solicitud: nombreImagenes.toString()
+                }
+                const guardadoImagenes = await actualizarImagenesSolicitud(datos)
+                if (guardadoImagenes.msg) return res.json({ msg: 'no fue posible guardar las imagenes en la base de datos' })
+            }
+        }
+
+        data.id = guardado
+        if (data.img_solicitud) {
+            const Imagenes = await bufferimagenes(data.img_solicitud, dataBd, 1) //
+            return res.json({
+                data,
+                Imagenes
+            })
+        }
+
+        res.json({
+            id: guardado
         })
+
+        const pdfSolicitud = await crearPdfMake(dataBd.id, 'Solicitud')
+        const datos = {
+            base64: pdfSolicitud,
+            asunto: 'SE HA CREADO LA SOLICITUD NUMERO ' + guardado,
+            mensaje: 'Los requerimientos de la solicitud son: \n \n' + data.solicitud + '\n \n creada por : ' + nombreUsuario,
+            nombre: 'Sol-' + guardado + '.pdf'
+        }
+        await enviarCorreo(datos)
+
+    } catch (error) {
+        res.json({msg: 'Ha ocurrido un error al intentar guardar la solicitud, antes de itentar crearla nuevamente, valida que esta se ya este creada'})
+        console.log('Ha ocurrido un error '+ error)
+
     }
-
-    res.json({
-        id: guardado
-    })
-
 }
 
 const editarSolicitud = async (req, res) => {

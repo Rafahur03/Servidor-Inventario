@@ -364,6 +364,9 @@ const validarUsuarioCreado = async (usuario) => {
         if (validacion.msg) {
             return validacion
         }
+
+        if(validacion[1].length == 0) return { msg: 'El usuario Invalido ó inexistente' }
+
         if (validacion[1][0].estado != 1) {
             return { msg: 'El usuario esta inactivo' } 
         }
@@ -373,10 +376,12 @@ const validarUsuarioCreado = async (usuario) => {
     
     if (regularNumber.test(usuario)) {
         const validacion = await validarExisteUsuario(usuario, "")
+        
    
         if (validacion.msg) {
             return validacion
         }
+        if(validacion[0].length == 0) return { msg: 'El usuario Invalido ó inexistente' }
         
         if (validacion[0][0].estado != 1) {
             return { msg: 'El usuario esta inactivo' }

@@ -12,9 +12,12 @@ import { ddInformeActivoCosteado } from "./docDefinitionPdfMake/informeActivo.js
 import { ddcronogramaMtto } from "./docDefinitionPdfMake/cronogramaMtto.js";
 import { ddListadoActivoCosteado } from "./docDefinitionPdfMake/ddListadoActivoCosteado.js";
 import { ddinformelistadoActivo } from "./docDefinitionPdfMake/ddinformelistadoActivo.js";
+import { ddInformeInsumos } from "./docDefinitionPdfMake/informeInsumo.js";
 import { consultarActivoUno } from "../db/sqlActivos.js";
 import { consultaconfi } from "../db/sqlConfig.js";
+import { consultarInformeInsumos } from "../db/sqlInsumos.js";
 import { sqlCronogramaManteniento, sqlListadoActivoCosteado, sqlInformeListadoActivo } from "../db/sqlInformes.js";
+import { bufferimagen } from "./copiarCarpetasArchivos.js";
 const pathBase = process.env.PATH_FILES
 const __dirname = new URL('.', import.meta.url).pathname.substring(1)
 
@@ -76,6 +79,13 @@ async function crearPdfMake(id, tipo) {
         data = await informelistadoActivo(id)
         if (data.msg) return data.msg
         dd = await ddinformelistadoActivo(data)
+        if (dd.msg) return dd.msg
+    }
+
+    if (tipo === 'informeInsumos') {
+        data = await informeInsumo(id)
+        if (data.msg) return data.msg
+        dd = await ddInformeInsumos(data)
         if (dd.msg) return dd.msg
     }
 
@@ -438,7 +448,6 @@ const listadoReporteData = async id => {
     return datadb
 }
 
-
 const informeActivoCosteado = async id => {
     // consultamos los datos del reporte,
     const datos = await dataActivo(id)
@@ -684,7 +693,7 @@ const cronogramaMtto = async data => {
     ]
 
     let content = []
-    let consecutivo=1
+    let consecutivo = 1
     datos.forEach((element, index) => {
 
         if (element.dias === 0) {
@@ -845,7 +854,7 @@ const cronogramaMtto = async data => {
                 ],
 
             ]
-            consecutivo=1
+            consecutivo = 1
         }
     })
     const logo = await bufferLogo()
@@ -868,7 +877,7 @@ const listadoActivoCosteado = async data => {
         const filtrosSiglas = data.filtros.filter(element => element.valor)
         const filtros = clasificacion.filter(element => filtrosSiglas.some(item => item.id === element.siglas))
         if (filtros.length == 0) return { msg: 'Debe seleccionar un filtro valido' }
-        
+
         filtros.forEach((element, index) => {
             if (index === 0) {
                 if (data.estado) {
@@ -887,7 +896,7 @@ const listadoActivoCosteado = async data => {
         } else {
             condicion = condicion + ') \nORDER BY la.clasificacion_id ASC, codigo;'
         }
-    }else{
+    } else {
 
         if (data.estado) {
             condicion = 'ORDER BY la.clasificacion_id DESC, estado_id ASC, codigo;'
@@ -896,14 +905,14 @@ const listadoActivoCosteado = async data => {
         }
     }
 
-    
+
     const datos = await sqlListadoActivoCosteado(condicion)
     if (datos.msg) return { msg: 'No fue posible consultar los datos' }
 
 
     let content = []
     let reporte = []
-    let consecutivo=1
+    let consecutivo = 1
     datos.forEach((element, index) => {
         const costo = parseFloat(element.valor.replace(',', '.'), 2)
         reporte.push(
@@ -963,7 +972,7 @@ const listadoActivoCosteado = async data => {
                     {
                         style: 'table',
                         table: {
-                            widths: ['*',55, 55, 55, 55, 55, 55, 55, 55, 70, 60, 60, 60, 60, '*'],
+                            widths: ['*', 55, 55, 55, 55, 55, 55, 55, 55, 70, 60, 60, 60, 60, '*'],
                             body: reporte,
                         },
                         layout: {
@@ -983,7 +992,7 @@ const listadoActivoCosteado = async data => {
                 ]
             )
             reporte = [];
-            consecutivo=1
+            consecutivo = 1
         }
     })
 
@@ -1010,7 +1019,7 @@ const informelistadoActivo = async data => {
         const filtrosSiglas = data.filtros.filter(element => element.valor)
         const filtros = clasificacion.filter(element => filtrosSiglas.some(item => item.id === element.siglas))
         if (filtros.length == 0) return { msg: 'Debe seleccionar un filtro valido' }
-        
+
         filtros.forEach((element, index) => {
             if (index === 0) {
                 if (data.estado) {
@@ -1029,7 +1038,7 @@ const informelistadoActivo = async data => {
         } else {
             condicion = condicion + ') \nORDER BY la.clasificacion_id ASC, codigo;'
         }
-    }else{
+    } else {
 
         if (data.estado) {
             condicion = 'ORDER BY la.clasificacion_id DESC, estado_id ASC, codigo;'
@@ -1038,14 +1047,14 @@ const informelistadoActivo = async data => {
         }
     }
 
-    
+
     const datos = await sqlInformeListadoActivo(condicion)
     if (datos.msg) return { msg: 'No fue posible consultar los datos' }
 
 
     let content = []
     let reporte = []
-    let consecutivo=1
+    let consecutivo = 1
     datos.forEach((element, index) => {
         reporte.push(
             [
@@ -1116,7 +1125,7 @@ const informelistadoActivo = async data => {
                 ]
             )
             reporte = []
-            consecutivo=1
+            consecutivo = 1
         }
     })
 
@@ -1129,6 +1138,85 @@ const informelistadoActivo = async data => {
         logo
     }
     return datadb
+
+}
+
+const informeInsumo = async data => {
+
+    try {
+        const consulta = await consultarInformeInsumos(data)
+        if (consulta.msg) return { msg: 'No fue posible consultar los datos para el informe solicitado' }
+        const insumo = consulta[0][0]
+        if (insumo.imagen !== null && insumo.imagen !== '' && insumo.imagen !== undefined) {
+            insumo.bufferImagen = await bufferimagen(insumo.imagen, data, 4)
+        } else {
+            insumo.bufferImagen = await bufferNoImage()
+        }
+        const movimientos = consulta[1]
+
+        const bodyMovimientos = movimientos.map((element, index) => {
+            let total = null
+            let cantidad
+            if (element.tipo == 'Entrada') {
+                total = element.cantidadAnterior + element.cantidad
+                cantidad = {text:element.cantidad, color:'#25B009'}
+                
+            }
+            if (element.tipo == 'Salida') {
+                total = element.cantidadAnterior - element.cantidad
+                cantidad = {text:element.cantidad, color:'#F30E15'}
+            }
+            if (element.tipo == 'Arqueo') {
+                total = element.cantidad
+                cantidad = element.cantidad
+            }
+
+
+            return (
+
+                [
+                    index,
+                    element.id,
+                    element.fecha.toISOString().slice(0, 19).replace('T', ' '),
+                    cantidad,
+                    element.cantidadAnterior,
+                    total,
+                    element.tipo,
+                    element.usuarioDestino,
+                    element.usuarioResponsable,
+                    element.descripcionAqueo
+                ]
+            )
+        })
+
+        bodyMovimientos.unshift(
+            [
+                { text: '#', bold: true, alignment: 'center' },
+                { text: 'id Mov', bold: true, alignment: 'center' },
+                { text: 'Fecha', bold: true, alignment: 'center' },
+                { text: 'Cant Mov', bold: true, alignment: 'center' },
+                { text: 'Cant Ant', bold: true, alignment: 'center' },
+                { text: 'Total', bold: true, alignment: 'center' },
+                { text: 'Tipo Mov', bold: true, alignment: 'center' },
+                { text: 'Usu Recibido', bold: true, alignment: 'center' },
+                { text: 'Usu Responsable', bold: true, alignment: 'center' },
+                { text: 'Observacion', bold: true, alignment: 'center' },
+            ]
+
+        )
+
+
+
+        return ({ insumo, bodyMovimientos })
+
+
+    } catch (error) {
+        console.log(error)
+        return { msg: 'no fue posible crear el informe del insumo' }
+    }
+    // consultamos los datos del reporte,
+
+
 
 }
 

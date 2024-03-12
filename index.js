@@ -15,7 +15,7 @@ app.use(express.json())
 
 conectardb();
 //define port
-const PORT = process.env.PORT || 4001;
+const PORT = process.env.PORT || 4000;
 
 // add router
 

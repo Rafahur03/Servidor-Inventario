@@ -6,6 +6,8 @@ import { listadoActivoExcel } from "../helpers/informesEcxel/listadoActivoExcel.
 import { validarFecha } from "../helpers/validarfechas.js"
 import { informeListadoReportesExcel } from "../helpers/informesEcxel/informeListadoReportesExcel.js"
 import { informeListadoSolicitudesExcel } from "../helpers/informesEcxel/informeListadoSolicitudesExcel.js"
+import { datosValidarInsumo } from "../db/sqlInsumos.js"
+import { informeInsumoExcel } from "../helpers/informesEcxel/infomeInsumoExcel.js"
 const descargaCronograma = async (req, res) => {
 
     const { data } = req.body
@@ -81,7 +83,6 @@ const informelistadoAct = async (req, res) => {
         nombre: 'Listado Activos' + (data.tipo == 'pdf' ? '.pdf' : '.xlsx')
     })
 }
-
 const informelistadoActCost = async (req, res) => {
 
     const { data } = req.body
@@ -210,11 +211,38 @@ const informelistadoSolicitudes = async (req, res) => {
 const informeMovimientoInsumos = async (req, res) => {
 
     const { data } = req.body
-    console.log(data)
 
-    res.json({
-        msg: 'Informe movimeinto insumos'
-    })
+    try {
+
+        console.log(data)
+        const idInsumo = parseInt(data.insumo.split('-')[1])
+        if (isNaN(idInsumo)) return res.json({ msg: 'INSUMO NO VALIDO, cargue nuevamente e intente nuevamente' })
+        const insumo = await datosValidarInsumo(idInsumo)
+        if (insumo == undefined) return res.json({ msg: 'El insumo no existe' })
+        if (insumo.msg) return res.json({ msg: 'No es posible validar los datos del insumo' })
+
+
+        if (data.tipo == 'pdf') {
+            const movimientos = await crearPdfMake(insumo.id, 'informeInsumos')
+            if (movimientos.msg) return res.json(movimientos)
+            return res.json({ movimientos: 'data:application/pdf;base64,' + movimientos, nombre: 'Movimiento Insumo Ins-' + insumo.id })
+        }
+        console.log(data.tipo == 'excel')
+        if (data.tipo == 'excel') {
+            const movimientos = await informeInsumoExcel(insumo.id)
+            if (movimientos === undefined) return res.json({ msg: 'no se pudo procesar el reporte intentelo mas tarde' })
+            if (movimientos.msg) return res.json(movimientos)
+            return res.json({
+                movimientos,
+                nombre: 'Informe movimiento insumo- Ins-'+ insumo.id + '.xlsx'
+            }) 
+        }
+
+        res.json({ msg: 'El tipo de informe Solicitado no es valido--' })
+    } catch (error) {
+        console.log(error)
+        res.json({ msg: 'No fue posible consultar el informe intentelo mas tarde' })
+    }
 }
 
 
