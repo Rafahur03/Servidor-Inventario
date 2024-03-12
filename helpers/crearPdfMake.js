@@ -1184,6 +1184,7 @@ const informeInsumo = async data => {
                     element.tipo,
                     element.usuarioDestino,
                     element.usuarioResponsable,
+                    element.bodegaDestino,
                     element.descripcionAqueo
                 ]
             )
@@ -1200,6 +1201,7 @@ const informeInsumo = async data => {
                 { text: 'Tipo Mov', bold: true, alignment: 'center' },
                 { text: 'Usu Recibido', bold: true, alignment: 'center' },
                 { text: 'Usu Responsable', bold: true, alignment: 'center' },
+                { text: 'Bodega Ori/Des', bold: true, alignment: 'center' },
                 { text: 'Observacion', bold: true, alignment: 'center' },
             ]
 

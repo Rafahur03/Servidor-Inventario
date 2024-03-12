@@ -13,7 +13,7 @@ import {
 } from "../db/sqlUsuarios.js"
 import { validarImagenes } from '../helpers/validarFiles.js'
 import { guardarImagenesBase64, bufferimagen } from '../helpers/copiarCarpetasArchivos.js'
-import { constants } from 'buffer'
+
 const __dirname = new URL('.', import.meta.url).pathname.substring(1)
 
 // iniciar sesion 
@@ -124,14 +124,20 @@ const crearUsuario = async (req, res) => {
     delete datos.informes
     if (datos.activos) datos.permisos.push(3)
     delete datos.activos
+    if (datos.clasificacion) datos.permisos.push(4)
+    delete datos.clasificacion
     if (datos.solicitudes) datos.permisos.push(5)
     delete datos.solicitudes
     if (datos.reportes) datos.permisos.push(6)
-    delete datos.reportes
+    delete datos.reportes   
+    if (datos.menuInsumo) datos.permisos.push(7)
+    delete datos.menuInsumo
     if (datos.confguraciones) datos.permisos.push(8)
     delete datos.confguraciones
-    if (datos.clasificacion) datos.permisos.push(4)
-    delete datos.clasificacion
+    if (datos.editarInsumo) datos.permisos.push(9)
+    delete datos.editarInsumo
+    if (datos.arqueoInsumo) datos.permisos.push(10)
+    delete datos.arqueoInsumo
 
     //encriptar password
     datos.password = await encryptPassword(datos.contraseña)
@@ -173,11 +179,16 @@ const consultarUsuario = async (req, res) => {
 
     const permisosUsuario = usuario.permisos.split(',').map(item => { return parseInt(item) })
     if (permisosUsuario.indexOf(1) !== -1) usuario.usuario = true
+    if (permisosUsuario.indexOf(2) !== -1) usuario.informes = true
     if (permisosUsuario.indexOf(3) !== -1) usuario.activo = true
     if (permisosUsuario.indexOf(5) !== -1) usuario.solicitudes = true
     if (permisosUsuario.indexOf(6) !== -1) usuario.reporte = true
     if (permisosUsuario.indexOf(8) !== -1) usuario.confguraciones = true
     if (permisosUsuario.indexOf(4) !== -1) usuario.clasificacion = true
+    if (permisosUsuario.indexOf(4) !== -1) usuario.clasificacion = true
+    if (permisosUsuario.indexOf(7) !== -1) usuario.insumos = true
+    if (permisosUsuario.indexOf(9) !== -1) usuario.editarInsumos = true
+    if (permisosUsuario.indexOf(10) !== -1) usuario.arqueoInsumo = true
 
     if (usuario.firma !== null && usuario.firma.trim() !== '') {
         usuario.firmaUrl = await bufferimagen(usuario.firma, '', 3)
@@ -251,6 +262,7 @@ const actualizaUsuario = async (req, res) => {
     return res.json({ id: validacion.usuario })
 
 }
+
 const cambiarFirma = async (req, res) => {
 
     const { sessionid, permisos } = req
@@ -280,6 +292,7 @@ const cambiarFirma = async (req, res) => {
 
     res.json({ exito: 'Firma Actualziada correctamente' })
 }
+
 const guardarProveedorUsuario = async (req, res) => {
     const { sessionid, permisos } = req
 

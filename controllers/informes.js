@@ -214,7 +214,7 @@ const informeMovimientoInsumos = async (req, res) => {
 
     try {
 
-        console.log(data)
+ 
         const idInsumo = parseInt(data.insumo.split('-')[1])
         if (isNaN(idInsumo)) return res.json({ msg: 'INSUMO NO VALIDO, cargue nuevamente e intente nuevamente' })
         const insumo = await datosValidarInsumo(idInsumo)
@@ -227,7 +227,7 @@ const informeMovimientoInsumos = async (req, res) => {
             if (movimientos.msg) return res.json(movimientos)
             return res.json({ movimientos: 'data:application/pdf;base64,' + movimientos, nombre: 'Movimiento Insumo Ins-' + insumo.id })
         }
-        console.log(data.tipo == 'excel')
+       
         if (data.tipo == 'excel') {
             const movimientos = await informeInsumoExcel(insumo.id)
             if (movimientos === undefined) return res.json({ msg: 'no se pudo procesar el reporte intentelo mas tarde' })

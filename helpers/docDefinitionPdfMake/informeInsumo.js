@@ -51,7 +51,7 @@ const ddInformeInsumos = async data => {
 
                         [
                             '',
-                            { text: 'Area ', bold: true },
+                            { text: 'Bodega ', bold: true },
                             { text: 'Cantidad Actual', bold: true },
                             { text: 'Costo Unitario', bold: true },
                         ],
@@ -120,7 +120,7 @@ const ddInformeInsumos = async data => {
             {
                 style: 'tableBodyData',
                 table: {
-                    widths: [30, 40, 60, 50, 50, 50, 50, 100, 100, '*'],
+                    widths: [30, 40, 60, 50, 50, 50, 50, 100, 100, 75, '*'],
                     body: data.bodyMovimientos
                 },
                 layout: {

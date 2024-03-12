@@ -98,8 +98,8 @@ const validarDatosUsuarios = async datos => {
 
     if (datos.contraseña.includes(' ')) return { msg: 'El campo Contraseña no puede contener espacios' }
 
-    if (datos.contraseña.length < 6 || datos.contraseña.length > 16) return { msg:'La contraseña debe estar entre 6 y 16 caracteres'}
-    
+    if (datos.contraseña.length < 6 || datos.contraseña.length > 16) return { msg: 'La contraseña debe estar entre 6 y 16 caracteres' }
+
     if (datos.contraseña !== datos.confirmarContraseña) return { msg: 'Las contraseñas no conciden' }
 
     if (typeof datos.usuarios !== "boolean") return { msg: 'Debe Selecionar un estado de la opcion permisos para el menu Usuarios' }
@@ -115,6 +115,12 @@ const validarDatosUsuarios = async datos => {
     if (typeof datos.clasificacion !== "boolean") return { msg: 'Debe Selecioar un estado de la opcion permisos para el menu Cambiar clasificacion activos' }
 
     if (typeof datos.informes !== "boolean") return { msg: 'Debe Selecioar un estado de la opcion permisos para el menu Informes' }
+
+    if (typeof datos.menuInsumo !== "boolean") return { msg: 'Debe Selecionar un estado de la opcion permisos para el menu Insumo' }
+
+    if (typeof datos.editarInsumo !== "boolean") return { msg: 'Debe Selecionar un estado de la opcion permisos de edicion de insumos' }
+
+    if (typeof datos.arqueoInsumo !== "boolean") return { msg: 'Debe Selecionar un estado de la opcion permisos de arqueo de insumos' }
 
     if (datos.proveedores.length == 0) return modalMensaje({ titulo: 'ERROR', mensaje: 'El usuario debe estar asociado al menos un porveedor' })
 
@@ -275,9 +281,9 @@ const validarDatosUsuariosEditados = async datos => {
             if (datos.contraseña.length < 6) return { msg: 'La contraseña debe tener almenos 5 caracteres' }
 
             if (datos.contraseña !== datos.confirmarContraseña) return { msg: 'Las contraseñas no conciden' }
-            
-            if (datos.contraseña.length < 6 || datos.contraseña.length > 16) return { msg:'La contraseña debe estar entre 6 y 16 caracteres'}
-            
+
+            if (datos.contraseña.length < 6 || datos.contraseña.length > 16) return { msg: 'La contraseña debe estar entre 6 y 16 caracteres' }
+
             datos.password = await encryptPassword(datos.contraseña)
             delete datos.contraseña
             delete datos.confirmarContraseña
@@ -297,6 +303,12 @@ const validarDatosUsuariosEditados = async datos => {
         if (typeof datos.clasificacion !== "boolean") return { msg: 'Debe Selecioar un estado de la opcion permisos para el menu Cambiar clasificacion activos' }
 
         if (typeof datos.informes !== "boolean") return { msg: 'Debe Selecioar un estado de la opcion permisos para el menu Informes' }
+        
+        if (typeof datos.menuInsumo !== "boolean") return { msg: 'Debe Selecionar un estado de la opcion permisos para el menu Insumo' }
+
+        if (typeof datos.editarInsumo !== "boolean") return { msg: 'Debe Selecionar un estado de la opcion permisos de edicion de insumos' }
+
+        if (typeof datos.arqueoInsumo !== "boolean") return { msg: 'Debe Selecionar un estado de la opcion permisos de arqueo de insumos' }
 
         if (validarId(datos.estado)) return { msg: 'Debe escoger un estado para el Usuario' }
 
@@ -316,10 +328,17 @@ const validarDatosUsuariosEditados = async datos => {
         delete datos.solicitudes
         if (datos.reportes) datos.permisos.push(6)
         delete datos.reportes
-    
+        if (datos.menuInsumo) datos.permisos.push(7)
+        delete datos.menuInsumo
         if (datos.confguraciones) datos.permisos.push(8)
         delete datos.confguraciones
+        if (datos.editarInsumo) datos.permisos.push(9)
+        delete datos.editarInsumo
+        if (datos.arqueoInsumo) datos.permisos.push(10)
+        delete datos.arqueoInsumo
+
         
+
         datos.estado = datos.estado.split('-')[1]
 
     }
@@ -358,31 +377,31 @@ const validarId = (datos) => {
 }
 
 
-const validarUsuarioCreado = async (usuario) => {   
+const validarUsuarioCreado = async (usuario) => {
     if (regularEmail.test(usuario)) {
         const validacion = await validarExisteUsuario("", usuario)
         if (validacion.msg) {
             return validacion
         }
 
-        if(validacion[1].length == 0) return { msg: 'El usuario Invalido ó inexistente' }
+        if (validacion[1].length == 0) return { msg: 'El usuario Invalido ó inexistente' }
 
         if (validacion[1][0].estado != 1) {
-            return { msg: 'El usuario esta inactivo' } 
+            return { msg: 'El usuario esta inactivo' }
         }
         return validacion[1][0]
     }
-    
-    
+
+
     if (regularNumber.test(usuario)) {
         const validacion = await validarExisteUsuario(usuario, "")
-        
-   
+
+
         if (validacion.msg) {
             return validacion
         }
-        if(validacion[0].length == 0) return { msg: 'El usuario Invalido ó inexistente' }
-        
+        if (validacion[0].length == 0) return { msg: 'El usuario Invalido ó inexistente' }
+
         if (validacion[0][0].estado != 1) {
             return { msg: 'El usuario esta inactivo' }
         }

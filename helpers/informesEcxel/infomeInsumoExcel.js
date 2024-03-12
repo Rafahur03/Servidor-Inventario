@@ -34,6 +34,7 @@ const informeInsumoExcel = async id => {
                 element.tipo,
                 element.usuarioDestino,
                 element.usuarioResponsable,
+                element.bodegaDestino,
                 element.descripcionAqueo
             ]
         )
@@ -50,6 +51,7 @@ const informeInsumoExcel = async id => {
             'Tipo Movimiento',
             'Usuario Recibido',
             'Usuario Responsable',
+            'Bodega Destino/Origen',
             'Observacion',
         ]
 

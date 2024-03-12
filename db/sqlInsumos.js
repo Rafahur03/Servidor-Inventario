@@ -364,7 +364,7 @@ const consultarInformeInsumos = async (id) => {
             ON pro.id = ib.proveedor
         WHERE ib.id = ${id}
 
-        SELECT mbi.id, mbi.cantidad, mbi.fecha, mbi.cantidadAnterior, mbi.descripcionAqueo, TRIM(mi.tipo) AS tipo,
+        SELECT mbi.id, mbi.cantidad, mbi.fecha, mbi.cantidadAnterior, mbi.descripcionAqueo, TRIM(mi.tipo) AS tipo,TRIM(bo.bodega) AS bodegaDestino,
             CONCAT(TRIM(us.nombre), SPACE(1), TRIM(us.nombre_1), sPACE(1), TRIM(us.apellido), sPACE(1), TRIM(us.apellido_1)) AS usuarioResponsable,
             CONCAT(TRIM(usd.nombre), SPACE(1), TRIM(usd.nombre_1), SPACE(1), TRIM(usd.apellido), SPACE(1), TRIM(usd.apellido_1)) AS usuarioDestino
             FROM movimiento_Bodega_insumos mbi
@@ -374,6 +374,8 @@ const consultarInformeInsumos = async (id) => {
             ON us.id= mbi.usuario
             INNER JOIN usuarios usd
             ON usd.id= mbi.usuariodestino
+			INNER JOIN bodegas bo
+            ON bo.id= mbi.bodegaDestino
             WHERE mbi.idInsumoBodega = ${id}
         ORDER BY mbi.fecha
     `)
