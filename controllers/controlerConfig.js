@@ -1,6 +1,13 @@
 
-import { consultaconfi, actualizarConfigDb, guardarConfig, consultarTodasTablas, consultarConfuno } from "../db/sqlConfig.js"
+import {
+    consultaconfi,
+    actualizarConfigDb,
+    guardarConfig,
+    consultarTodasTablas,
+    consultarConfuno
+} from "../db/sqlConfig.js"
 
+import { actividadUsuario } from "../db/sqlUsuarios.js"
 const consultarconfig = async (req, res) => {
 
     const query = {
@@ -25,175 +32,195 @@ const consultarconfig = async (req, res) => {
 }
 
 const crearConfig = async (req, res) => {
-    const { permisos } = req
+    try {
 
-    if (permisos.indexOf(8) == -1) return res.json({ msg: 'Usted no tiene permisos para crear configuraciones' })
 
-    const { data } = req.body
-    let query
+        const { sessionid, permisos } = req
 
-    switch (data.id) {
-        case 1:
-            if (!data.area) return { msg: ' el campo Nombre del Area es obligatorio' }
-            if (validarVacios(data.area)) return { msg: ' el campo Nombre del area es obligatorio' }
-            if (validarPalabras(data.area)) return { msg: ' el campo Nombre del area no debe llevar palabras reservadas como SELECT, FROM WHERE' }
-            if (validarCaracteres(data.area)) return { msg: ' el campo Nombre del area no debe llevar palabras reservadas como [], {},()' }
-            query = `INSERT INTO areas (area, estado) VALUES('${data.area}', '1') 
+        if (permisos.indexOf(8) == -1) return res.json({ msg: 'Usted no tiene permisos para crear configuraciones' })
+
+        const { data } = req.body
+        let query
+        let id
+
+        switch (data.id) {
+            case 1:
+                if (!data.area) return { msg: ' el campo Nombre del Area es obligatorio' }
+                if (validarVacios(data.area)) return { msg: ' el campo Nombre del area es obligatorio' }
+                if (validarPalabras(data.area)) return { msg: ' el campo Nombre del area no debe llevar palabras reservadas como SELECT, FROM WHERE' }
+                if (validarCaracteres(data.area)) return { msg: ' el campo Nombre del area no debe llevar palabras reservadas como [], {},()' }
+                query = `INSERT INTO areas (area, estado) VALUES('${data.area}', '1') 
                     SELECT IDENT_CURRENT('areas') AS id`
-            break
-        case 2:
-            if (!data.marca) return { msg: ' el campo Nombre del Marca es obligatorio' }
-            if (validarVacios(data.marca)) return { msg: ' el campo Nombre del Marca es obligatorio' }
-            if (validarPalabras(data.marca)) return { msg: ' el campo Nombre del Marca no debe llevar palabras reservadas como SELECT, FROM WHERE' }
-            if (validarCaracteres(data.marca)) return { msg: ' el campo Nombre del Marca no debe llevar palabras reservadas como [], {},()' }
+                id = 'Area'
+                break
+            case 2:
+                if (!data.marca) return { msg: ' el campo Nombre del Marca es obligatorio' }
+                if (validarVacios(data.marca)) return { msg: ' el campo Nombre del Marca es obligatorio' }
+                if (validarPalabras(data.marca)) return { msg: ' el campo Nombre del Marca no debe llevar palabras reservadas como SELECT, FROM WHERE' }
+                if (validarCaracteres(data.marca)) return { msg: ' el campo Nombre del Marca no debe llevar palabras reservadas como [], {},()' }
 
-            query = `INSERT INTO marca_activos (marca, estado) VALUES('${data.marca}', '1') 
+                query = `INSERT INTO marca_activos (marca, estado) VALUES('${data.marca}', '1') 
                     SELECT IDENT_CURRENT('marca_activos') AS id`
-            break
-        case 3:
-            if (!data.tipoActivo) return { msg: ' el campo Nombre del Tipo Activo es obligatorio' }
-            if (validarVacios(data.tipoActivo)) return { msg: ' el campo Nombre del Tipo Activo es obligatorio' }
-            if (validarPalabras(data.tipoActivo)) return { msg: ' el campo Nombre del Tipo Activo no debe llevar palabras reservadas como SELECT, FROM WHERE' }
-            if (validarCaracteres(data.tipoActivo)) return { msg: ' el campo Nombre del Tipo Activo no debe llevar palabras reservadas como [], {},()' }
+                id = 'Marca '
+                break
+            case 3:
+                if (!data.tipoActivo) return { msg: ' el campo Nombre del Tipo Activo es obligatorio' }
+                if (validarVacios(data.tipoActivo)) return { msg: ' el campo Nombre del Tipo Activo es obligatorio' }
+                if (validarPalabras(data.tipoActivo)) return { msg: ' el campo Nombre del Tipo Activo no debe llevar palabras reservadas como SELECT, FROM WHERE' }
+                if (validarCaracteres(data.tipoActivo)) return { msg: ' el campo Nombre del Tipo Activo no debe llevar palabras reservadas como [], {},()' }
 
-            query = `INSERT INTO tipo_activo (tipo_activo, estado) VALUES('${data.tipoActivo}', '1') 
+                query = `INSERT INTO tipo_activo (tipo_activo, estado) VALUES('${data.tipoActivo}', '1') 
                     SELECT IDENT_CURRENT('tipo_activo') AS id`
-            break
-        case 4:
-            if (!data.componente) return { msg: ' el campo Nombre del componente es obligatorio' }
-            if (validarVacios(data.componente)) return { msg: ' el campo Nombre del Componente es obligatorio' }
-            if (validarPalabras(data.componente)) return { msg: ' el campo Nombre del Componente no debe llevar palabras reservadas como SELECT, FROM WHERE' }
-            if (validarCaracteres(data.componente)) return { msg: ' el campo Nombre del Componente no debe llevar palabras reservadas como [], {},()' }
+                id = 'Tipo Activo'
+                break
+            case 4:
+                if (!data.componente) return { msg: ' el campo Nombre del componente es obligatorio' }
+                if (validarVacios(data.componente)) return { msg: ' el campo Nombre del Componente es obligatorio' }
+                if (validarPalabras(data.componente)) return { msg: ' el campo Nombre del Componente no debe llevar palabras reservadas como SELECT, FROM WHERE' }
+                if (validarCaracteres(data.componente)) return { msg: ' el campo Nombre del Componente no debe llevar palabras reservadas como [], {},()' }
 
-            query = `INSERT INTO lista_componentes (componente, estado) VALUES('${data.componente}', '1') 
+                query = `INSERT INTO lista_componentes (componente, estado) VALUES('${data.componente}', '1') 
                         SELECT IDENT_CURRENT('lista_componentes') AS id`
-            break
-        case 5:
+                        id = 'Componente'
+                break
+            case 5:
 
-            if (!data.frecuencia) return { msg: ' el campo Nombre de la frecuencia es obligatorio' }
-            if (validarVacios(data.frecuencia)) return { msg: ' el campo Nombre de la Frecuencia es obligatorio' }
-            if (validarPalabras(data.frecuencia)) return { msg: ' el campo Nombre de la Frecuencia no debe llevar palabras reservadas como SELECT, FROM WHERE' }
-            if (validarCaracteres(data.frecuencia)) return { msg: ' el campo Nombre de la Frecuencia no debe llevar palabras reservadas como [], {},()' }
-            if (!data.dias) return { msg: ' el campo dias de la Frecuencia es obligatorio' }
-            if (validarVacios(data.dias)) return { msg: ' el campo dias de la Frecuencia es obligatorio' }
-            if (parseInt(data.dias) == NaN) return { msg: ' el campo dias de la Frecuencia debe ser numerico' }
+                if (!data.frecuencia) return { msg: ' el campo Nombre de la frecuencia es obligatorio' }
+                if (validarVacios(data.frecuencia)) return { msg: ' el campo Nombre de la Frecuencia es obligatorio' }
+                if (validarPalabras(data.frecuencia)) return { msg: ' el campo Nombre de la Frecuencia no debe llevar palabras reservadas como SELECT, FROM WHERE' }
+                if (validarCaracteres(data.frecuencia)) return { msg: ' el campo Nombre de la Frecuencia no debe llevar palabras reservadas como [], {},()' }
+                if (!data.dias) return { msg: ' el campo dias de la Frecuencia es obligatorio' }
+                if (validarVacios(data.dias)) return { msg: ' el campo dias de la Frecuencia es obligatorio' }
+                if (parseInt(data.dias) == NaN) return { msg: ' el campo dias de la Frecuencia debe ser numerico' }
 
-            query = `INSERT INTO frecuencia_Mtto (frecuencia, dias, estado) VALUES('${data.frecuencia}', '${data.dias}', '1') 
+                query = `INSERT INTO frecuencia_Mtto (frecuencia, dias, estado) VALUES('${data.frecuencia}', '${data.dias}', '1') 
                     SELECT IDENT_CURRENT('frecuencia_Mtto') AS id`
-            break
-        case 6:
+                    id = 'Frcuencia'
+                break
+            case 6:
 
-            if (!data.proceso) return { msg: ' el campo Nombre del Proceso es obligatorio' }
-            if (validarVacios(data.proceso)) return { msg: ' el campo Nombre del Proceso es obligatorio' }
-            if (validarPalabras(data.proceso)) return { msg: ' el campo Nombre del Proceso no debe llevar palabras reservadas como SELECT, FROM WHERE' }
-            if (validarCaracteres(data.proceso)) return { msg: ' el campo Nombre del Proceso no debe llevar palabras reservadas como [], {},()' }
-            if (!data.sigla) return { msg: ' el campo Siglas del Proceso es obligatorio' }
-            if (validarVacios(data.sigla)) return { msg: ' el campo Siglas del Proceso es obligatorio' }
-            if (validarPalabras(data.sigla)) return { msg: ' el campo Siglas del Proceso no debe llevar palabras reservadas como SELECT, FROM WHERE' }
-            if (validarCaracteres(data.sigla)) return { msg: ' el campo Siglas del Proceso no debe llevar palabras reservadas como [], {},()' }
+                if (!data.proceso) return { msg: ' el campo Nombre del Proceso es obligatorio' }
+                if (validarVacios(data.proceso)) return { msg: ' el campo Nombre del Proceso es obligatorio' }
+                if (validarPalabras(data.proceso)) return { msg: ' el campo Nombre del Proceso no debe llevar palabras reservadas como SELECT, FROM WHERE' }
+                if (validarCaracteres(data.proceso)) return { msg: ' el campo Nombre del Proceso no debe llevar palabras reservadas como [], {},()' }
+                if (!data.sigla) return { msg: ' el campo Siglas del Proceso es obligatorio' }
+                if (validarVacios(data.sigla)) return { msg: ' el campo Siglas del Proceso es obligatorio' }
+                if (validarPalabras(data.sigla)) return { msg: ' el campo Siglas del Proceso no debe llevar palabras reservadas como SELECT, FROM WHERE' }
+                if (validarCaracteres(data.sigla)) return { msg: ' el campo Siglas del Proceso no debe llevar palabras reservadas como [], {},()' }
 
-            data.sigla = data.sigla.toUpperCase()
+                data.sigla = data.sigla.toUpperCase()
 
-            query = `INSERT INTO procesos (proceso, sigla, estado) VALUES('${data.proceso}', '${data.sigla}', '1') 
+                query = `INSERT INTO procesos (proceso, sigla, estado) VALUES('${data.proceso}', '${data.sigla}', '1') 
                     SELECT IDENT_CURRENT('procesos') AS id`
-            break
-        case 7:
+                    id = 'Proceso'
+                break
+            case 7:
 
-            if (!data.clasificacion) return { msg: ' el campo Nombre del Clasificacion Activo es obligatorio' }
-            if (validarVacios(data.clasificacion)) return { msg: ' el campo Nombre del Clasificacion Activo es obligatorio' }
-            if (validarPalabras(data.clasificacion)) return { msg: ' el campo Nombre del Clasificacion Activo no debe llevar palabras reservadas como SELECT, FROM WHERE' }
-            if (validarCaracteres(data.clasificacion)) return { msg: ' el campo Nombre del Clasificacion Activo no debe llevar palabras reservadas como [], {},()' }
-            if (!data.sigla) return { msg: ' el campo Siglas de la Clasificacion Activo es obligatorio' }
-            if (validarVacios(data.sigla)) return { msg: ' el campo Siglas de la Clasificacion Activo es obligatorio' }
-            if (validarPalabras(data.sigla)) return { msg: ' el campo Siglas de la Clasificacion Activo no debe llevar palabras reservadas como SELECT, FROM WHERE' }
-            if (validarCaracteres(data.sigla)) return { msg: ' el campo Siglas de la Clasificacion Activo no debe llevar palabras reservadas como [], {},()' }
+                if (!data.clasificacion) return { msg: ' el campo Nombre del Clasificacion Activo es obligatorio' }
+                if (validarVacios(data.clasificacion)) return { msg: ' el campo Nombre del Clasificacion Activo es obligatorio' }
+                if (validarPalabras(data.clasificacion)) return { msg: ' el campo Nombre del Clasificacion Activo no debe llevar palabras reservadas como SELECT, FROM WHERE' }
+                if (validarCaracteres(data.clasificacion)) return { msg: ' el campo Nombre del Clasificacion Activo no debe llevar palabras reservadas como [], {},()' }
+                if (!data.sigla) return { msg: ' el campo Siglas de la Clasificacion Activo es obligatorio' }
+                if (validarVacios(data.sigla)) return { msg: ' el campo Siglas de la Clasificacion Activo es obligatorio' }
+                if (validarPalabras(data.sigla)) return { msg: ' el campo Siglas de la Clasificacion Activo no debe llevar palabras reservadas como SELECT, FROM WHERE' }
+                if (validarCaracteres(data.sigla)) return { msg: ' el campo Siglas de la Clasificacion Activo no debe llevar palabras reservadas como [], {},()' }
 
-            data.sigla = data.sigla.toUpperCase()
+                data.sigla = data.sigla.toUpperCase()
 
-            query = `INSERT INTO clasificacion_activos (nombre, siglas, estado) VALUES('${data.clasificacion}', '${data.sigla}', '1') 
+                query = `INSERT INTO clasificacion_activos (nombre, siglas, estado) VALUES('${data.clasificacion}', '${data.sigla}', '1') 
                     SELECT IDENT_CURRENT('clasificacion_activos') AS id`
-            break
-        case 8:
-            if (!data.proveedor) return { msg: ' el campo Nombre del Proveedor es obligatorio' }
-            if (validarVacios(data.proveedor)) return { msg: ' el campo Nombre del Proveedor es obligatorio' }
-            if (validarPalabras(data.proveedor)) return { msg: ' el campo Nombre del Proveedor no debe llevar palabras reservadas como SELECT, FROM WHERE' }
-            if (validarCaracteres(data.proveedor)) return { msg: ' el campo Nombre del Proveedor no debe llevar palabras reservadas como [], {},()' }
-            if (!data.razonProveedor) return { msg: ' el campo Razon Social del Proveedor es obligatorio' }
-            if (validarVacios(data.razonProveedor)) return { msg: ' el campo Razon Social del Proveedor es obligatorio' }
-            if (validarPalabras(data.razonProveedor)) return { msg: ' el campo Razon Social del Proveedor no debe llevar palabras reservadas como SELECT, FROM WHERE' }
-            if (validarCaracteres(data.razonProveedor)) return { msg: ' el campo Razon Social del Proveedor no debe llevar palabras reservadas como [], {},()' }
-            if (!data.nitProveedor) return { msg: ' el campo Nit O CC del Proveedor es obligatorio' }
-            if (validarVacios(data.nitProveedor)) return { msg: ' el campo Nit O CC del Proveedor es obligatorio' }
-            if (validarPalabras(data.nitProveedor)) return { msg: ' el campo Nit O CC del Proveedor no debe llevar palabras reservadas como SELECT, FROM WHERE' }
-            if (validarCaracteres(data.nitProveedor)) return { msg: ' el campo Nit O CC del Proveedor no debe llevar palabras reservadas como [], {},()' }
-            if (!data.dvProveedor) return { msg: ' el campo Digito de verificacion del Proveedor es obligatorio' }
-            if (validarVacios(data.dvProveedor)) return { msg: ' el campo Digito de verificacion del Proveedor es obligatorio' }
-            if (parseInt(data.dvProveedor) == NaN) return { msg: ' el campo Digito de verificacion del Proveedor debe ser un numero' }
-            if (!data.contactoProveedor) return { msg: ' el campo Contacto del Proveedor es obligatorio' }
-            if (validarVacios(data.contactoProveedor)) return { msg: ' el campo Contacto del Proveedor es obligatorio' }
-            if (validarPalabras(data.contactoProveedor)) return { msg: ' el campo Contacto del Proveedor no debe llevar palabras reservadas como SELECT, FROM WHERE' }
-            if (validarCaracteres(data.contactoProveedor)) return { msg: ' el campo Contacto del Proveedor no debe llevar palabras reservadas como [], {},()' }
-            if (!data.telefonosProveedor) return { msg: ' el campo telefono del Proveedor es obligatorio' }
-            if (validarVacios(data.telefonosProveedor)) return { msg: ' el campo telefono del Proveedor es obligatorio' }
-            if (validarPalabras(data.telefonosProveedor)) return { msg: ' el campo telefono del Proveedor no debe llevar palabras reservadas como SELECT, FROM WHERE' }
-            if (validarCaracteres(data.telefonosProveedor)) return { msg: ' el campo telefono del Proveedor no debe llevar palabras reservadas como [], {},()' }
-            if (!data.direccionProveedor) return { msg: ' el campo Dirrecion del Proveedor es obligatorio' }
-            if (validarVacios(data.direccionProveedor)) return { msg: ' el campo Dirrecion del Proveedor es obligatorio' }
-            if (validarPalabras(data.direccionProveedor)) return { msg: ' el campo Dirrecion del Proveedor no debe llevar palabras reservadas como SELECT, FROM WHERE' }
-            if (validarCaracteres(data.direccionProveedor)) return { msg: ' el campo Dirrecion del Proveedor no debe llevar palabras reservadas como [], {},()' }
-            if (!data.descripcionProveedor) return { msg: ' el campo Descripcion del Proveedor es obligatorio' }
-            if (validarVacios(data.descripcionProveedor)) return { msg: ' el campo Descripcion del Proveedor es obligatorio' }
-            if (validarPalabras(data.descripcionProveedor)) return { msg: ' el campo Descripcion del Proveedor no debe llevar palabras reservadas como SELECT, FROM WHERE' }
-            if (validarCaracteres(data.descripcionProveedor)) return { msg: ' el campo Descripcion del Proveedor no debe llevar palabras reservadas como [], {},()' }
+                    id = 'clasi activos'
+                break
+            case 8:
+                if (!data.proveedor) return { msg: ' el campo Nombre del Proveedor es obligatorio' }
+                if (validarVacios(data.proveedor)) return { msg: ' el campo Nombre del Proveedor es obligatorio' }
+                if (validarPalabras(data.proveedor)) return { msg: ' el campo Nombre del Proveedor no debe llevar palabras reservadas como SELECT, FROM WHERE' }
+                if (validarCaracteres(data.proveedor)) return { msg: ' el campo Nombre del Proveedor no debe llevar palabras reservadas como [], {},()' }
+                if (!data.razonProveedor) return { msg: ' el campo Razon Social del Proveedor es obligatorio' }
+                if (validarVacios(data.razonProveedor)) return { msg: ' el campo Razon Social del Proveedor es obligatorio' }
+                if (validarPalabras(data.razonProveedor)) return { msg: ' el campo Razon Social del Proveedor no debe llevar palabras reservadas como SELECT, FROM WHERE' }
+                if (validarCaracteres(data.razonProveedor)) return { msg: ' el campo Razon Social del Proveedor no debe llevar palabras reservadas como [], {},()' }
+                if (!data.nitProveedor) return { msg: ' el campo Nit O CC del Proveedor es obligatorio' }
+                if (validarVacios(data.nitProveedor)) return { msg: ' el campo Nit O CC del Proveedor es obligatorio' }
+                if (validarPalabras(data.nitProveedor)) return { msg: ' el campo Nit O CC del Proveedor no debe llevar palabras reservadas como SELECT, FROM WHERE' }
+                if (validarCaracteres(data.nitProveedor)) return { msg: ' el campo Nit O CC del Proveedor no debe llevar palabras reservadas como [], {},()' }
+                if (!data.dvProveedor) return { msg: ' el campo Digito de verificacion del Proveedor es obligatorio' }
+                if (validarVacios(data.dvProveedor)) return { msg: ' el campo Digito de verificacion del Proveedor es obligatorio' }
+                if (parseInt(data.dvProveedor) == NaN) return { msg: ' el campo Digito de verificacion del Proveedor debe ser un numero' }
+                if (!data.contactoProveedor) return { msg: ' el campo Contacto del Proveedor es obligatorio' }
+                if (validarVacios(data.contactoProveedor)) return { msg: ' el campo Contacto del Proveedor es obligatorio' }
+                if (validarPalabras(data.contactoProveedor)) return { msg: ' el campo Contacto del Proveedor no debe llevar palabras reservadas como SELECT, FROM WHERE' }
+                if (validarCaracteres(data.contactoProveedor)) return { msg: ' el campo Contacto del Proveedor no debe llevar palabras reservadas como [], {},()' }
+                if (!data.telefonosProveedor) return { msg: ' el campo telefono del Proveedor es obligatorio' }
+                if (validarVacios(data.telefonosProveedor)) return { msg: ' el campo telefono del Proveedor es obligatorio' }
+                if (validarPalabras(data.telefonosProveedor)) return { msg: ' el campo telefono del Proveedor no debe llevar palabras reservadas como SELECT, FROM WHERE' }
+                if (validarCaracteres(data.telefonosProveedor)) return { msg: ' el campo telefono del Proveedor no debe llevar palabras reservadas como [], {},()' }
+                if (!data.direccionProveedor) return { msg: ' el campo Dirrecion del Proveedor es obligatorio' }
+                if (validarVacios(data.direccionProveedor)) return { msg: ' el campo Dirrecion del Proveedor es obligatorio' }
+                if (validarPalabras(data.direccionProveedor)) return { msg: ' el campo Dirrecion del Proveedor no debe llevar palabras reservadas como SELECT, FROM WHERE' }
+                if (validarCaracteres(data.direccionProveedor)) return { msg: ' el campo Dirrecion del Proveedor no debe llevar palabras reservadas como [], {},()' }
+                if (!data.descripcionProveedor) return { msg: ' el campo Descripcion del Proveedor es obligatorio' }
+                if (validarVacios(data.descripcionProveedor)) return { msg: ' el campo Descripcion del Proveedor es obligatorio' }
+                if (validarPalabras(data.descripcionProveedor)) return { msg: ' el campo Descripcion del Proveedor no debe llevar palabras reservadas como SELECT, FROM WHERE' }
+                if (validarCaracteres(data.descripcionProveedor)) return { msg: ' el campo Descripcion del Proveedor no debe llevar palabras reservadas como [], {},()' }
 
-            query = `INSERT INTO proveedores (nombre_comercial, razon_social, nit, dv, telefonos, contacto, direccion, descripcion ,estado) VALUES('${data.proveedor}', '${data.razonProveedor}', '${data.nitProveedor}', '${data.dvProveedor}', '${data.telefonosProveedor}', '${data.contactoProveedor}', '${data.direccionProveedor}', '${data.descripcionProveedor}', '1') 
+                query = `INSERT INTO proveedores (nombre_comercial, razon_social, nit, dv, telefonos, contacto, direccion, descripcion ,estado) VALUES('${data.proveedor}', '${data.razonProveedor}', '${data.nitProveedor}', '${data.dvProveedor}', '${data.telefonosProveedor}', '${data.contactoProveedor}', '${data.direccionProveedor}', '${data.descripcionProveedor}', '1') 
                     SELECT IDENT_CURRENT('proveedores') AS id`
-            break
-        case 9:
-            if (!data.insumo) return { msg: ' el campo Nombre del insumo es obligatorio' }
-            if (validarVacios(data.insumo)) return { msg: ' el campo Nombre del insumo es obligatorio' }
-            if (validarPalabras(data.insumo)) return { msg: ' el campo Nombre del insumo no debe llevar palabras reservadas como SELECT, FROM WHERE' }
-            if (validarCaracteres(data.insumo)) return { msg: ' el campo Nombre del insumo no debe llevar palabras reservadas como [], {},()' }
-            query = `INSERT INTO insumos (insumo, estado) VALUES('${data.insumo}', '1') 
+                    id = 'Proveedor'
+                break
+            case 9:
+                if (!data.insumo) return { msg: ' el campo Nombre del insumo es obligatorio' }
+                if (validarVacios(data.insumo)) return { msg: ' el campo Nombre del insumo es obligatorio' }
+                if (validarPalabras(data.insumo)) return { msg: ' el campo Nombre del insumo no debe llevar palabras reservadas como SELECT, FROM WHERE' }
+                if (validarCaracteres(data.insumo)) return { msg: ' el campo Nombre del insumo no debe llevar palabras reservadas como [], {},()' }
+                query = `INSERT INTO insumos (insumo, estado) VALUES('${data.insumo}', '1') 
                     SELECT IDENT_CURRENT('insumos') AS id`
-            break
-        case 10:
-            if (!data.bodega) return { msg: ' el campo Nombre de la bodega es obligatorio' }
-            if (validarVacios(data.bodega)) return { msg: ' el campo Nombre de la bodega es obligatorio' }
-            if (validarPalabras(data.bodega)) return { msg: ' el campo Nombre de la bodega no debe llevar palabras reservadas como SELECT, FROM WHERE' }
-            if (validarCaracteres(data.bodega)) return { msg: ' el campo Nombre de la bodega no debe llevar palabras reservadas como [], {},()' }
-            query = `INSERT INTO bodegas (bodega, estado) VALUES('${data.bodega}', '1') 
+                    id = 'Insumo'
+                break
+            case 10:
+                if (!data.bodega) return { msg: ' el campo Nombre de la bodega es obligatorio' }
+                if (validarVacios(data.bodega)) return { msg: ' el campo Nombre de la bodega es obligatorio' }
+                if (validarPalabras(data.bodega)) return { msg: ' el campo Nombre de la bodega no debe llevar palabras reservadas como SELECT, FROM WHERE' }
+                if (validarCaracteres(data.bodega)) return { msg: ' el campo Nombre de la bodega no debe llevar palabras reservadas como [], {},()' }
+                query = `INSERT INTO bodegas (bodega, estado) VALUES('${data.bodega}', '1') 
                         SELECT IDENT_CURRENT('insumos') AS id`
-            break
-        default:
-            return res.json({ msg: 'Solicitud invalida' })
+                id = 'Bodega'
+                break
+            default:
+                return res.json({ msg: 'Solicitud invalida' })
+        }
+
+        const actualizar = await guardarConfig(query)
+
+        if (actualizar.msg) {
+            return res.json(actualizar)
+        }
+
+        res.json({
+            exito: 'creado exitosamente',
+            id: actualizar,
+        })
+
+        const ipAddress = req.connection.remoteAddress.split('f:')[1]
+        actividadUsuario(sessionid, 'Crea config ' + id  + ' ' + data.id, ipAddress)
+    } catch (error) {
+
+        console.log('Desde crear config' + error)
+
     }
-
-    const actualizar = await guardarConfig(query)
-
-    if (actualizar.msg) {
-        return res.json(actualizar)
-    }
-
-    return res.json({
-        exito: 'creado exitosamente',
-        id: actualizar,
-    })
 }
 
 const actualizarConfig = async (req, res) => {
 
     try {
-
-
-        const { permisos } = req
+        const { sessionid, permisos } = req
 
         if (permisos.indexOf(8) === -1) return res.json({ msg: 'Usted no tiene permisos para consultar esta información' })
 
         const { data } = req.body
         // validar datos.
         let query
-
+        let id
         switch (data.id) {
             case 1:
 
@@ -209,13 +236,12 @@ const actualizarConfig = async (req, res) => {
                 if (estadoArea !== 1 && estadoArea !== 2) return { msg: 'El Campo estado del Area no es valido, Escoja un estado de la lista' }
                 const dataIdArea = parseInt(data.idArea.split('-')[1])
                 if (isNaN(dataIdArea)) return res.json({ msg: 'El Area  no es valida' })
-
                 const idArea = await consultarConfuno('SELECT id FROM areas WHERE id =' + dataIdArea)
                 if (idArea === undefined) return res.json({ msg: 'El Area que intenta modificar no existe' })
                 if (idArea.msg) return res.json({ msg: 'No fue Posible validar la existencia del Area revise los datos e intente de nuevo' })
                 if (idArea.id !== dataIdArea) return res.json({ msg: 'El Area que intenta modificar no existe' })
                 query = `UPDATE areas SET area = '${data.area}', estado = '${estadoArea}' WHERE id = '${dataIdArea}'`
-
+                id = 'Area ' + idArea.id
                 break
             case 2:
                 if (!data.idMarca) return { msg: 'Solicitud no valida, actualice la pagina e intente de nuevo' }
@@ -237,7 +263,7 @@ const actualizarConfig = async (req, res) => {
                 if (idMarca.id !== dataIdMarca) return res.json({ msg: 'La Marca que intenta modificar no existe' })
 
                 query = `UPDATE marca_activos SET marca = '${data.marca}', estado = '${estadoMarca}' WHERE id = '${dataIdMarca}'`
-
+                id = 'Marca ' + idMarca.id
                 break
             case 3:
                 if (!data.idTipoActivo) return { msg: 'Solicitud no valida, actualice la pagina e intente de nuevo' }
@@ -259,7 +285,7 @@ const actualizarConfig = async (req, res) => {
                 if (idTipoActivo.id !== dataIdTipoActivo) return res.json({ msg: 'El  Tipo Activo que intenta modificar no existe' })
 
                 query = `UPDATE tipo_activo SET tipo_activo = '${data.tipoActivo}', estado = '${estadoTipoActivo}' WHERE id = '${dataIdTipoActivo}'`
-
+                id = 'Tipo Activo ' + idTipoActivo.id
                 break
             case 4:
                 if (!data.idComponente) return { msg: 'Solicitud no valida, actualice la pagina e intente de nuevo' }
@@ -282,7 +308,7 @@ const actualizarConfig = async (req, res) => {
                 if (idComponente.id !== dataIdComponente) return res.json({ msg: 'El componente que intenta modificar no existe' })
 
                 query = `UPDATE lista_componentes SET componente = '${data.componente}', estado = '${estadoComponente}' WHERE id = '${dataIdComponente}'`
-
+                id = 'Componente ' + idComponente.id
                 break
             case 5:
                 if (!data.idFrecuencia) return { msg: 'Solicitud no valida, actualice la pagina e intente de nuevo' }
@@ -306,10 +332,8 @@ const actualizarConfig = async (req, res) => {
                 if (idFrecuencia === undefined) return res.json({ msg: 'La Frecuencia que intenta modificar no existe' })
                 if (idFrecuencia.msg) return res.json({ msg: 'No fue Posible validar la existencia de la Frecuencia revise los datos e intente de nuevo' })
                 if (idFrecuencia.id !== dataIdFrecuencia) return res.json({ msg: 'La Frecuencia que intenta modificar no existe' })
-
-
                 query = `UPDATE frecuencia_Mtto SET frecuencia = '${data.frecuencia}', dias = '${data.dias}',  estado = '${estadoFrecuencia}' WHERE id = '${dataIdFrecuencia}'`
-
+                id = 'Frecuencia ' + idFrecuencia.id
                 break
             case 6:
 
@@ -337,10 +361,8 @@ const actualizarConfig = async (req, res) => {
                 if (idProceso === undefined) return res.json({ msg: 'EL Proceso que intenta modificar no existe' })
                 if (idProceso.msg) return res.json({ msg: 'No fue Posible validar la existencia del Proceso revise los datos e intente de nuevo' })
                 if (idProceso.id !== dataIdProceso) return res.json({ msg: 'El Proceso que intenta modificar no existe' })
-
-
                 query = `UPDATE procesos SET proceso = '${data.proceso}', sigla = '${data.sigla}',  estado = '${estadoProceso}' WHERE id = '${dataIdProceso}'`
-
+                id = 'Proceso ' + idProceso.id
                 break
             case 7:
                 if (!data.idClasificacionActivo) return { msg: 'Solicitud no valida, actualice la pagina e intente de nuevo' }
@@ -367,6 +389,7 @@ const actualizarConfig = async (req, res) => {
                 if (idClasificacionActivo.id !== dataIdClasificacionActivo) return res.json({ msg: 'La Clasificacion Activo que intenta modificar no existe' })
 
                 query = `UPDATE clasificacion_activos SET nombre = '${data.clasificacion}', siglas = '${data.sigla}',  estado = '${estadoClasificacionActivo}' WHERE id = '${dataIdClasificacionActivo}'`
+                id = 'Clasifi activos ' + idClasificacionActivo.id
                 break
             case 8:
 
@@ -416,6 +439,8 @@ const actualizarConfig = async (req, res) => {
                 if (idProveedor.id !== dataIdProveedor) return res.json({ msg: 'El Proveedor que intenta modificar no existe' })
 
                 query = `UPDATE proveedores SET nombre_comercial = '${data.proveedor}', razon_social = '${data.razonProveedor}', nit = '${data.nitProveedor}', dv = '${data.dvProveedor}', telefonos = '${data.telefonosProveedor}', contacto = '${data.contactoProveedor}', direccion = '${data.direccionProveedor}', estado = '${estadoProveedor}', descripcion = '${data.descripcionProveedor}'  WHERE id = '${dataIdProveedor}'`
+                id = 'Provedor ' + idProveedor.id
+                break
             case 9:
 
                 if (!data.idInsumo) return { msg: 'Solicitud no valida, actualice la pagina e intente de nuevo' }
@@ -435,7 +460,7 @@ const actualizarConfig = async (req, res) => {
                 if (idInsumo.msg) return res.json({ msg: 'No fue Posible validar la existencia del insumo revise los datos e intente de nuevo' })
                 if (idInsumo.id !== dataIdInsumo) return res.json({ msg: 'El insumo que intenta modificar no existe' })
                 query = `UPDATE insumos SET insumo = '${data.insumo}', estado = '${estadoInsumo}' WHERE id = '${dataIdInsumo}'`
-
+                id = 'Insumo ' + idInsumo.id
                 break
             case 10:
 
@@ -456,7 +481,7 @@ const actualizarConfig = async (req, res) => {
                 if (idBodega.msg) return res.json({ msg: 'No fue Posible validar la existencia de la Bodega revise los datos e intente de nuevo' })
                 if (idBodega.id !== dataIdBodega) return res.json({ msg: 'La Bodega que intenta modificar no existe' })
                 query = `UPDATE bodegas SET bodega = '${data.bodega}', estado = '${estadoBodega}' WHERE id = '${dataIdBodega}'`
-
+                id = 'Bodega ' + idBodega.id
                 break
             default:
                 return res.json({ msg: 'Solicitud invalida' })
@@ -468,9 +493,12 @@ const actualizarConfig = async (req, res) => {
             return res.json(actualizar)
         }
 
-        return res.json({
+        res.json({
             exito: 'La actualizacion ha sido exitosa',
         })
+
+        const ipAddress = req.connection.remoteAddress.split('f:')[1]
+        actividadUsuario(sessionid, 'Actualiza ' + id, ipAddress)
     } catch (error) {
         console.log(error)
         return res.json({
@@ -481,37 +509,43 @@ const actualizarConfig = async (req, res) => {
 }
 
 const consultarTodasTablasConfig = async (req, res) => {
-    const { permisos } = req
-    if (permisos.indexOf(8) === -1) { }
+    try {
 
-    const listado = await consultarTodasTablas()
-    if (listado.length === 0) return res.json({ msg: 'No fue posible consultar las tablas de configuracion' })
-    if (listado.msg) return res.json(listado)
-    const configuraciones = {
-        areas: listado[0],
-        marcas: listado[1],
-        tipoActivos: listado[2],
-        componentes: listado[3],
-        frecuencia: listado[4],
-        procesos: listado[5],
-        clasificacionActivos: listado[6],
-        proveedores: listado[7],
-        estado: listado[8],
-        insumos: listado[9],
-        bodegas: listado[10]
+
+        const { permisos } = req
+        if (permisos.indexOf(8) === -1) { }
+
+        const listado = await consultarTodasTablas()
+        if (listado.length === 0) return res.json({ msg: 'No fue posible consultar las tablas de configuracion' })
+        if (listado.msg) return res.json(listado)
+        const configuraciones = {
+            areas: listado[0],
+            marcas: listado[1],
+            tipoActivos: listado[2],
+            componentes: listado[3],
+            frecuencia: listado[4],
+            procesos: listado[5],
+            clasificacionActivos: listado[6],
+            proveedores: listado[7],
+            estado: listado[8],
+            insumos: listado[9],
+            bodegas: listado[10]
+        }
+
+        if (permisos.indexOf(8) !== -1) {
+            configuraciones.editar = true
+            configuraciones.proveedores = configuraciones.proveedores.map(elemet => {
+                return {
+                    id: elemet.id,
+                    nombre: elemet.nombre + '--' + elemet.estadoId
+                }
+            })
+        }
+
+        res.json(configuraciones)
+    } catch (error) {
+        console.log('desde consultar todas las tablas config' + error)
     }
-
-    if (permisos.indexOf(8) !== -1) {
-        configuraciones.editar = true
-        configuraciones.proveedores = configuraciones.proveedores.map(elemet => {
-            return {
-                id: elemet.id,
-                nombre: elemet.nombre + '--' + elemet.estadoId
-            }
-        })
-    }
-
-    res.json(configuraciones)
 }
 
 const validarId = (datos) => {

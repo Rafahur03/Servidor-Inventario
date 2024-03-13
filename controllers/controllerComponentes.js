@@ -5,10 +5,12 @@
 } from "../db/sqlComponentes.js"
 
 import { validarDatosComponente } from "../helpers/validarComponentes.js"
+import { actividadUsuario } from "../db/sqlUsuarios.js"
+
 const eliminarComponente = async (req, res) => {
     try {
 
-        const { permisos } = req
+        const {sessionid, permisos } = req
 
         if (permisos.indexOf(3) === -1) return res.json({ msg: 'Usted no tiene permisos para Actualizar Componente' })
         
@@ -30,6 +32,9 @@ const eliminarComponente = async (req, res) => {
         
         res.json('Componente Eliminado corectamnete')
 
+        const ipAddress = req.connection.remoteAddress.split('f:')[1]
+        actividadUsuario(sessionid, 'Elimina Componente ' + data.idComponente + ' del act ' + data.idActivo , ipAddress)
+
     } catch (error) {
         console.error(error)
         res.json({ msg: 'No fue posible eliminar el componente intentalo mas tarde si persiste el error comunicate con soporte' })
@@ -39,7 +44,7 @@ const eliminarComponente = async (req, res) => {
 
 const guardarComponente = async (req, res) => {
     try {
-        const { permisos } = req
+        const {sessionid, permisos } = req
         if (permisos.indexOf(3) === -1)  return res.json({ msg: 'Usted no tiene permisos para Actualizar Componente' })
         
         const data = req.body.data
@@ -58,13 +63,15 @@ const guardarComponente = async (req, res) => {
 
         res.json(crear)
 
+        const ipAddress = req.connection.remoteAddress.split('f:')[1]
+        actividadUsuario(sessionid, 'Crea Componente ' + crear.id + ' del act ' + crear.idactivo , ipAddress)
+
     } catch (error) {
         console.error(error)
         res.json({ msg: 'No fue posible crear el componente intentalo mas tarde si persiste el error comunicate con soporte' })
     }
 
 }
-
 
 export {
     eliminarComponente,

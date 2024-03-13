@@ -145,6 +145,24 @@ const consultarToken = async (token) => {
     }
 }
 
+const actividadUsuario = async (id, acividad, ip) => {
+
+    try {
+        const pool = await conectardb()
+
+        const resultado = await pool.query(`
+            INSERT INTO actividadUsuarios( usuario, accion, ip)
+            VALUES(${id}, '${acividad}', '${ip}')   
+        
+        `)
+        cerrarConexion(pool)
+        return resultado.rowsAffected[0]
+    } catch (error) {
+        console.error(error);
+        return { msg: 'Ha ocurido un error al intentar Ingresar la actividad' }
+    }
+}
+
 export {
     validarExisteUsuario,
     consultarPassword,
@@ -154,5 +172,6 @@ export {
     guardarToken,
     consultarToken,
     buscarUsuario,
-    consultarProveedoresUsuarios
+    consultarProveedoresUsuarios,
+    actividadUsuario
 }

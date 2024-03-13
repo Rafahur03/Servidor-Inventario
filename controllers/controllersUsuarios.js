@@ -70,7 +70,7 @@ const iniciaSesion = async (req, res) => {
 
     const proveedoresbd = tokenGuardado.proveedores.split(',')
     const proveedores = proveedoresbd.map(elemento => parseInt(elemento.trim(), 10))
-    
+
 
     res.json({
         token,
@@ -88,324 +88,397 @@ const iniciaSesion = async (req, res) => {
         }
     })
 }
-
 // create new user
 const crearUsuario = async (req, res) => {
+    try {
+        // validar si tiene o no permisos para crear usuario
+        const { sessionid, permisos } = req
+        // 1 permiso para crear usuario
+        if (permisos.indexOf(1) === -1) {
+            res.json({ msg: 'Usted no tiene permisos para crear usuarios' })
+            return
+        }
 
-    // validar si tiene o no permisos para crear usuario
-    const { sessionid, permisos } = req
-    // 1 permiso para crear usuario
-    if (permisos.indexOf(1) === -1) {
-        res.json({ msg: 'Usted no tiene permisos para crear usuarios' })
-        return
-    }
+        const datos = req.body
 
-    const datos = req.body
+        const validacion = await validarDatosUsuarios(datos)
 
-    const validacion = await validarDatosUsuarios(datos)
+        if (validacion.msg) {
+            res.json(validacion)
+            return
+        }
 
-    if (validacion.msg) {
-        res.json(validacion)
-        return
-    }
+        const validacionImagen = validarImagenes(datos.firma)
+        if (validacionImagen.msg) return res.json(validacionImagen)
 
-    const validacionImagen = validarImagenes(datos.firma)
-    if (validacionImagen.msg) return res.json(validacionImagen)
+        datos.Id_proveedores = datos.proveedores.map(item => { return parseInt(item.split('-')[1]) })
+        datos.date_create = new Date(Date.now()).toISOString().substring(0, 19).replace('T', ' ')
+        datos.createby = sessionid
+        delete datos.proveedores
+        datos.permisos = []
 
-    datos.Id_proveedores = datos.proveedores.map(item => { return parseInt(item.split('-')[1]) })
-    datos.date_create = new Date(Date.now()).toISOString().substring(0, 19).replace('T', ' ')
-    datos.createby = sessionid
-    delete datos.proveedores
-    datos.permisos = []
+        if (datos.usuarios) datos.permisos.push(1)
+        delete datos.usuarios
+        if (datos.informes) datos.permisos.push(2)
+        delete datos.informes
+        if (datos.activos) datos.permisos.push(3)
+        delete datos.activos
+        if (datos.clasificacion) datos.permisos.push(4)
+        delete datos.clasificacion
+        if (datos.solicitudes) datos.permisos.push(5)
+        delete datos.solicitudes
+        if (datos.reportes) datos.permisos.push(6)
+        delete datos.reportes
+        if (datos.menuInsumo) datos.permisos.push(7)
+        delete datos.menuInsumo
+        if (datos.confguraciones) datos.permisos.push(8)
+        delete datos.confguraciones
+        if (datos.editarInsumo) datos.permisos.push(9)
+        delete datos.editarInsumo
+        if (datos.arqueoInsumo) datos.permisos.push(10)
+        delete datos.arqueoInsumo
 
-    if (datos.usuarios) datos.permisos.push(1)
-    delete datos.usuarios
-    if (datos.informes) datos.permisos.push(2)
-    delete datos.informes
-    if (datos.activos) datos.permisos.push(3)
-    delete datos.activos
-    if (datos.clasificacion) datos.permisos.push(4)
-    delete datos.clasificacion
-    if (datos.solicitudes) datos.permisos.push(5)
-    delete datos.solicitudes
-    if (datos.reportes) datos.permisos.push(6)
-    delete datos.reportes   
-    if (datos.menuInsumo) datos.permisos.push(7)
-    delete datos.menuInsumo
-    if (datos.confguraciones) datos.permisos.push(8)
-    delete datos.confguraciones
-    if (datos.editarInsumo) datos.permisos.push(9)
-    delete datos.editarInsumo
-    if (datos.arqueoInsumo) datos.permisos.push(10)
-    delete datos.arqueoInsumo
+        //encriptar password
+        datos.password = await encryptPassword(datos.contraseña)
+        delete datos.contraseña
+        delete datos.confirmarContraseña
 
-    //encriptar password
-    datos.password = await encryptPassword(datos.contraseña)
-    delete datos.contraseña
-    delete datos.confirmarContraseña
+        const firma = await guardarImagenesBase64(datos.firma, 'no', 3)
+        datos.pathFirma = firma
+        delete datos.firma
 
-    const firma = await guardarImagenesBase64(datos.firma, 'no', 3)
-    datos.pathFirma = firma
-    delete datos.firma
+        datos.email = datos.email.toLowerCase()
+        datos.tipoId = datos.tipoId.toUpperCase()
+        datos.primerNombre = datos.primerNombre.charAt(0).toUpperCase() + datos.primerNombre.toLowerCase().slice(1)
+        if (datos.segundoNombre != '') {
+            datos.segundoNombre = datos.segundoNombre.toLowerCase().charAt(0).toUpperCase() + datos.segundoNombre.toLowerCase().slice(1)
+        }
+        datos.primerApellido = datos.primerApellido.toLowerCase().charAt(0).toUpperCase() + datos.primerApellido.toLowerCase().slice(1)
+        datos.segundoApellido = datos.segundoApellido.toLowerCase().charAt(0).toUpperCase() + datos.segundoApellido.toLowerCase().slice(1)
 
-    datos.email = datos.email.toLowerCase()
-    datos.tipoId = datos.tipoId.toUpperCase()
-    datos.primerNombre = datos.primerNombre.charAt(0).toUpperCase() + datos.primerNombre.toLowerCase().slice(1)
-    if (datos.segundoNombre != '') {
-        datos.segundoNombre = datos.segundoNombre.toLowerCase().charAt(0).toUpperCase() + datos.segundoNombre.toLowerCase().slice(1)
-    }
-    datos.primerApellido = datos.primerApellido.toLowerCase().charAt(0).toUpperCase() + datos.primerApellido.toLowerCase().slice(1)
-    datos.segundoApellido = datos.segundoApellido.toLowerCase().charAt(0).toUpperCase() + datos.segundoApellido.toLowerCase().slice(1)
-
-    /// agregar crear usuario con req. body para enviar los datos del usuario a la base de datos
-    const usuarioCreado = await guardarUsuario(datos)
-    if (usuarioCreado.msg) {
+        /// agregar crear usuario con req. body para enviar los datos del usuario a la base de datos
+        const usuarioCreado = await guardarUsuario(datos)
+        if (usuarioCreado.msg) {
+            res.json(usuarioCreado)
+        }
         res.json(usuarioCreado)
+        const ipAddress = req.connection.remoteAddress.split('f:')[1]
+        actividadUsuario(sessionid, 'Crear usuario' + usuarioCreado, ipAddress)
+
+    } catch (error) {
+        res.json({ msg: 'Ha ocurrido un error al intentar crear el usuario' })
+        console.log('Crear Usuario ' + error)
+
     }
-    res.json(usuarioCreado)
 }
 
 const consultarUsuario = async (req, res) => {
-  
-    // validar si tiene o no permisos para crear usuario
-    const { sessionid, permisos } = req
-    const { id } = req.body
-    const nid = parseInt(id)
-    if (nid == NaN) return { msg: 'El ID del usuario es invalido' }
 
-    if (nid != sessionid) if (permisos.indexOf(1) === -1) return res.json({ msg: 'Usted no tiene permisos para editar usuarios' })
-    const usuario = await buscarUsuario(nid)
-    if (usuario.msg) return res.json(usuario)
+    try {
 
-    const permisosUsuario = usuario.permisos.split(',').map(item => { return parseInt(item) })
-    if (permisosUsuario.indexOf(1) !== -1) usuario.usuario = true
-    if (permisosUsuario.indexOf(2) !== -1) usuario.informes = true
-    if (permisosUsuario.indexOf(3) !== -1) usuario.activo = true
-    if (permisosUsuario.indexOf(5) !== -1) usuario.solicitudes = true
-    if (permisosUsuario.indexOf(6) !== -1) usuario.reporte = true
-    if (permisosUsuario.indexOf(8) !== -1) usuario.confguraciones = true
-    if (permisosUsuario.indexOf(4) !== -1) usuario.clasificacion = true
-    if (permisosUsuario.indexOf(4) !== -1) usuario.clasificacion = true
-    if (permisosUsuario.indexOf(7) !== -1) usuario.insumos = true
-    if (permisosUsuario.indexOf(9) !== -1) usuario.editarInsumos = true
-    if (permisosUsuario.indexOf(10) !== -1) usuario.arqueoInsumo = true
+        // validar si tiene o no permisos para crear usuario
+        const { sessionid, permisos } = req
+        const { id } = req.body
+        const nid = parseInt(id)
+        if (nid == NaN) return { msg: 'El ID del usuario es invalido' }
 
-    if (usuario.firma !== null && usuario.firma.trim() !== '') {
-        usuario.firmaUrl = await bufferimagen(usuario.firma, '', 3)
-    } else {
-        usuario.firmaUrl = await bufferimagen('NO FIRMA.png', '', 3)
-    }
-    const proveedores = usuario.IdPporveedores.split(',').map(item => { return parseInt(item) })
-    let consulta = null
-    proveedores.forEach(element => {
-        if (consulta === null) {
-            consulta = "SELECT CONCAT('Pro-', id) AS id, CONCAT(TRIM(razon_social),'--', TRIM(nombre_comercial),'--', TRIM(nit)) AS nombre  FROM proveedores WHERE id =" + element + "\n"
+        if (nid != sessionid) if (permisos.indexOf(1) === -1) return res.json({ msg: 'Usted no tiene permisos para editar usuarios' })
+        const usuario = await buscarUsuario(nid)
+        if (usuario.msg) return res.json(usuario)
+
+        const permisosUsuario = usuario.permisos.split(',').map(item => { return parseInt(item) })
+        if (permisosUsuario.indexOf(1) !== -1) usuario.usuario = true
+        if (permisosUsuario.indexOf(2) !== -1) usuario.informes = true
+        if (permisosUsuario.indexOf(3) !== -1) usuario.activo = true
+        if (permisosUsuario.indexOf(5) !== -1) usuario.solicitudes = true
+        if (permisosUsuario.indexOf(6) !== -1) usuario.reporte = true
+        if (permisosUsuario.indexOf(8) !== -1) usuario.confguraciones = true
+        if (permisosUsuario.indexOf(4) !== -1) usuario.clasificacion = true
+        if (permisosUsuario.indexOf(4) !== -1) usuario.clasificacion = true
+        if (permisosUsuario.indexOf(7) !== -1) usuario.insumos = true
+        if (permisosUsuario.indexOf(9) !== -1) usuario.editarInsumos = true
+        if (permisosUsuario.indexOf(10) !== -1) usuario.arqueoInsumo = true
+
+        if (usuario.firma !== null && usuario.firma.trim() !== '') {
+            usuario.firmaUrl = await bufferimagen(usuario.firma, '', 3)
         } else {
-            consulta = consulta + "SELECT CONCAT('Pro-', id) AS id, CONCAT(TRIM(razon_social),'--', TRIM(nombre_comercial),'--', TRIM(nit)) AS nombre  FROM proveedores WHERE id =" + element + "\n"
+            usuario.firmaUrl = await bufferimagen('NO FIRMA.png', '', 3)
         }
+        const proveedores = usuario.IdPporveedores.split(',').map(item => { return parseInt(item) })
+        let consulta = null
+        proveedores.forEach(element => {
+            if (consulta === null) {
+                consulta = "SELECT CONCAT('Pro-', id) AS id, CONCAT(TRIM(razon_social),'--', TRIM(nombre_comercial),'--', TRIM(nit)) AS nombre  FROM proveedores WHERE id =" + element + "\n"
+            } else {
+                consulta = consulta + "SELECT CONCAT('Pro-', id) AS id, CONCAT(TRIM(razon_social),'--', TRIM(nombre_comercial),'--', TRIM(nit)) AS nombre  FROM proveedores WHERE id =" + element + "\n"
+            }
 
-    });
+        });
 
-    usuario.proveedores = await consultarProveedoresUsuarios(consulta)
-    if (usuario.proveedores.msg) return res.json(usuario.proveedores);
-    if (permisos.indexOf(1) !== -1) usuario.listaUsuarios = await consultarProveedoresUsuarios("SELECT CONCAT( 'Us-', id) AS id, CONCAT( numero_id, '--', TRIM(nombre), SPACE(1), TRIM(nombre_1), SPACE(1), TRIM(apellido), SPACE(1), TRIM(apellido_1), '--', TRIM(email)) AS nombre FROM usuarios")
+        usuario.proveedores = await consultarProveedoresUsuarios(consulta)
+        if (usuario.proveedores.msg) return res.json(usuario.proveedores);
+        if (permisos.indexOf(1) !== -1) usuario.listaUsuarios = await consultarProveedoresUsuarios("SELECT CONCAT( 'Us-', id) AS id, CONCAT( numero_id, '--', TRIM(nombre), SPACE(1), TRIM(nombre_1), SPACE(1), TRIM(apellido), SPACE(1), TRIM(apellido_1), '--', TRIM(email)) AS nombre FROM usuarios")
 
-    if (usuario.id == sessionid && usuario.id != 1) return res.json(usuario)
-    usuario.listaproveedores = await consultarProveedoresUsuarios("SELECT CONCAT('Pro-', id) AS id, CONCAT(TRIM(razon_social),'--', TRIM(nombre_comercial),'--', TRIM(nit)) AS nombre  FROM proveedores")
-    usuario.listadoEstados = await consultarProveedoresUsuarios("SELECT id, TRIM(estado) AS estados FROM estados WHERE id <> 3")
+        if (usuario.id == sessionid && usuario.id != 1) return res.json(usuario)
+        usuario.listaproveedores = await consultarProveedoresUsuarios("SELECT CONCAT('Pro-', id) AS id, CONCAT(TRIM(razon_social),'--', TRIM(nombre_comercial),'--', TRIM(nit)) AS nombre  FROM proveedores")
+        usuario.listadoEstados = await consultarProveedoresUsuarios("SELECT id, TRIM(estado) AS estados FROM estados WHERE id <> 3")
 
-    res.json(usuario)
+        res.json(usuario)
+
+        const ipAddress = req.connection.remoteAddress.split('f:')[1]
+        actividadUsuario(sessionid, 'consultar usuario' + usuario.id, ipAddress)
+
+    } catch (error) {
+        res.json({ msg: 'Ha ocurrido un error al intentar consultar el usuario' })
+        console.log('consultar Usuario ' + error)
+
+    }
 
 }
 // actualiza datos de usuario.
 const actualizaUsuario = async (req, res) => {
+    try {
 
-    const { sessionid, permisos } = req
+        const { sessionid, permisos } = req
 
-    const datos = req.body.data
-    if (datos.usuario == undefined) return res.json({ msg: 'Usuario invalido' })
+        const datos = req.body.data
+        if (datos.usuario == undefined) return res.json({ msg: 'Usuario invalido' })
 
-    const id = parseInt(datos.usuario.split('-')[1])
-    if (id == NaN) return res.json({ msg: 'Usuario invalido' })
+        const id = parseInt(datos.usuario.split('-')[1])
+        if (id == NaN) return res.json({ msg: 'Usuario invalido' })
 
-    if (id !== sessionid) if (permisos.indexOf(1) === -1) return res.json({ msg: 'Usted no tiene permisos para editar usuarios' })
+        if (id !== sessionid) if (permisos.indexOf(1) === -1) return res.json({ msg: 'Usted no tiene permisos para editar usuarios' })
 
 
-    const validacion = await validarDatosUsuariosEditados(datos)
+        const validacion = await validarDatosUsuariosEditados(datos)
 
-    if (validacion.msg) return res.json(validacion)
+        if (validacion.msg) return res.json(validacion)
 
-    let datoVariables = "nombre = '" + validacion.primerNombre + "', nombre_1 = '" + validacion.segundoNombre + "', apellido = '" + validacion.primerApellido + "', apellido_1 = '" + validacion.segundoApellido + "', tipo_id = '" + validacion.tipoId + "'"
+        let datoVariables = "nombre = '" + validacion.primerNombre + "', nombre_1 = '" + validacion.segundoNombre + "', apellido = '" + validacion.primerApellido + "', apellido_1 = '" + validacion.segundoApellido + "', tipo_id = '" + validacion.tipoId + "'"
 
-    if (validacion.cambiarEmail) datoVariables = datoVariables + ", email = '" + validacion.email + "'"
+        if (validacion.cambiarEmail) datoVariables = datoVariables + ", email = '" + validacion.email + "'"
 
-    if (id === sessionid && id !== 1) {
+        if (id === sessionid && id !== 1) {
+
+            datoVariables = "UPDATE usuarios \n SET " + datoVariables + " \n WHERE id = " + validacion.usuario
+            const actualizar = await actualizarUsuario(datoVariables)
+            if (actualizar.msg) return actualizar
+
+            return res.json({ id: validacion.usuario })
+        }
+
+        datoVariables = datoVariables + ", permisos = '" + validacion.permisos + "', estado = '" + validacion.estado + "'"
+
+        if (validacion.cambiarDocumento) datoVariables = datoVariables + ", numero_id = '" + validacion.numeroDocumento + "'"
+
+        if (validacion.cambiarContraseña) datoVariables = datoVariables + ", password = '" + validacion.password + "'"
 
         datoVariables = "UPDATE usuarios \n SET " + datoVariables + " \n WHERE id = " + validacion.usuario
+
         const actualizar = await actualizarUsuario(datoVariables)
         if (actualizar.msg) return actualizar
 
-        return res.json({ id: validacion.usuario })
+        res.json({ id: validacion.usuario })
+
+        const ipAddress = req.connection.remoteAddress.split('f:')[1]
+        actividadUsuario(sessionid, 'Editar usuario' + validacion.usuario, ipAddress)
+
+    } catch (error) {
+        res.json({ msg: 'Ha ocurrido un error al intentar editar el usuario' })
+        console.log('Editar Usuario ' + error)
+
     }
-
-    datoVariables = datoVariables + ", permisos = '" + validacion.permisos + "', estado = '" + validacion.estado + "'"
-
-    if (validacion.cambiarDocumento) datoVariables = datoVariables + ", numero_id = '" + validacion.numeroDocumento + "'"
-
-    if (validacion.cambiarContraseña) datoVariables = datoVariables + ", password = '" + validacion.password + "'"
-
-    datoVariables = "UPDATE usuarios \n SET " + datoVariables + " \n WHERE id = " + validacion.usuario
-
-    const actualizar = await actualizarUsuario(datoVariables)
-    if (actualizar.msg) return actualizar
-
-    return res.json({ id: validacion.usuario })
 
 }
 
 const cambiarFirma = async (req, res) => {
 
-    const { sessionid, permisos } = req
+    try {
 
-    const datos = req.body.data
-    if (datos.usuario == undefined) return res.json({ msg: 'Usuario invalido' })
+        const { sessionid, permisos } = req
 
-    const id = parseInt(datos.usuario.split('-')[1])
-    if (id == NaN) return res.json({ msg: 'Usuario invalido' })
+        const datos = req.body.data
+        if (datos.usuario == undefined) return res.json({ msg: 'Usuario invalido' })
 
-    if (id == sessionid && id !== 1) return res.json({ msg: 'Debe solicitarle a un usuario con permisos que le cambie su firma' })
+        const id = parseInt(datos.usuario.split('-')[1])
+        if (id == NaN) return res.json({ msg: 'Usuario invalido' })
 
-    if (permisos.indexOf(1) === -1 && id !== 1) return res.json({ msg: 'Usted no tiene permisos para cambiar la firma de otros usuarios' })
+        if (id == sessionid && id !== 1) return res.json({ msg: 'Debe solicitarle a un usuario con permisos que le cambie su firma' })
 
-    const documento = await consultarProveedoresUsuarios('SELECT numero_id FROM usuarios WHERE id =' + id)
-    if (documento.msg) return res.json({ msg: 'No fue posible validar los datos del usuario a actualizar' })
+        if (permisos.indexOf(1) === -1 && id !== 1) return res.json({ msg: 'Usted no tiene permisos para cambiar la firma de otros usuarios' })
 
-    if (documento[0][0].numero_id !== datos.id) return res.json({ msg: 'el Id del usuario no corresponde al documento' })
-    const validarfirma = validarImagenes(datos.firma)
-    if (validarfirma.msg) return res.json(validarfirma)
+        const documento = await consultarProveedoresUsuarios('SELECT numero_id FROM usuarios WHERE id =' + id)
+        if (documento.msg) return res.json({ msg: 'No fue posible validar los datos del usuario a actualizar' })
 
-    const firma = await guardarImagenesBase64(datos.firma, 'no', 3)
-    if (firma.msg) return res.json({ msg: 'No fue posible guardar la nueva firma, Intentelo mas tardes' })
+        if (documento[0][0].numero_id !== datos.id) return res.json({ msg: 'el Id del usuario no corresponde al documento' })
+        const validarfirma = validarImagenes(datos.firma)
+        if (validarfirma.msg) return res.json(validarfirma)
 
-    const actualizar = await actualizarUsuario("UPDATE usuarios SET firma = '" + firma + "' WHERE id =" + id)
-    if (actualizar.msg) return res.json({ msg: 'No fue posible guardar la nueva firma en la base de datos, Intentelo mas tardes' })
+        const firma = await guardarImagenesBase64(datos.firma, 'no', 3)
+        if (firma.msg) return res.json({ msg: 'No fue posible guardar la nueva firma, Intentelo mas tardes' })
 
-    res.json({ exito: 'Firma Actualziada correctamente' })
+        const actualizar = await actualizarUsuario("UPDATE usuarios SET firma = '" + firma + "' WHERE id =" + id)
+        if (actualizar.msg) return res.json({ msg: 'No fue posible guardar la nueva firma en la base de datos, Intentelo mas tardes' })
+
+        res.json({ exito: 'Firma Actualiziada correctamente' })
+
+        const ipAddress = req.connection.remoteAddress.split('f:')[1]
+        actividadUsuario(sessionid, 'Actualizar firma usuario' + id, ipAddress)
+
+    } catch (error) {
+        res.json({ msg: 'Ha ocurrido un error al intentar actualizar la firma del usuario' })
+        console.log('actualizar firma Usuario ' + error)
+
+    }
 }
 
 const guardarProveedorUsuario = async (req, res) => {
-    const { sessionid, permisos } = req
 
-    const datos = req.body.data
-    if (datos.usuario == undefined) return res.json({ msg: 'Usuario invalido' })
+    try {
+        const { sessionid, permisos } = req
 
-    const id = parseInt(datos.usuario.split('-')[1])
-    if (id == NaN) return res.json({ msg: 'Usuario invalido' })
+        const datos = req.body.data
+        if (datos.usuario == undefined) return res.json({ msg: 'Usuario invalido' })
 
-    if (id == sessionid && id !== 1) return res.json({ msg: 'Debe solicitarle a un usuario con permisos que le asocie el nuevo proveedor' })
+        const id = parseInt(datos.usuario.split('-')[1])
+        if (id == NaN) return res.json({ msg: 'Usuario invalido' })
 
-    if (permisos.indexOf(1) === -1 && id !== 1) return res.json({ msg: 'Usted no tiene permisos para cambiar asociar proveedores' })
+        if (id == sessionid && id !== 1) return res.json({ msg: 'Debe solicitarle a un usuario con permisos que le asocie el nuevo proveedor' })
 
-    const proveedor = parseInt(datos.proveedor.split('-')[1])
-    if (proveedor == NaN) return res.json({ msg: 'Proveedor Invalido' })
+        if (permisos.indexOf(1) === -1 && id !== 1) return res.json({ msg: 'Usted no tiene permisos para cambiar asociar proveedores' })
 
-    const datosUsuario = await consultarProveedoresUsuarios('SELECT numero_id, TRIM(Id_proveedores) AS proveedores FROM  usuarios WHERE id =' + id + '\n SELECT id FROM proveedores WHERE id =' + proveedor)
+        const proveedor = parseInt(datos.proveedor.split('-')[1])
+        if (proveedor == NaN) return res.json({ msg: 'Proveedor Invalido' })
 
-    if (datosUsuario.msg) return res.json({ msg: 'No fue posible validar los datos del usuario y proveedor a actualizar' })
+        const datosUsuario = await consultarProveedoresUsuarios('SELECT numero_id, TRIM(Id_proveedores) AS proveedores FROM  usuarios WHERE id =' + id + '\n SELECT id FROM proveedores WHERE id =' + proveedor)
 
-    if (datosUsuario[1][0].length < 1) return res.json({ msg: 'El proveedor no existe' })
+        if (datosUsuario.msg) return res.json({ msg: 'No fue posible validar los datos del usuario y proveedor a actualizar' })
 
-    if (datosUsuario[0][0].numero_id !== datos.id) return res.json({ msg: 'el Id del usuario no corresponde al documento' })
+        if (datosUsuario[1][0].length < 1) return res.json({ msg: 'El proveedor no existe' })
 
-    const proveedores = datosUsuario[0][0].proveedores + ',' + proveedor
+        if (datosUsuario[0][0].numero_id !== datos.id) return res.json({ msg: 'el Id del usuario no corresponde al documento' })
 
-    const actualizar = await actualizarUsuario("UPDATE usuarios SET Id_proveedores = '" + proveedores + "' WHERE id =" + id)
+        const proveedores = datosUsuario[0][0].proveedores + ',' + proveedor
 
-    if (actualizar.msg) return res.json({ msg: 'No fue posible asociar el nuevo proveedor al usuario, intentelo mas tarde' })
+        const actualizar = await actualizarUsuario("UPDATE usuarios SET Id_proveedores = '" + proveedores + "' WHERE id =" + id)
 
-    res.json({ exito: 'Proveedor agregado correctamente' })
+        if (actualizar.msg) return res.json({ msg: 'No fue posible asociar el nuevo proveedor al usuario, intentelo mas tarde' })
+
+        res.json({ exito: 'Proveedor agregado correctamente' })
+
+        const ipAddress = req.connection.remoteAddress.split('f:')[1]
+        actividadUsuario(sessionid, 'Asociar provedor' + proveedor + ' Usuario ' + id, ipAddress)
+
+    } catch (error) {
+        res.json({ msg: 'Ha ocurrido un error al intentar Asociar el proveedor' })
+        console.log('Asociar proveedor' + error)
+
+    }
 }
 
 const eliminarProveedorUsuario = async (req, res) => {
-    const { sessionid, permisos } = req
 
-    const datos = req.body.data
-    if (datos.usuario == undefined) return res.json({ msg: 'Usuario invalido' })
+    try {
+        const { sessionid, permisos } = req
 
-    const id = parseInt(datos.usuario.split('-')[1])
-    if (id == NaN) return res.json({ msg: 'Usuario invalido' })
+        const datos = req.body.data
+        if (datos.usuario == undefined) return res.json({ msg: 'Usuario invalido' })
 
-    if (id == sessionid && id !== 1) return res.json({ msg: 'Debe solicitarle a un usuario con permisos que le asocie el nuevo proveedor' })
+        const id = parseInt(datos.usuario.split('-')[1])
+        if (id == NaN) return res.json({ msg: 'Usuario invalido' })
 
-    if (permisos.indexOf(1) === -1 && id !== 1) return res.json({ msg: 'Usted no tiene permisos para cambiar asociar proveedores' })
+        if (id == sessionid && id !== 1) return res.json({ msg: 'Debe solicitarle a un usuario con permisos que le asocie el nuevo proveedor' })
 
-    const proveedor = parseInt(datos.proveedor.split('-')[1])
-    if (proveedor == NaN) return res.json({ msg: 'Proveedor Invalido' })
+        if (permisos.indexOf(1) === -1 && id !== 1) return res.json({ msg: 'Usted no tiene permisos para cambiar asociar proveedores' })
 
-    const datosUsuario = await consultarProveedoresUsuarios('SELECT numero_id, TRIM(Id_proveedores) AS proveedores FROM  usuarios WHERE id =' + id)
+        const proveedor = parseInt(datos.proveedor.split('-')[1])
+        if (proveedor == NaN) return res.json({ msg: 'Proveedor Invalido' })
 
-    if (datosUsuario.msg) return res.json({ msg: 'No fue posible validar los datos del usuario a actualizar' })
+        const datosUsuario = await consultarProveedoresUsuarios('SELECT numero_id, TRIM(Id_proveedores) AS proveedores FROM  usuarios WHERE id =' + id)
 
-    if (datosUsuario[0][0].numero_id !== datos.id) return res.json({ msg: 'el Id del usuario no corresponde al documento' })
+        if (datosUsuario.msg) return res.json({ msg: 'No fue posible validar los datos del usuario a actualizar' })
 
-    const proveedores = datosUsuario[0][0].proveedores.split(',').map(element => { return parseInt(element) })
+        if (datosUsuario[0][0].numero_id !== datos.id) return res.json({ msg: 'el Id del usuario no corresponde al documento' })
 
-    const nuevosProveedores = proveedores.filter(element => element !== proveedor)
+        const proveedores = datosUsuario[0][0].proveedores.split(',').map(element => { return parseInt(element) })
 
-    const actualizar = await actualizarUsuario("UPDATE usuarios SET Id_proveedores = '" + nuevosProveedores + "' WHERE id = " + id)
+        const nuevosProveedores = proveedores.filter(element => element !== proveedor)
 
-    if (actualizar.msg) return res.json({ msg: 'No fue posible eliminar el proveedor del usuario, intentelo mas tarde' })
+        const actualizar = await actualizarUsuario("UPDATE usuarios SET Id_proveedores = '" + nuevosProveedores + "' WHERE id = " + id)
 
-    res.json({ exito: 'Proveedor eliminado  correctamente del usuario' })
+        if (actualizar.msg) return res.json({ msg: 'No fue posible eliminar el proveedor del usuario, intentelo mas tarde' })
+
+        res.json({ exito: 'Proveedor eliminado  correctamente del usuario' })
+
+        const ipAddress = req.connection.remoteAddress.split('f:')[1]
+        actividadUsuario(sessionid, 'Eliminar provedor' + proveedor + ' Usuario ' + id, ipAddress)
+
+    } catch (error) {
+        res.json({ msg: 'Ha ocurrido un error al intentar eliminar el proveedor' })
+        console.log('Eliminar proveedor' + error)
+
+    }
 }
 
 const cambiarContraseña = async (req, res) => {
-    const { sessionid } = req
+    try {
 
-    const datos = req.body.data
-    if (datos.usuario == undefined) return res.json({ msg: 'Usuario invalido' })
+        const { sessionid } = req
 
-    if (parseInt(datos.usuario) === NaN) return res.json({ msg: 'El Usuario es Invalido' })
+        const datos = req.body.data
+        if (datos.usuario == undefined) return res.json({ msg: 'Usuario invalido' })
 
-    if (datos.usuario !== sessionid) return res.json({ msg: 'El Usuario no corresponde al usuario de inicio de sesion ' })
+        if (parseInt(datos.usuario) === NaN) return res.json({ msg: 'El Usuario es Invalido' })
 
-    if (!datos.claveActual) return { msg: 'El campo clave actual es obligatorio'}
+        if (datos.usuario !== sessionid) return res.json({ msg: 'El Usuario no corresponde al usuario de inicio de sesion ' })
 
-    if (!datos.nuevaclave) return { msg: 'El campo clave actual es obligatorio'}
+        if (!datos.claveActual) return { msg: 'El campo clave actual es obligatorio' }
 
-    if (!datos.confirmarclave) return { msg: 'El campo clave actual es obligatorio'}
+        if (!datos.nuevaclave) return { msg: 'El campo clave actual es obligatorio' }
 
-    if (datos.claveActual.length === 0) return { msg: 'El campo Contraseña Actual no puede estar vacio' }
+        if (!datos.confirmarclave) return { msg: 'El campo clave actual es obligatorio' }
 
-    if (datos.claveActual.includes(' ')) if (datos.claveActual.trim() == '') return { msg: 'El campo Contraseña Actual no puede estar vacio' }
-    
-    if (datos.nuevaclave.length === 0) return { msg: 'El campo Nuevacampo Nueva Contraseña no puede estar vacio' }
+        if (datos.claveActual.length === 0) return { msg: 'El campo Contraseña Actual no puede estar vacio' }
 
-    if (datos.nuevaclave.includes(' ')) if (datos.nuevaclave.trim() == '') return { msg: 'El campo Nueva Contraseña no puede estar vacio' }
+        if (datos.claveActual.includes(' ')) if (datos.claveActual.trim() == '') return { msg: 'El campo Contraseña Actual no puede estar vacio' }
 
-    if (datos.nuevaclave.includes(' ')) return { msg: 'El campo Nueva Contraseña no puede contener espacios' }
+        if (datos.nuevaclave.length === 0) return { msg: 'El campo Nuevacampo Nueva Contraseña no puede estar vacio' }
 
-    if (datos.nuevaclave.length < 6 || datos.nuevaclave.length > 16) return { msg:'La contraseña debe estar entre 6 y 16 caracteres'}
-    
-    if (datos.nuevaclave === datos.claveActual) return { msg: 'La nueva contraseña debe ser diferente a las utimas 3 contraseñas'}
+        if (datos.nuevaclave.includes(' ')) if (datos.nuevaclave.trim() == '') return { msg: 'El campo Nueva Contraseña no puede estar vacio' }
 
-    if (datos.nuevaclave !== datos.confirmarclave) return { msg: 'Las contraseñas no conciden' }
+        if (datos.nuevaclave.includes(' ')) return { msg: 'El campo Nueva Contraseña no puede contener espacios' }
 
-    // comporar por medio de contaseña que es en realidad el usuario quien desea actualizar los datos 
-    const validacionPassword = await validarPassword(datos.claveActual, sessionid)
+        if (datos.nuevaclave.length < 6 || datos.nuevaclave.length > 16) return { msg: 'La contraseña debe estar entre 6 y 16 caracteres' }
 
-    if (validacionPassword.msg) return res.json(validacionPassword)
-        
-    if (!validacionPassword) return res.json({ msg: 'La contraseña Actual es incorrecta'})
-           
+        if (datos.nuevaclave === datos.claveActual) return { msg: 'La nueva contraseña debe ser diferente a las utimas 3 contraseñas' }
 
-    const contraseña = await encryptPassword(datos.nuevaclave)
-   
-    const actualizar = await actualizarUsuario("UPDATE usuarios \n SET password = '" + contraseña + "' \n WHERE id = " + sessionid)
-    if(actualizar.msg) return res.json({ msg: 'No fuen posible actualizar la contraseña'})
+        if (datos.nuevaclave !== datos.confirmarclave) return { msg: 'Las contraseñas no conciden' }
 
-    res.json({ exito: 'Contraseña Actualizada Correctamente' })
+        // comporar por medio de contaseña que es en realidad el usuario quien desea actualizar los datos 
+        const validacionPassword = await validarPassword(datos.claveActual, sessionid)
+
+        if (validacionPassword.msg) return res.json(validacionPassword)
+
+        if (!validacionPassword) return res.json({ msg: 'La contraseña Actual es incorrecta' })
+
+
+        const contraseña = await encryptPassword(datos.nuevaclave)
+
+        const actualizar = await actualizarUsuario("UPDATE usuarios \n SET password = '" + contraseña + "' \n WHERE id = " + sessionid)
+        if (actualizar.msg) return res.json({ msg: 'No fuen posible actualizar la contraseña' })
+
+        res.json({ exito: 'Contraseña Actualizada Correctamente' })
+
+        const ipAddress = req.connection.remoteAddress.split('f:')[1]
+        actividadUsuario(sessionid, 'Cambio de contraseña ' + sessionid , ipAddress)
+
+    } catch (error) {
+        res.json({ msg: 'Ha ocurrido un error al Cambiar la contraseña' })
+        console.log('Cambiar contraseña' + error)
+
+    }
 }
+
 
 export {
     iniciaSesion,

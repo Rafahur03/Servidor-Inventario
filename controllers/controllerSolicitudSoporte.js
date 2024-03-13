@@ -233,197 +233,252 @@ const crearSolicitud = async (req, res) => {
             mensaje: 'Los requerimientos de la solicitud son: \n \n' + data.solicitud + '\n \n creada por : ' + nombreUsuario,
             nombre: 'Sol-' + guardado + '.pdf'
         }
+
+        const ipAddress = req.connection.remoteAddress.split('f:')[1]
+        actividadUsuario(sessionid, 'Crea Solicitud ' + guardado, ipAddress)
+
         await enviarCorreo(datos)
 
     } catch (error) {
-        res.json({msg: 'Ha ocurrido un error al intentar guardar la solicitud, antes de itentar crearla nuevamente, valida que esta se ya este creada'})
-        console.log('Ha ocurrido un error '+ error)
+        res.json({ msg: 'Ha ocurrido un error al intentar guardar la solicitud, antes de itentar crearla nuevamente, valida que esta se ya este creada' })
+        console.log('Ha ocurrido un error ' + error)
 
     }
 }
 
 const editarSolicitud = async (req, res) => {
+    try {
+        // validar permisos para crear activos
+        const { sessionid, permisos } = req
+        const data = req.body.datos
+        const solicitud = data.solicitud.split('-')[1]
+        if (solicitud != data.idSolicitud) return res.json({ msg: 'No se puede procesar la solicitud, Error en el ID de la solicitud' })
 
-    // validar permisos para crear activos
-    const { sessionid, permisos } = req
-    const data = req.body.datos
-    const solicitud = data.solicitud.split('-')[1]
-    if (solicitud != data.idSolicitud) return res.json({ msg: 'No se puede procesar la solicitud, Error en el ID de la solicitud' })
+        // VALIDAR QUE EL CODIGO PERTENESCA AL ACTIVO
+        const dataBd = await consultarSolicitudUno(data.idSolicitud)
+        if (dataBd === undefined) return { msg: 'No se contro la solictud que intenta modificar' }
+        if (dataBd.msg) return { msg: 'No se pudo validar la informacion intente mas tarde' }
+        if (data.idActivo === dataBd.id_activo) return res.json({ msg: 'La solicitud no corresponde al activo verifique la informacion' })
 
-    // VALIDAR QUE EL CODIGO PERTENESCA AL ACTIVO
-    const dataBd = await consultarSolicitudUno(data.idSolicitud)
+        if (dataBd.id_estado !== 1) return res.json({ msg: 'No se puede Actualizar la solictud, ya ha sido gestionada su estado es diferente de Abierto' })
 
-    if (dataBd.msg) return { msg: 'No se pudo validar la informacion intente mas tarde' }
-    if (data.idActivo === dataBd.id_activo) return res.json({ msg: 'La solicitud no corresponde al activo verifique la informacion' })
+        if (dataBd.idReporte !== null) return res.json({ msg: 'No se puede Actualizar la solictud, ya ha sido gestionada y tiene un reporte creado ' })
 
-    if (dataBd.id_estado !== 1) return res.json({ msg: 'No se puede Actualizar la solictud, ya ha sido gestionada su estado es diferente de Abierto' })
+        if (dataBd.idUsuario !== sessionid) if (permisos.indexOf(5) === -1) return res.json({ msg: 'Usted no tiene permisos para editar solicitudes' })
 
-    if (dataBd.idReporte !== null) return res.json({ msg: 'No se puede Actualizar la solictud, ya ha sido gestionada y tiene un reporte creado ' })
+        const validarDatos = validarDatoSolicitud(data)
 
-    if (dataBd.idUsuario !== sessionid) if (permisos.indexOf(5) === -1) return res.json({ msg: 'Usted no tiene permisos para editar solicitudes' })
+        if (validarDatos.msg) return res.json(validarDatos)
 
-    const validarDatos = validarDatoSolicitud(data)
-
-    if (validarDatos.msg) return res.json(validarDatos)
-
-    const actualizar = await actualizarSolicitud(data)
-    if (actualizar.msg) return res.json(actualizar)
+        const actualizar = await actualizarSolicitud(data)
+        if (actualizar.msg) return res.json(actualizar)
 
 
-    res.json({
-        exito: 'Activo actualizado correctamente'
-    })
+        res.json({
+            exito: 'Activo actualizado correctamente'
+        })
 
+        const ipAddress = req.connection.remoteAddress.split('f:')[1]
+        actividadUsuario(sessionid, 'Edita Solicitud ' + dataBd.id, ipAddress)
+    } catch (error) {
+        res.json({ msg: 'Ha ocurrido un error al intentar editar la solicitud' })
+        console.log('Ha ocurrido un error ' + error)
+
+
+    }
 }
 
 const eliminarSolicitud = async (req, res) => {
-    const { sessionid, permisos } = req
-    const data = req.body.datos
-    const solicitud = data.solicitud.split('-')[1]
-    if (solicitud != data.idSolicitud) return res.json({ msg: 'No se puede procesar la solicitud, Error en el ID de la solicitud' })
-
-    // VALIDAR QUE EL CODIGO PERTENESCA AL ACTIVO
-    const dataBd = await consultarSolicitudUno(data.idSolicitud)
-
-    if (dataBd.msg) return { msg: 'No se pudo validar la informacion intente mas tarde' }
-    if (data.idActivo === dataBd.id_activo) return res.json({ msg: 'La solicitud no corresponde al activo verifique la informacion' })
-
-    if (dataBd.id_estado !== 1) return res.json({ msg: 'No se puede eliminar la solictud, ya ha sido gestionada su estado es diferente de Abierto' })
-
-    if (dataBd.idReporte !== null) return res.json({ msg: 'No se puede eliminar la solictud, ya ha sido gestionada y tiene un reporte creado ' })
-
-    if (dataBd.idUsuario !== sessionid) if (permisos.indexOf(5) === -1) return res.json({ msg: 'Usted no tiene permisos para editar solicitudes' })
-
-    const actualizar = await eliminarSolicitudDb(dataBd.id)
-    if (actualizar.msg) return res.json(actualizar)
+    try {
 
 
-    res.json({
-        exito: 'Eliminado Correctamente',
-    })
+        const { sessionid, permisos } = req
+        const data = req.body.datos
+        const solicitud = data.solicitud.split('-')[1]
+        if (solicitud != data.idSolicitud) return res.json({ msg: 'No se puede procesar la solicitud, Error en el ID de la solicitud' })
+
+        // VALIDAR QUE EL CODIGO PERTENESCA AL ACTIVO
+        const dataBd = await consultarSolicitudUno(data.idSolicitud)
+        if (dataBd === undefined) return { msg: 'No se contro la solictud que intenta eliminar' }
+        if (dataBd.msg) return { msg: 'No se pudo validar la informacion intente mas tarde' }
+        if (data.idActivo === dataBd.id_activo) return res.json({ msg: 'La solicitud no corresponde al activo verifique la informacion' })
+
+        if (dataBd.id_estado !== 1) return res.json({ msg: 'No se puede eliminar la solictud, ya ha sido gestionada su estado es diferente de Abierto' })
+
+        if (dataBd.idReporte !== null) return res.json({ msg: 'No se puede eliminar la solictud, ya ha sido gestionada y tiene un reporte creado ' })
+
+        if (dataBd.idUsuario !== sessionid) if (permisos.indexOf(5) === -1) return res.json({ msg: 'Usted no tiene permisos para editar solicitudes' })
+
+        const actualizar = await eliminarSolicitudDb(dataBd.id)
+        if (actualizar.msg) return res.json(actualizar)
+
+
+        res.json({
+            exito: 'Eliminado Correctamente',
+        })
+
+        const ipAddress = req.connection.remoteAddress.split('f:')[1]
+        actividadUsuario(sessionid, 'Elimino Solicitud ' + dataBd.id, ipAddress)
+    } catch (error) {
+        res.json({ msg: 'Ha ocurrido un error al intentar eliminar la solicitud' })
+        console.log('Ha ocurrido un error ' + error)
+
+    }
 }
 
+
 const eliminarImagenSolicitud = async (req, res) => {
+    try {
+        const { sessionid, permisos } = req
+        const data = req.body.datos
+        const solicitud = data.solicitud.split('-')[1]
+        if (solicitud != data.idSolicitud) return res.json({ msg: 'No se puede procesar la solicitud, Error en el ID de la solicitud' })
 
-    const { sessionid, permisos } = req
-    const data = req.body.datos
-    const solicitud = data.solicitud.split('-')[1]
-    if (solicitud != data.idSolicitud) return res.json({ msg: 'No se puede procesar la solicitud, Error en el ID de la solicitud' })
+        // VALIDAR QUE EL CODIGO PERTENESCA AL ACTIVO
+        const dataBd = await consultarSolicitudUno(data.idSolicitud)
+        if (dataBd === undefined) return { msg: 'No se contro la solictud que intenta modificar' }
 
+        if (dataBd.msg) return { msg: 'No se pudo validar la informacion intente mas tarde' }
+        if (data.idActivo === dataBd.id_activo) return res.json({ msg: 'La solicitud no corresponde al activo verifique la informacion' })
 
-    // VALIDAR QUE EL CODIGO PERTENESCA AL ACTIVO
-    const dataBd = await consultarSolicitudUno(data.idSolicitud)
+        if (dataBd.id_estado !== 1) return res.json({ msg: 'No se puede eliminar la Imagen, la solicitud ya ha sido gestionada su estado es diferente de Abierto' })
 
-    if (dataBd.msg) return { msg: 'No se pudo validar la informacion intente mas tarde' }
-    if (data.idActivo === dataBd.id_activo) return res.json({ msg: 'La solicitud no corresponde al activo verifique la informacion' })
+        if (dataBd.idReporte !== null) return res.json({ msg: 'No se puede eliminar la Imagen, la solicitud ya ha sido gestionada y tiene un reporte creado ' })
 
-    if (dataBd.id_estado !== 1) return res.json({ msg: 'No se puede eliminar la Imagen, la solicitud ya ha sido gestionada su estado es diferente de Abierto' })
+        if (dataBd.idUsuario !== sessionid) if (permisos.indexOf(5) === -1) return res.json({ msg: 'Usted no tiene permisos para editar solicitudes' })
 
-    if (dataBd.idReporte !== null) return res.json({ msg: 'No se puede eliminar la Imagen, la solicitud ya ha sido gestionada y tiene un reporte creado ' })
+        const imagenes = dataBd.img_solicitud.split(',')
+        const imagen = data.imagen
+        const nuevaImagen = imagenes.filter((item) => item !== imagen)
+        if (imagenes.length == nuevaImagen.length) return res.json({ msg: 'No se encontro la imagen a eliminar' })
 
-    if (dataBd.idUsuario !== sessionid) if (permisos.indexOf(5) === -1) return res.json({ msg: 'Usted no tiene permisos para editar solicitudes' })
+        const datos = {
+            img_solicitud: nuevaImagen.toString(),
+            id: dataBd.id
+        }
+        const actualizar = await actualizarImagenesSolicitud(datos)
+        if (actualizar.msg) return res.json(actualizar)
 
-    const imagenes = dataBd.img_solicitud.split(',')
-    const imagen = data.imagen
-    const nuevaImagen = imagenes.filter((item) => item !== imagen)
-    if (imagenes.length == nuevaImagen.length) return res.json({ msg: 'No se encontro la imagen a eliminar' })
+        const dataActivo = await consultarCodigoInterno(dataBd.id_activo)
+        dataActivo.idSolicitud = dataBd.id
+        // elimina la imagen del bd
+        const eliminada = await eliminarImagenesSoliRepor(imagen, dataActivo, 1)
+        if (eliminada.msg) return res.json({ msg: 'No fue posible eliminar la imagen del directorio' })
 
-    const datos = {
-        img_solicitud: nuevaImagen.toString(),
-        id: dataBd.id
+        res.json({
+            exito: 'Eliminado Correctamente',
+        })
+
+        const ipAddress = req.connection.remoteAddress.split('f:')[1]
+        actividadUsuario(sessionid, 'Elimino Imagen Solicitud' + dataBd.id + ' imagenes ' + nuevaImagen.toString(), ipAddress)
+    } catch (error) {
+        res.json({ msg: 'Ha ocurrido un error al intentar eliminar la Imagen de la solicitud' })
+        console.log('eliminar la Imagen solicitud ' + error)
+
     }
-    const actualizar = await actualizarImagenesSolicitud(datos)
-    if (actualizar.msg) return res.json(actualizar)
 
-    const dataActivo = await consultarCodigoInterno(dataBd.id_activo)
-    dataActivo.idSolicitud = dataBd.id
-    // elimina la imagen del bd
-    const eliminada = await eliminarImagenesSoliRepor(imagen, dataActivo, 1)
-    if (eliminada.msg) return res.json({ msg: 'No fue posible eliminar la imagen del directorio' })
 
-    res.json({
-        exito: 'Eliminado Correctamente',
-    })
 }
 
 const guardarImagenSolicitud = async (req, res) => {
 
-    const { sessionid, permisos } = req
-    const data = req.body.datos
-    const solicitud = data.solicitud.split('-')[1]
-    if (solicitud != data.idSolicitud) return res.json({ msg: 'No se puede procesar la solicitud, Error en el ID de la solicitud' })
+    try {
+
+        const { sessionid, permisos } = req
+        const data = req.body.datos
+        const solicitud = data.solicitud.split('-')[1]
+        if (solicitud != data.idSolicitud) return res.json({ msg: 'No se puede procesar la solicitud, Error en el ID de la solicitud' })
 
 
-    // VALIDAR QUE EL CODIGO PERTENESCA AL ACTIVO
-    const dataBd = await consultarSolicitudUno(data.idSolicitud)
+        // VALIDAR QUE EL CODIGO PERTENESCA AL ACTIVO
+        const dataBd = await consultarSolicitudUno(data.idSolicitud)
 
-    if (dataBd.msg) return { msg: 'No se pudo validar la informacion intente mas tarde' }
-    if (data.idActivo === dataBd.id_activo) return res.json({ msg: 'La solicitud no corresponde al activo verifique la informacion' })
-
-
-    if (dataBd.id_estado !== 1) return res.json({ msg: 'No se puede cargar la Imagen, la solicitud ya ha sido gestionada su estado es diferente de Abierto' })
+        if (dataBd.msg) return { msg: 'No se pudo validar la informacion intente mas tarde' }
+        if (data.idActivo === dataBd.id_activo) return res.json({ msg: 'La solicitud no corresponde al activo verifique la informacion' })
 
 
-    if (dataBd.idReporte !== null) return res.json({ msg: 'No se puede cargar la Imagen, la solicitud ya ha sido gestionada y tiene un reporte creado ' })
+        if (dataBd.id_estado !== 1) return res.json({ msg: 'No se puede cargar la Imagen, la solicitud ya ha sido gestionada su estado es diferente de Abierto' })
 
-    if (dataBd.idUsuario !== sessionid) {
-        if (permisos.indexOf(5) === -1) {
-            return res.json({ msg: 'Usted no tiene permisos para editar solicitudes' })
+
+        if (dataBd.idReporte !== null) return res.json({ msg: 'No se puede cargar la Imagen, la solicitud ya ha sido gestionada y tiene un reporte creado ' })
+
+        if (dataBd.idUsuario !== sessionid) {
+            if (permisos.indexOf(5) === -1) {
+                return res.json({ msg: 'Usted no tiene permisos para editar solicitudes' })
+            }
         }
+
+        const imagen = data.imagen
+        const validacionImagen = validarImagenes(imagen)
+        if (validacionImagen.msg) return res.json(validacionImagen)
+
+        const imagenes = dataBd.img_solicitud.split(',')
+        if (imagenes.length >= 4) return res.json({ msg: 'La solicitud tiene 4 imagenes, el maximo que se puede subir' })
+
+        const dataActivo = await consultarCodigoInterno(dataBd.id_activo)
+        dataActivo.idSolicitud = dataBd.id
+
+        const guardarImagen = await guardarImagenesBase64(imagen, dataActivo, 1);
+        if (guardarImagen.msg) return res.json(guardarImagen)
+
+
+        if (imagenes[0] === '') imagenes.shift()
+        imagenes.push(guardarImagen);
+
+        const datos = {
+            img_solicitud: imagenes.toString(),
+            id: dataBd.id
+        }
+        const actualizar = await actualizarImagenesSolicitud(datos)
+        if (actualizar.msg) {
+            return res.json(actualizar)
+        }
+
+        res.json({
+            nombre: guardarImagen
+        })
+
+        const ipAddress = req.connection.remoteAddress.split('f:')[1]
+        actividadUsuario(sessionid, 'Guardar Imagen Solicitud' + dataBd.id + ' imagenes ' + guardarImagen, ipAddress)
+
+    } catch (error) {
+        res.json({ msg: 'Ha ocurrido un error al intentar Guardar la Imagen de la solicitud' })
+        console.log('Guardar la Imagen solicitud ' + error)
+
     }
-
-    const imagen = data.imagen
-    const validacionImagen = validarImagenes(imagen)
-    if (validacionImagen.msg) return res.json(validacionImagen)
-
-    const imagenes = dataBd.img_solicitud.split(',')
-    if (imagenes.length >= 4) return res.json({ msg: 'La solicitud tiene 4 imagenes, el maximo que se puede subir' })
-
-    const dataActivo = await consultarCodigoInterno(dataBd.id_activo)
-    dataActivo.idSolicitud = dataBd.id
-
-    const guardarImagen = await guardarImagenesBase64(imagen, dataActivo, 1);
-    if (guardarImagen.msg) return res.json(guardarImagen)
-
-
-    if (imagenes[0] === '') imagenes.shift()
-    imagenes.push(guardarImagen);
-
-    const datos = {
-        img_solicitud: imagenes.toString(),
-        id: dataBd.id
-    }
-    const actualizar = await actualizarImagenesSolicitud(datos)
-    if (actualizar.msg) {
-        return res.json(actualizar)
-    }
-
-    res.json({
-        nombre: guardarImagen
-    })
 }
 
 const descargarSolicitud = async (req, res) => {
 
+    try {
+        const { sessionid } = req
+        // extrae los datos del req 
+        const data = req.body.datos
+        const solicitud = data.solicitud.split('-')[1]
+        if (solicitud != data.idSolicitud) return res.json({ msg: 'No se puede procesar la solicitud, Error en el ID de la solicitud' })
+        // VALIDAR QUE EL CODIGO PERTENESCA AL ACTIVO
+        const dataBd = await consultarSolicitudUno(data.idSolicitud)
 
-    // extrae los datos del req 
-    const data = req.body.datos
-    const solicitud = data.solicitud.split('-')[1]
-    if (solicitud != data.idSolicitud) return res.json({ msg: 'No se puede procesar la solicitud, Error en el ID de la solicitud' })
-    // VALIDAR QUE EL CODIGO PERTENESCA AL ACTIVO
-    const dataBd = await consultarSolicitudUno(data.idSolicitud)
+        if (dataBd.msg) return request.json({ msg: 'En estos momentos no es posible validar la información  actualizar intetelo más tarde' })
 
-    if (dataBd.msg) return request.json({ msg: 'En estos momentos no es posible validar la información  actualizar intetelo más tarde' })
+        const pdfSolicitud = await crearPdfMake(dataBd.id, 'Solicitud')
+        res.json({
+            solicitud: `data:application/pdf;base64,${pdfSolicitud}`,
+            nombre: `Solictud - Sol-${dataBd.id}`
+        })
 
-    const pdfSolicitud = await crearPdfMake(dataBd.id, 'Solicitud')
-    res.json({
-        solicitud: `data:application/pdf;base64,${pdfSolicitud}`,
-        nombre: `Solictud - Sol-${dataBd.id}`
-    })
+        const ipAddress = req.connection.remoteAddress.split('f:')[1]
+        actividadUsuario(sessionid, 'Descargo Solicitud' + dataBd.id, ipAddress)
+
+    } catch (error) {
+        res.json({ msg: 'Ha ocurrido un error al intentar Guardar la Imagen de la solicitud' })
+        console.log('Guardar la Imagen solicitud ' + error)
+
+    }
+
 }
 
 const consultarSolicitudReporte = async (req, res) => {
-    const { permisos } = req
 
     if (permisos.indexOf(6) === -1) return res.json({ msg: 'Usted no tiene permisos para crear reportes' })
     const id = req.body.id

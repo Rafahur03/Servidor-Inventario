@@ -14,7 +14,7 @@ import {
 } from "../db/sqlInsumos.js"
 
 import { consultaconfi } from "../db/sqlConfig.js"
-import { consultarDataUsuario } from '../db/sqlUsuarios.js'
+import { consultarDataUsuario, actividadUsuario } from '../db/sqlUsuarios.js'
 import { validarImagenes, validarDocumentos } from "../helpers/validarFiles.js"
 
 import {
@@ -27,9 +27,12 @@ import {
     copiarCambiarNombreCArpeta
 } from "../helpers/copiarCarpetasArchivos.js"
 
+
+
 const consultartablasInsumo = async (req, res) => {
     try {
         const { permisos } = req
+      
         if (permisos.indexOf(7) === -1) return res.json({ msg: 'Usted no tiene permisos para este modulo' })
 
         const consulta = await consultarlistasInsumo()
@@ -206,10 +209,10 @@ const ingresoInicalInsumo = async (req, res) => {
 
         }
 
-
-
-
         res.json({ exito: 'Insumo Creado Correctamente', id: insumo.id })
+        
+        const ipAddress = req.connection.remoteAddress.split('f:')[1]
+        actividadUsuario(sessionid, 'Ingreso Inicial Insumo '+ insumo.id , ipAddress) 
 
 
     } catch (err) {
@@ -476,6 +479,9 @@ const movimientoInsumoBodega = async (req, res) => {
 
         res.json(nuevoMovimiento)
 
+        const ipAddress = req.connection.remoteAddress.split('f:')[1]
+        actividadUsuario(sessionid, data.tipoMovimiento +' Insumo '+ idInsumo , ipAddress)
+
     } catch (err) {
         console.log(err)
         res.json({ msg: 'No fue posible realizar el movimiento' })
@@ -488,7 +494,7 @@ const actualizarFactInsumo = async (req, res) => {
 
     try {
 
-        const { permisos } = req
+        const { sessionid, permisos } = req
         if (permisos.indexOf(9) == -1) return res.json({ msg: 'Usted no no tiene permiso para actualizar la factura del Insumo' })
 
         const data = req.body
@@ -518,7 +524,10 @@ const actualizarFactInsumo = async (req, res) => {
         const facturaInsumobd = await actualizarFacturaInsumo(insumo.id, facturaGuardada)
         if (facturaInsumobd.msg) return res.json({ msg: 'No fue posible guardar la factura del insumo en la base de datos, intentelo nuevamente' })
 
-        return res.json({ exito: 'Factura guardada correctamente', nombre: facturaGuardada })
+        res.json({ exito: 'Factura guardada correctamente', nombre: facturaGuardada })
+
+        const ipAddress = req.connection.remoteAddress.split('f:')[1]
+        actividadUsuario(sessionid,  'Cambio Factura Insumo '+ idInsumo  , ipAddress)
 
     } catch (err) {
         console.log(err)
@@ -532,7 +541,7 @@ const guardarImagInsumo = async (req, res) => {
 
     try {
 
-        const { permisos } = req
+        const {sessionid, permisos } = req
         if (permisos.indexOf(9) == -1) return res.json({ msg: 'Usted no no tiene permiso para actualizar la imagen del Insumo' })
 
         const data = req.body
@@ -552,7 +561,10 @@ const guardarImagInsumo = async (req, res) => {
         const imagenInsumobd = await actualizarImagenInsumo(insumo.id, imagenGuardada)
         if (imagenInsumobd.msg) return res.json({ msg: 'No fue posible guardar la imagen del insumo en la base de datos' })
 
-        return res.json({ exito: 'Imagen guardada correctamente', nombre: imagenGuardada })
+        res.json({ exito: 'Imagen guardada correctamente', nombre: imagenGuardada })
+
+        const ipAddress = req.connection.remoteAddress.split('f:')[1]
+        actividadUsuario(sessionid,  'Cambio Imagen Insumo '+ idInsumo  , ipAddress)
 
     } catch (err) {
         console.log(err)
@@ -566,7 +578,7 @@ const actualizarInsumo = async (req, res) => {
 
     try {
 
-        const { permisos } = req
+        const { sessionid, permisos } = req
         if (permisos.indexOf(9) == -1) return res.json({ msg: 'Usted no no tiene permiso para actualizar los datos del Insumo' })
 
         const data = req.body
@@ -668,6 +680,8 @@ const actualizarInsumo = async (req, res) => {
 
         res.json({ exito: 'El insumo ha sido actualizado correctamente' })
 
+        const ipAddress = req.connection.remoteAddress.split('f:')[1]
+        actividadUsuario(sessionid,  'Actualizar Insumo '+ idInsumo  , ipAddress)
 
     } catch (err) {
         console.log(err)
@@ -681,7 +695,7 @@ const eliminarFactInsumo = async (req, res) => {
 
     try {
 
-        const { permisos } = req
+        const {sessionid, permisos } = req
         if (permisos.indexOf(9) == -1) return res.json({ msg: 'Usted no no tiene permiso para eliminar la imagen del Insumo' })
 
         const data = req.body
@@ -706,6 +720,8 @@ const eliminarFactInsumo = async (req, res) => {
 
         res.json(eliminarImagen)
 
+        const ipAddress = req.connection.remoteAddress.split('f:')[1]
+        actividadUsuario(sessionid,  'Eliminar Factura Insumo '+ idInsumo  , ipAddress)
 
     } catch (err) {
         console.log(err)
@@ -717,8 +733,9 @@ const eliminarFactInsumo = async (req, res) => {
 }
 
 const descargarFactInsumo = async (req, res) => {
-
+    
     try {
+        const {sessionid } = req
         const data = req.body
 
         if (data.insumo !== data.idInsumo) return res.json({ msg: 'INSUMO NO VALIDO, cargue nuevamente e intente nuevamente' })
@@ -736,6 +753,9 @@ const descargarFactInsumo = async (req, res) => {
 
         res.json({ facturaInsumo: insumo.bufferFactura, nombre: insumo.FacturaPdf })
 
+        const ipAddress = req.connection.remoteAddress.split('f:')[1]
+        actividadUsuario(sessionid,  'Descargar Factura Insumo '+ idInsumo  , ipAddress)
+
 
     } catch (err) {
         console.log(err)
@@ -749,7 +769,7 @@ const eliminarImagInsumo = async (req, res) => {
 
     try {
 
-        const { permisos } = req
+        const { sessionid, permisos } = req
         if (permisos.indexOf(9) == -1) return res.json({ msg: 'Usted no no tiene permiso para eliminar la imagen del Insumo' })
 
         const data = req.body
@@ -773,6 +793,9 @@ const eliminarImagInsumo = async (req, res) => {
         if (eliminarImagen.msg) return res.json({ msg: 'No fue posible eliminar la imagen del insumo en el servidor' })
 
         res.json(eliminarImagen)
+        
+        const ipAddress = req.connection.remoteAddress.split('f:')[1]
+        actividadUsuario(sessionid,  'Eliminar Imagen Insumo '+ idInsumo  , ipAddress)
 
 
     } catch (err) {
