@@ -2,6 +2,7 @@ import express   from "express";
 import bodyParser from "body-parser"
 import dotenv from "dotenv";
 import {conectardb} from "./db/db.js";
+import { ejecutarBackup } from "./db/sqlBakcup.js";
 import router from "./routes/routes.js";
 
 dotenv.config()
@@ -15,6 +16,8 @@ app.use(express.json())
 
 conectardb();
 //define port
+ejecutarBackup()
+
 const PORT = process.env.PORT || 4000;
 
 // add router

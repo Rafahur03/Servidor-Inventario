@@ -18,6 +18,7 @@ const config = {
   },
 };
 
+console.log(config)
 const conectardb = async () => {
   try {
    

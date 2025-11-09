@@ -1,5 +1,4 @@
-cd C:\\Users\\USER\\Documents\\full-stack-inventario\\Servidor-Inventario
-
+cd C:\\SOPORTE_CLIOF\\Servidor-Inventario
 # Resucita los procesos con PM2
 pm2 resurrect
 
